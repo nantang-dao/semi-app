@@ -1,6 +1,7 @@
 @import "@nuxt/ui";
-@import "tailwindcss";
-
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 .container-size {
   width: 100%;
   max-width: 480px;
