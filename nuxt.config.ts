@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   ui: {
     fonts: false,
   },
-  modules: ["@nuxt/icon", "@nuxt/ui", "@pinia/nuxt"],
+  modules: ["@nuxt/icon", "@nuxt/ui", "@pinia/nuxt","@nuxtjs/tailwindcss"],
   css: ["~/assets/css/main.css"],
   routeRules: {
     "/api/**": {
