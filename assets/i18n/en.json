@@ -240,5 +240,12 @@
   "Delete Contact Success": "Delete Contact Success",
   "Contact has been deleted successfully": "Contact has been deleted successfully",
   "Delete Contact Failed": "Delete Contact Failed",
+  "NFTs": "NFTs",
+  "No NFTs Yet": "No NFTs Yet",
+  "NFT Details": "NFT Details",
+  "Token ID": "Token ID",
+  "Token Standard": "Token Standard",
+  "Collection": "Collection",
+  "Close": "Close",
   "Transfer": "Transfer"
 }

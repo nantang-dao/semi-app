@@ -240,5 +240,11 @@
   "Delete Contact Success": "删除联系人成功",
   "Contact has been deleted successfully": "联系人已成功删除",
   "Delete Contact Failed": "删除联系人失败",
+  "No NFTs Yet": "暂无NFT",
+  "NFT Details": "NFT详情",
+  "Token ID": "代币ID",
+  "Token Standard": "代币标准",
+  "Collection": "合集",
+  "Close": "关闭"
   "Transfer": "转账"
 }
