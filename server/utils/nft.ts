@@ -29,6 +29,8 @@ export interface NFT {
   image?: string;
   tokenType: "ERC721" | "ERC1155";
   collectionName?: string;
+  attributes?: Record<string,any>;
+  rawMetadata?:any;
 }
 
 /**
@@ -55,6 +57,48 @@ export async function getOwnedNFTs(
 
       // 处理ERC721和ERC1155
       for (const nft of response.ownedNfts) {
+        // 获取完整的元数据（包含 attributes）
+        let fullMetadata = null;
+        let attributes: Record<string,any> | undefined = undefined;
+
+        try{
+          const metadataResponse = await alchemy.nft.getNftMetadata
+          (
+            nft.contract.address,
+            nft.tokenId
+          );
+          fullMetadata = metadataResponse.raw;
+
+          // 获取 attributes
+          if(metadataResponse.raw?.metadata)
+          {
+            const metadata = metadataResponse.raw.metadata;
+            // 处理 attrbutes 的不同格式
+            if(metadata.attributes)
+            {
+              if(Array.isArray(metadata.attributes))
+              {
+                // OpenSea 的元数据标准: [{trait_type: "时间", value: "2025-11-23"}]
+                attributes={};
+                metadata.attributes.forEach((attr:any)=>
+                {
+                  if(attr.trait_type && attr.value !== undefined)
+                  {
+                    attributes![attr.trait_type]=attr.value;
+                  }
+                });
+              } else if(typeof metadata.attributes === 'object')
+              {
+                  // 直接对象格式: {时间: "2025-11-23"}
+                  attributes = metadata.attributes;
+              }
+            }
+          }
+        } catch (error)
+        {
+          console.warn('Failed to fetch full metadata for ${nft.contract.address}/${nft.tokenId}:', error);
+        }
+        
         const nftData: NFT = {
           contractAddress: nft.contract.address,
           tokenId: nft.tokenId,
@@ -63,6 +107,8 @@ export async function getOwnedNFTs(
           image: nft.image?.originalUrl || nft.image?.pngUrl || nft.image?.cachedUrl,
           tokenType: nft.tokenType === "ERC1155" ? "ERC1155" : "ERC721",
           collectionName: nft.contract.name,
+          attributes,
+          rawMetadata: fullMetadata,
         };
 
         allNFTs.push(nftData);
