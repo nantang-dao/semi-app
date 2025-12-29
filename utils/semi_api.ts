@@ -292,6 +292,10 @@ export interface TransactionRecord {
   chain: string;
   data: string; // TransactionReceipt 的 JSON 字符串
   memo: string;
+  sender_note?: string;
+  receiver_note?: string;
+  sender_address?: string;
+  receiver_address?: string;
 }
 
 // 上传交易记录
