@@ -20,6 +20,7 @@ export function displayBalance(wei: bigint, fixed = 6, decimals = 18) {
 }
 
 export interface ActionPreview {
+  id?: number;
   from: string;
   to: string;
   value: bigint;
@@ -32,6 +33,8 @@ export interface ActionPreview {
   symbol?: string;
   decimals?: number;
   memo?: string;
+  senderNote?: string;
+  receiverNote?: string;
 }
 
 export function parseSendActions(history: any[]) {

@@ -63,6 +63,15 @@
                         <UIcon name="ci:chat-alt" class="text-gray-400 text-base" />
                         <span>{{ action.memo }}</span>
                     </div>
+                    <div class="flex items-center gap-2 mt-1" v-if="action.id">
+                        <div class="flex flex-row gap-1 items-center text-sm" v-if="action.senderNote">
+                            <UIcon name="ci:chat-alt-check" class="text-blue-400 text-base" />
+                            <span class="text-gray-500">{{ i18n.text["Sender Note"] }}: {{ action.senderNote }}</span>
+                        </div>
+                        <UButton icon="i-heroicons-pencil-square" color="primary" variant="subtle" size="xs" @click.stop="handleEditClick(action, 'sender')" class="text-xs">
+                            {{ action.senderNote ? i18n.text["Edit"] : i18n.text["Add Note"] }}
+                        </UButton>
+                    </div>
                 </div>
             </template>
             <template #receive="{ item }">
@@ -104,9 +113,35 @@
                         <UIcon name="ci:chat-alt" class="text-gray-400 text-base" />
                         <span>{{ action.memo }}</span>
                     </div>
+                    <div class="flex items-center gap-2 mt-1" v-if="action.id">
+                        <div class="flex flex-row gap-1 items-center text-sm" v-if="action.receiverNote">
+                            <UIcon name="ci:chat-alt-check" class="text-green-400 text-base" />
+                            <span class="text-gray-500">{{ i18n.text["Receiver Note"] }}: {{ action.receiverNote }}</span>
+                        </div>
+                        <UButton icon="i-heroicons-pencil-square" color="primary" variant="subtle" size="xs" @click.stop="handleEditClick(action, 'receiver')" class="text-xs">
+                            {{ action.receiverNote ? i18n.text["Edit"] : i18n.text["Add Note"] }}
+                        </UButton>
+                    </div>
                 </div>
             </template>
         </UTabs>
+
+        <!-- 编辑备注 Modal -->
+        <UModal v-model:open="showEditModal" :title="editType === 'sender' ? i18n.text['Sender Note'] : i18n.text['Receiver Note']">
+            <template #body>
+                <div class="flex flex-col gap-4">
+                    <UFormField :label="editType === 'sender' ? i18n.text['Sender Note'] : i18n.text['Receiver Note']">
+                        <UInput v-model="editNoteValue" :placeholder="editType === 'sender' ? i18n.text['Please enter sender note'] : i18n.text['Please enter receiver note']" class="w-full" size="xl" variant="subtle" />
+                    </UFormField>
+                </div>
+            </template>
+            <template #footer>
+                <div class="flex justify-end gap-3 w-full">
+                    <UButton color="neutral" variant="ghost" size="xl" @click="showEditModal = false">{{ i18n.text["Cancel"] }}</UButton>
+                    <UButton color="primary" size="xl" :loading="savingNote" @click="saveNote">{{ i18n.text["Confirm"] }}</UButton>
+                </div>
+            </template>
+        </UModal>
     </div>
 </template>
 
@@ -118,7 +153,7 @@ import type { Chain } from "viem";
 import { formatAddress, displayDate, displayBalance, type ActionPreview } from "../utils/display";
 import { getReceiveActions, getSendActionsV2 } from "../utils/actions";
 import type { TabsItem } from "@nuxt/ui";
-import { getTransactions } from "../utils/semi_api";
+import { getTransactions, setTransactionNote, getTokenClass } from "../utils/semi_api";
 
 const userStore = useUserStore();
 const user = computed(() => userStore.user);
@@ -130,6 +165,66 @@ const receiveActions = ref<ActionPreview[]>([]);
 const toast = useToast();
 
 const router = useRouter();
+
+// 编辑备注相关
+const showEditModal = ref(false);
+const savingNote = ref(false);
+const editingAction = ref<ActionPreview | null>(null);
+const editType = ref<'sender' | 'receiver'>('receiver');
+const editNoteValue = ref("");
+
+const handleEditClick = (action: ActionPreview, type: 'sender' | 'receiver') => {
+    editingAction.value = action;
+    editType.value = type;
+    editNoteValue.value = (type === 'sender' ? action.senderNote : action.receiverNote) || "";
+    showEditModal.value = true;
+};
+
+const saveNote = async () => {
+    if (!editingAction.value?.id) return;
+
+    savingNote.value = true;
+    try {
+        const params: any = { id: editingAction.value.id };
+        if (editType.value === 'sender') {
+            params.sender_note = editNoteValue.value;
+        } else {
+            params.receiver_note = editNoteValue.value;
+        }
+
+        await setTransactionNote(params);
+
+        // 更新本地状态
+        const updateNote = (action: ActionPreview) => {
+            if (action.txHex === editingAction.value?.txHex) {
+                if (editType.value === 'sender') {
+                    return { ...action, senderNote: editNoteValue.value };
+                } else {
+                    return { ...action, receiverNote: editNoteValue.value };
+                }
+            }
+            return action;
+        };
+
+        sendActions.value = sendActions.value.map(updateNote);
+        receiveActions.value = receiveActions.value.map(updateNote);
+
+        toast.add({
+            title: i18n.text["Setup Success"],
+            color: "success"
+        });
+        showEditModal.value = false;
+    } catch (error) {
+        console.error("Failed to save note:", error);
+        toast.add({
+            title: i18n.text["Error"],
+            description: (error as Error).message,
+            color: "error"
+        });
+    } finally {
+        savingNote.value = false;
+    }
+};
 
 const toExplorer = (tx: string) => {
     const url = useChain.chain.blockExplorers?.default?.url;
@@ -166,19 +261,25 @@ onMounted(async () => {
             ];
             let [sendActionsList, receiveActionsList] = await Promise.all(tasks);
 
-            const sendTxHashes = sendActions.value.map((action) => action.txHex);
-            const receiveTxHashes = receiveActions.value.map((action) => action.txHex);
-            const txHashes = [...sendTxHashes, ...receiveTxHashes];
-            const serverTransactionsList = await getTransactions(txHashes.join(","));
+            // 默认获取所有交易记录以确保 ID 匹配
+            const serverTransactionsList = await getTransactions();
             console.log("[serverTransactionsList]:", serverTransactionsList);
-            sendActions.value = sendActionsList.map((action) => {
-                const memo = serverTransactionsList.transactions.find((tx) => tx.tx_hash === action.txHex)?.memo;
-                return { ...action, memo };
-            });
-            receiveActions.value = receiveActionsList.map((action) => {
-                const memo = serverTransactionsList.transactions.find((tx) => tx.tx_hash === action.txHex)?.memo;
-                return { ...action, memo };
-            });
+
+            const matchTx = (action: ActionPreview) => {
+                const tx = serverTransactionsList?.transactions?.find(
+                    (tx) => tx.tx_hash.toLowerCase() === action.txHex.toLowerCase()
+                );
+                return {
+                    ...action,
+                    id: tx?.id,
+                    memo: tx?.memo || action.memo,
+                    senderNote: tx?.sender_note,
+                    receiverNote: tx?.receiver_note
+                };
+            };
+
+            sendActions.value = sendActionsList.map(matchTx);
+            receiveActions.value = receiveActionsList.map(matchTx);
             console.log("[sendActions]:", sendActions.value);
             console.log("[receiveActions]:", receiveActions.value);
         } catch (error) {

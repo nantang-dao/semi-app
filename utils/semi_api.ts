@@ -286,6 +286,7 @@ export async function getRemainingGasCredits(): Promise<RemainingGasCreditsRespo
 }
 
 export interface TransactionRecord {
+  id?: number;
   tx_hash: string;
   gas_used: string;
   status: string;
@@ -304,6 +305,20 @@ export async function uploadTransaction(transaction: TransactionRecord): Promise
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(transaction),
+  });
+  return handleRequest<BaseResponse>(response);
+}
+
+// 设置交易备注
+export async function setTransactionNote(props: {
+  id: number;
+  sender_note?: string;
+  receiver_note?: string;
+}): Promise<BaseResponse> {
+  const response = await fetch(`${API_BASE_URL}/set_transaction_note`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(props),
   });
   return handleRequest<BaseResponse>(response);
 }

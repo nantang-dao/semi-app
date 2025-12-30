@@ -86,6 +86,18 @@
               />
           </UFormField>
 
+          <UFormField name="receiverNote" :label="i18n.text['Receiver Note'] + '(optional)'" class="mt-4">
+            <UInput
+                variant="subtle"
+                size="xl"
+                class="w-full flex-1"
+                v-model="formState.receiverNote"
+                :placeholder="i18n.text['Please enter receiver note']"
+                :ui="{ base: 'w-full' }"
+                :disabled="initializing"
+              />
+          </UFormField>
+
           <div class="mt-4">
             <div class="text-gray-400 text-sm">{{ i18n.text["Balance"] }}</div>
             <div class="flex items-center gap-2">
@@ -212,6 +224,7 @@ interface FormState {
   token: TokenClass | undefined;
   memo: string;
   senderNote: string;
+  receiverNote: string;
   remainingFreeTransactions: number;
   gasEstimate: string;
 }
@@ -253,6 +266,7 @@ const formState = reactive<FormState>({
   gasEstimate: "0",
   memo: "",
   senderNote: "",
+  receiverNote: "",
 });
 
 // 计算属性
@@ -326,6 +340,7 @@ const resetForm = () => {
   formState.recipient = null;
   formState.code = [...DEFAULT_CODE];
   formState.senderNote = "";
+  formState.receiverNote = "";
 };
 
 // 业务逻辑函数
@@ -456,6 +471,7 @@ const handleTokenTransfer = async () => {
       data: JSON.stringify(receipt) as any,
       memo: formState.memo,
       sender_note: formState.senderNote,
+      receiver_note: formState.receiverNote,
       sender_address: user.user?.evm_chain_address || "",
       receiver_address: formState.recipient as string,
     };
