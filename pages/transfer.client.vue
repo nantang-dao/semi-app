@@ -86,17 +86,6 @@
               />
           </UFormField>
 
-          <UFormField name="receiverNote" :label="i18n.text['Receiver Note'] + '(optional)'" class="mt-4">
-            <UInput
-                variant="subtle"
-                size="xl"
-                class="w-full flex-1"
-                v-model="formState.receiverNote"
-                :placeholder="i18n.text['Please enter receiver note']"
-                :ui="{ base: 'w-full' }"
-                :disabled="initializing"
-              />
-          </UFormField>
 
           <div class="mt-4">
             <div class="text-gray-400 text-sm">{{ i18n.text["Balance"] }}</div>
