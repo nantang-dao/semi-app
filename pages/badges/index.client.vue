@@ -27,7 +27,7 @@
     <!-- 主标签切换：徽章 和 NFTs -->
     <div class="flex gap-2 mb-4 border-b border-gray-200">
       <button
-        @click="activeMainTab = 'badges'"
+        @click="updateMainTab('badges')"
         :class="[
           'px-4 py-2 font-medium transition-colors',
           activeMainTab === 'badges'
@@ -38,7 +38,7 @@
         {{ i18n.text["Badges"] }}
       </button>
       <button
-        @click="activeMainTab = 'nfts'"
+        @click="updateMainTab('nfts')"
         :class="[
           'px-4 py-2 font-medium transition-colors',
           activeMainTab === 'nfts'
@@ -60,7 +60,12 @@
 
     <!-- 徽章内容 -->
     <div v-else-if="activeMainTab === 'badges'">
-      <UTabs :items="badgeTabs" :unmount-on-hide="false" class="w-full overflow-auto">
+      <UTabs
+        :items="badgeTabs"
+        v-model="activeSubTabIndex"
+        :unmount-on-hide="false"
+        class="w-full overflow-auto"
+      >
         <template #owned="{ item }">
           <NoBadge v-if="ownedBadges.length === 0" />
           <div class="grid grid-cols-3 gap-3 py-4" v-else>
@@ -108,6 +113,7 @@ import type { NFT } from "@/server/utils/nft";
 
 const i18n = useI18n();
 const router = useRouter();
+const route = useRoute();
 const user = useUserStore();
 const useChain = useChainStore();
 
@@ -116,9 +122,8 @@ const pendingBadges = ref<Badge[]>([]);
 const ownedBadges = ref<Badge[]>([]);
 const nfts = ref<NFT[]>([]);
 const isLoading = ref(true);
-const activeMainTab = ref<"badges" | "nfts">("badges");
 
-const badgeTabs: TabsItem[] = [
+const badgeTabs = computed<TabsItem[]>(() => [
   {
     label: i18n.text["Owned"],
     slot: "owned" as const,
@@ -131,7 +136,45 @@ const badgeTabs: TabsItem[] = [
     label: i18n.text["Pending"],
     slot: "pending" as const,
   },
-];
+]);
+
+const activeMainTab = ref<"badges" | "nfts">((route.query.tab as "badges" | "nfts") || "badges");
+const activeSubTabIndex = ref(
+  badgeTabs.value.findIndex((t) => t.slot === route.query.subtab) !== -1
+    ? badgeTabs.value.findIndex((t) => t.slot === route.query.subtab)
+    : 0
+);
+
+const updateMainTab = (tab: "badges" | "nfts") => {
+  activeMainTab.value = tab;
+  router.replace({ query: { ...route.query, tab } });
+};
+
+watch(activeSubTabIndex, (newVal) => {
+  const subtab = badgeTabs.value[newVal]?.slot;
+  if (subtab) {
+    router.replace({ query: { ...route.query, subtab } });
+  }
+});
+
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab === "nfts" || newTab === "badges") {
+      activeMainTab.value = newTab;
+    }
+  }
+);
+
+watch(
+  () => route.query.subtab,
+  (newSubTab) => {
+    const index = badgeTabs.value.findIndex((t) => t.slot === newSubTab);
+    if (index !== -1) {
+      activeSubTabIndex.value = index;
+    }
+  }
+);
 
 const fetchBadgeClasses = async () => {
   const url = `/api/badge/classes/list?chain_id=${useChain.chain.id}&wallet_address=${user.user?.evm_chain_address}`;
