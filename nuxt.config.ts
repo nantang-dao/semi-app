@@ -22,6 +22,20 @@ export default defineNuxtConfig({
       htmlAttrs: {
         lang: "zh-CN",
       },
+      script: [
+        {
+          src: "https://cdn.trackjs.com/agent/v3/latest/t.js",
+          async: true,
+        },
+        {
+          innerHTML: `
+            window.TrackJS && TrackJS.install({
+              token: "2caaa43bd51e4145974e83e69df5a990",
+              // for more configuration options, see https://docs.trackjs.com
+            });
+          `,
+        },
+      ],
     },
   },
 });
