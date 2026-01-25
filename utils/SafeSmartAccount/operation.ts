@@ -108,6 +108,19 @@ const getGasParameters = async ({
     typeof gas.verificationGasLimit === "bigint" &&
     gas.verificationGasLimit === BigInt(0)
   ) {
+    $fetch("/api/log-error", {
+      method: "POST",
+      body: {
+        error: 'verificationGasLimit is 0',
+        href: window.location.href,
+        info: {
+          gasPrice,
+          maxFeePerGas: gasPrice.maxFeePerGas,
+          maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
+        },
+        wallet_address: smartAccount,
+      },
+    });
     throw new Error(
       `Bundler gas estimate returned verificationGasLimit=0. This usually means validateUserOp reverted (bad signature/nonce) or the account cannot prefund gas (no paymaster + insufficient ETH).`
     );
@@ -139,7 +152,10 @@ const executeUserOperation = async (params: any, bundlerClient: any) => {
   }
 };
 
-const assertAccountHasCode = async (publicClient: any, address: Address) => {
+const assertAccountHasCode = async (publicClient: any, address: Address, sponsorFee: boolean) => {
+  // if sponsorFee, we don't need to assert account has code, because the bundler will create AA for new account automatically
+  if (sponsorFee) return;
+
   const bytecode = await publicClient.getBytecode({ address });
   if (!bytecode || bytecode === "0x") {
     throw new Error(
@@ -207,7 +223,7 @@ export const transfer = async ({ to, amount, privateKey, chain, sponsorFee }: Tr
     Object.assign(params, gasParams);
   }
 
-  await assertAccountHasCode(publicClient, smartAccount.address);
+  await assertAccountHasCode(publicClient, smartAccount.address, sponsorFee);
   await assertCanPrefund(publicClient, smartAccount.address, gasParams, sponsorFee);
 
   return executeUserOperation(params, bundlerClient);
@@ -258,7 +274,7 @@ export const transferErc20 = async ({
     Object.assign(params, gasParams);
   }
 
-  await assertAccountHasCode(publicClient, smartAccount.address);
+  await assertAccountHasCode(publicClient, smartAccount.address, sponsorFee);
   await assertCanPrefund(publicClient, smartAccount.address, gasParams, sponsorFee);
 
   return executeUserOperation(params, bundlerClient);
