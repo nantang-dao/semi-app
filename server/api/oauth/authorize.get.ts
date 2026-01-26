@@ -1,6 +1,9 @@
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
-  let { client_id, response_type, redirect_uri, state } = query;
+  let client_id = Array.isArray(query.client_id) ? query.client_id[0] : query.client_id;
+  let response_type = Array.isArray(query.response_type) ? query.response_type[0] : query.response_type;
+  let redirect_uri = Array.isArray(query.redirect_uri) ? query.redirect_uri[0] : query.redirect_uri;
+  let state = Array.isArray(query.state) ? query.state[0] : query.state;
 
   // Check if there's a saved OAuth state from login redirect
   const savedOAuthState = getCookie(event, "oauth_request_state");
@@ -12,6 +15,7 @@ export default defineEventHandler(async (event) => {
       redirect_uri = parsedState.redirect_uri;
       state = parsedState.state;
     } catch (e) {
+      console.error("Failed to parse saved OAuth state:", e);
       // Invalid saved state, ignore and proceed with query params
     }
   }
@@ -68,8 +72,9 @@ export default defineEventHandler(async (event) => {
     };
 
     // Save OAuth request state in cookie (expires in 10 minutes)
+    const expiryTime = new Date(Date.now() + 600 * 1000); // 10 minutes
     setCookie(event, "oauth_request_state", JSON.stringify(oauthState), {
-      maxAge: 600, // 10 minutes
+      expires: expiryTime,
       httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -85,13 +90,7 @@ export default defineEventHandler(async (event) => {
   const expiresIn = 3600; // 1 hour
 
   // Clear the OAuth state cookie if it exists
-  setCookie(event, "oauth_request_state", "", {
-    maxAge: -1, // Delete cookie
-    httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
+  deleteCookie(event, "oauth_request_state");
 
   // If redirect_uri is provided, redirect with token in fragment
   if (redirect_uri) {
