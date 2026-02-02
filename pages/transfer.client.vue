@@ -1,12 +1,7 @@
 <template>
   <div class="flex flex-col container-size rounded-xl bg-[var(--ui-bg)] shadow-lg p-4">
-    <UButton
-      icon="i-heroicons-arrow-left"
-      color="neutral"
-      variant="ghost"
-      class="self-start mb-4"
-      @click="router.push('/')"
-    >
+    <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" class="self-start mb-4"
+      @click="router.push('/')">
       {{ i18n.text["Back"] }}
     </UButton>
     <div class="flex flex-col items-center justify-center h-full gap-4 pb-8 w-[80%] mx-auto">
@@ -17,25 +12,12 @@
         <UForm :state="formState" @submit="onSubmit" class="w-full">
           <UFormField name="to" :label="i18n.text['Recipient (supports address or phone number)']">
             <div class="flex items-start flex-row gap-2">
-              <UTextarea
-                size="xl"
-                class="w-full"
-                variant="subtle"
-                :rows="5"
-                v-model="formState.to"
-                :placeholder="i18n.text['Please enter recipient address/phone number']"
-                :ui="{ base: 'w-full' }"
-                :disabled="initializing"
-              />
+              <UTextarea size="xl" class="w-full" variant="subtle" :rows="5" v-model="formState.to"
+                :placeholder="i18n.text['Please enter recipient address/phone number']" :ui="{ base: 'w-full' }"
+                :disabled="initializing" />
               <div class="flex flex-col gap-2">
-                <UButton
-                  icon="ci:close-md"
-                  color="neutral"
-                  variant="subtle"
-                  size="xl"
-                  class="text-2xl cursor-pointer"
-                  @click="formState.to = ''"
-                >
+                <UButton icon="ci:close-md" color="neutral" variant="subtle" size="xl" class="text-2xl cursor-pointer"
+                  @click="formState.to = ''">
                 </UButton>
                 <ScanQrcodeBtn @onDetect="handleQrCodeDetect" />
                 <ContactsButton @onSelect="handleContactSelect" />
@@ -45,54 +27,28 @@
 
           <UFormField name="amount" :label="i18n.text['Send Amount']" class="mt-4">
             <div class="flex items-center gap-2">
-              <TokenSwitch
-                :token-list="tokenList"
-                v-model="formState.token"
-                v-if="formState.token"
-              />
-              <UInput
-                variant="subtle"
-                size="xl"
-                class="w-full flex-1"
-                v-model="formState.amount"
-                :placeholder="i18n.text['Please enter send amount']"
-                :ui="{ base: 'w-full' }"
-                :disabled="initializing || !balance"
-              />
+              <TokenSwitch :token-list="tokenList" v-model="formState.token" v-if="formState.token" />
+              <UInput variant="subtle" size="xl" class="w-full flex-1" v-model="formState.amount"
+                :placeholder="i18n.text['Please enter send amount']" :ui="{ base: 'w-full' }"
+                :disabled="initializing || !balance" />
             </div>
           </UFormField>
 
           <UFormField name="memo" :label="i18n.text['Memo(optional)']" class="mt-4">
-            <UInput
-                variant="subtle"
-                size="xl"
-                class="w-full flex-1"
-                v-model="formState.memo"
-                :placeholder="i18n.text['Please enter memo']"
-                :ui="{ base: 'w-full' }"
-                :disabled="initializing"
-              />
+            <UInput variant="subtle" size="xl" class="w-full flex-1" v-model="formState.memo"
+              :placeholder="i18n.text['Please enter memo']" :ui="{ base: 'w-full' }" :disabled="initializing" />
           </UFormField>
 
           <UFormField name="senderNote" :label="i18n.text['Sender Note']" class="mt-4">
-            <UInput
-                variant="subtle"
-                size="xl"
-                class="w-full flex-1"
-                v-model="formState.senderNote"
-                :placeholder="i18n.text['Please enter sender note']"
-                :ui="{ base: 'w-full' }"
-                :disabled="initializing"
-              />
+            <UInput variant="subtle" size="xl" class="w-full flex-1" v-model="formState.senderNote"
+              :placeholder="i18n.text['Please enter sender note']" :ui="{ base: 'w-full' }" :disabled="initializing" />
           </UFormField>
 
 
           <div class="mt-4">
             <div class="text-gray-400 text-sm">{{ i18n.text["Balance"] }}</div>
             <div class="flex items-center gap-2">
-              <span class="text-3xl font-bold" v-if="initializing"
-                >-- {{ formState.token?.symbol }}</span
-              >
+              <span class="text-3xl font-bold" v-if="initializing">-- {{ formState.token?.symbol }}</span>
               <span class="text-3xl font-bold" v-else>
                 {{ displayBalance(balance, 6, formState.token?.decimals) }}
                 {{ formState.token?.symbol }}
@@ -100,14 +56,8 @@
             </div>
           </div>
 
-          <UButton
-            type="submit"
-            color="primary"
-            class="w-full mt-4 flex justify-center items-center"
-            size="xl"
-            :loading="initializing || loading"
-            :disabled="initializing || loading || !isFormValid || !balance"
-          >
+          <UButton type="submit" color="primary" class="w-full mt-4 flex justify-center items-center" size="xl"
+            :loading="initializing || loading" :disabled="initializing || loading || !isFormValid || !balance">
             {{ i18n.text["Next"] }}
           </UButton>
         </UForm>
@@ -123,16 +73,8 @@
 
         <UForm :state="formState" @submit="onSubmit" class="w-full">
           <UFormField name="code">
-            <UPinInput
-              variant="subtle"
-              type="number"
-              v-model="formState.code"
-              :length="6"
-              size="xl"
-              class="w-full"
-              :ui="{ base: 'w-full' }"
-              mask
-            />
+            <UPinInput variant="subtle" type="number" v-model="formState.code" :length="6" size="xl" class="w-full"
+              :ui="{ base: 'w-full' }" mask />
           </UFormField>
 
           <div class="text-gray-400 text-sm mt-3" v-if="formState.gasEstimate !== '0'">
@@ -140,12 +82,10 @@
               {{ i18n.text["Estimated Fee"] }}
               <FeeTipPopup />
             </span>
-            <span
-              :class="[
-                'font-bold text-base text-foreground',
-                formState.remainingFreeTransactions > 0 ? 'line-through' : '',
-              ]"
-            >
+            <span :class="[
+              'font-bold text-base text-foreground',
+              formState.remainingFreeTransactions > 0 ? 'line-through' : '',
+            ]">
               {{ formState.gasEstimate }} Gwei
             </span>
           </div>
@@ -158,24 +98,12 @@
           </div>
 
           <div class="flex gap-4 mt-4">
-            <UButton
-              type="button"
-              color="neutral"
-              class="flex-1 flex justify-center items-center"
-              size="xl"
-              :disabled="loading"
-              @click="handleReset"
-            >
+            <UButton type="button" color="neutral" class="flex-1 flex justify-center items-center" size="xl"
+              :disabled="loading" @click="handleReset">
               {{ i18n.text["Previous"] }}
             </UButton>
-            <UButton
-              type="submit"
-              color="primary"
-              class="flex-1 flex justify-center items-center"
-              size="xl"
-              :loading="loading"
-              :disabled="loading || !isCodeComplete"
-            >
+            <UButton type="submit" color="primary" class="flex-1 flex justify-center items-center" size="xl"
+              :loading="loading" :disabled="loading || !isCodeComplete">
               {{ i18n.text["Confirm"] }}
             </UButton>
           </div>
@@ -226,6 +154,11 @@ interface TransferParams {
   erc20TokenAddress?: `0x${string}`;
   sponsorFee: boolean;
 }
+
+// 解决BigInt序列化问题
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
 
 // 常量
 const CODE_LENGTH = 6;
@@ -347,10 +280,10 @@ const fetchTokenBalance = async () => {
       formState.token.address === zeroAddress
         ? await getBalance(predictSafeAddress, useChain.chain)
         : await getErc20Balance(
-            predictSafeAddress,
-            formState.token.address as `0x${string}`,
-            useChain.chain
-          );
+          predictSafeAddress,
+          formState.token.address as `0x${string}`,
+          useChain.chain
+        );
   } catch (error) {
     handleError(error, i18n.text["Get balance failed"]);
   } finally {
@@ -446,11 +379,6 @@ const handleTokenTransfer = async () => {
     const receipt = await (formState.token.address === zeroAddress
       ? transfer(transferParams)
       : transferErc20(transferParams));
-
-    // 解决BigInt序列化问题
-    (BigInt.prototype as any).toJSON = function () {
-      return this.toString();
-    };
 
     const uploadData = {
       tx_hash: receipt.receipt.transactionHash,

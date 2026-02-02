@@ -95,16 +95,6 @@ const getGasParameters = async ({
     );
   }
 
-  const detail = {
-    preVerificationGas: gas.preVerificationGas.toString(),
-    verificationGasLimit: gas.verificationGasLimit?.toString?.(),
-    callGasLimit: gas.callGasLimit?.toString?.(),
-    paymasterVerificationGasLimit: gas.paymasterVerificationGasLimit?.toString?.(),
-    paymasterPostOpGasLimit: gas.paymasterPostOpGasLimit?.toString?.(),
-  }
-
-  console.log("[Gas Estimate]:", detail);
-
   // If bundler simulation already failed, these can come back as 0 and will lead to AA23 later.
   // if (
   //   typeof gas.verificationGasLimit === "bigint" &&
@@ -123,6 +113,7 @@ const getGasParameters = async ({
     verificationGasLimit: BigInt(600000)
   }
   
+  console.log("[gas result]:", result);
   try {
     fetch("/api/log-error", {
       method: "POST",
