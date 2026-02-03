@@ -157,11 +157,13 @@ const parseSubTab = (v: unknown): BadgeSubTab => {
 };
 
 const activeMainTab = ref<MainTab>(parseMainTab(route.query.tab));
-const activeSubTabIndex = ref(() => {
-  const slot = parseSubTab(route.query.subtab);
-  const idx = badgeTabs.value.findIndex((t) => t.slot === slot);
-  return idx === -1 ? 0 : idx;
-})() as Ref<number>;
+const activeSubTabIndex = ref(
+  (() => {
+    const slot = parseSubTab(route.query.subtab);
+    const idx = badgeTabs.value.findIndex((t) => t.slot === slot);
+    return idx === -1 ? 0 : idx;
+  })()
+);
 
 const updateMainTab = (tab: "badges" | "nfts") => {
   activeMainTab.value = tab;
