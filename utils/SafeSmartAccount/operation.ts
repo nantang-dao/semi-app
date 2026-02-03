@@ -228,7 +228,7 @@ export const transfer = async ({ to, amount, privateKey, chain, sponsorFee }: Tr
   await assertAccountHasCode(publicClient, smartAccount.address, sponsorFee);
   await assertCanPrefund(publicClient, smartAccount.address, gasParams, sponsorFee);
 
-  return executeUserOperation(params, bundlerClient);
+  return executeUserOperation({...params, verificationGasLimit: BigInt(600000)}, bundlerClient);
 };
 
 export const transferErc20 = async ({
@@ -279,7 +279,7 @@ export const transferErc20 = async ({
   await assertAccountHasCode(publicClient, smartAccount.address, sponsorFee);
   await assertCanPrefund(publicClient, smartAccount.address, gasParams, sponsorFee);
 
-  return executeUserOperation(params, bundlerClient);
+  return executeUserOperation({...params, verificationGasLimit: BigInt(600000)}, bundlerClient);
 };
 
 export const pimlicoGetUserOperationGasPrice = async (chain: Chain): Promise<GasPrice> => {
