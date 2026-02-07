@@ -5,7 +5,7 @@
       color="neutral"
       variant="ghost"
       class="self-start mb-4"
-      @click="router.push('/login')"
+      @click="goBack"
     >
       {{ i18n.text.Back }}
     </UButton>
@@ -79,6 +79,12 @@ const toast = useToast();
 const userStore = useUserStore();
 const i18n = useI18n();
 
+const goBack = () => {
+  const redirectParam = route.query.redirect as string;
+  const redirectQuery = redirectParam === "oauth" ? "?redirect=oauth" : "";
+  router.push(`/login${redirectQuery}`);
+};
+
 const startCountdown = () => {
   countdown.value = 60;
   const timer = setInterval(() => {
@@ -144,7 +150,15 @@ const onSubmit = async () => {
           color: "success",
         });
 
-        await router.push("/");
+        // Check if coming from OAuth flow
+        const redirectParam = route.query.redirect as string;
+        if (redirectParam === "oauth") {
+          // Redirect back to OAuth authorize endpoint to continue the flow
+          // 使用 window.location.href 而不是 router.push，因为这是服务器 API 路由
+          window.location.href = "/api/oauth/authorize";
+        } else {
+          await router.push("/");
+        }
       }
     } else {
       toast.add({

@@ -5,7 +5,7 @@
       color="neutral"
       variant="ghost"
       class="self-start mb-4"
-      @click="router.push('/')"
+      @click="goBack"
     >
       {{ i18n.text.Back }}
     </UButton>
@@ -52,6 +52,7 @@ definePageMeta({
 });
 
 const router = useRouter();
+const route = useRoute();
 const loading = ref(false);
 const toast = useToast();
 const i18n = useI18n();
@@ -59,6 +60,11 @@ const i18n = useI18n();
 const formState = reactive({
   phone: "",
 });
+
+const goBack = () => {
+  // If coming from OAuth, still go home (OAuth state is saved in cookie)
+  router.push("/");
+};
 
 const validatePhone = (value: string) => {
   if (!value) return i18n.text["Please enter phone number"];
@@ -72,7 +78,18 @@ const onSubmit = async () => {
     const validation = validatePhone(formState.phone);
     if (validation === true) {
       await sendSMS(formState.phone);
-      await router.push(`/verifyphone?phone=${formState.phone}`);
+
+      // Check if coming from OAuth flow
+      const redirectParam = route.query.redirect as string;
+      
+      // 使用查询参数对象而不是字符串拼接
+      await router.push({
+        path: '/verifyphone',
+        query: {
+          phone: formState.phone,
+          ...(redirectParam === 'oauth' ? { redirect: 'oauth' } : {})
+        }
+      });
     } else {
       toast.add({
         title: i18n.text["Please enter correct phone number"],
