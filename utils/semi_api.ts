@@ -297,6 +297,8 @@ export interface TransactionRecord {
   receiver_note?: string;
   sender_address?: string;
   receiver_address?: string;
+  sender_handle?: string | null;
+  receiver_handle?: string | null;
 }
 
 // 上传交易记录

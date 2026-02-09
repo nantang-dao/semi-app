@@ -35,6 +35,8 @@ export interface ActionPreview {
   memo?: string;
   senderNote?: string;
   receiverNote?: string;
+  senderHandle?: string | null;
+  receiverHandle?: string | null;
 }
 
 export function parseSendActions(history: any[]) {

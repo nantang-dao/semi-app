@@ -34,8 +34,9 @@
                         <div class="flex flex-row gap-2 justify-between items-center">
                             <div class="flex flex-col">
                                 <div class="font-medium">
-                                    <span class="text-red-400 text-sm">{{ i18n.text["TO"] }}: </span>{{
-                                        formatAddress(action.to) }}
+                                    <span class="text-red-400 text-sm">{{ i18n.text["TO"] }}: </span>
+                                    <span v-if="action.receiverHandle">{{ action.receiverHandle }} ({{ formatAddress(action.to) }})</span>
+                                    <span v-else>{{ formatAddress(action.to) }}</span>
                                 </div>
                                 <div class="text-gray-400 text-sm flex flex-row gap-1 items-center"
                                     v-if="action.token === 'NATIVE_COIN'">
@@ -84,8 +85,9 @@
                         <div class="flex flex-row gap-2 justify-between items-center">
                             <div class="flex flex-col">
                                 <div class="font-medium">
-                                    <span class="text-green-500 text-sm">{{ i18n.text["FROM"] }}: </span>{{
-                                        formatAddress(action.to) }}
+                                    <span class="text-green-500 text-sm">{{ i18n.text["FROM"] }}: </span>
+                                    <span v-if="action.senderHandle">{{ action.senderHandle }} ({{ formatAddress(action.from) }})</span>
+                                    <span v-else>{{ formatAddress(action.from) }}</span>
                                 </div>
                                 <div class="text-gray-400 text-sm flex flex-row gap-1 items-center"
                                     v-if="action.token === 'NATIVE_COIN'">
@@ -274,7 +276,9 @@ onMounted(async () => {
                     id: tx?.id,
                     memo: tx?.memo || action.memo,
                     senderNote: tx?.sender_note,
-                    receiverNote: tx?.receiver_note
+                    receiverNote: tx?.receiver_note,
+                    senderHandle: tx?.sender_handle,
+                    receiverHandle: tx?.receiver_handle
                 };
             };
 
