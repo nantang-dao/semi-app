@@ -44,6 +44,10 @@
               :placeholder="i18n.text['Please enter sender note']" :ui="{ base: 'w-full' }" :disabled="initializing" />
           </UFormField>
 
+          <UFormField name="metadata" :label="i18n.text['Metadata']" class="mt-4" v-if="formState.metadata">
+            <UInput variant="subtle" size="xl" class="w-full flex-1" v-model="formState.metadata"
+              :placeholder="i18n.text['Metadata']" :ui="{ base: 'w-full' }" :disabled="true" />
+          </UFormField>
 
           <div class="mt-4">
             <div class="text-gray-400 text-sm">{{ i18n.text["Balance"] }}</div>
@@ -148,6 +152,7 @@ interface FormState {
   memo: string;
   senderNote: string;
   receiverNote: string;
+  metadata: string;
   remainingFreeTransactions: number;
   gasEstimate: string;
 }
@@ -195,6 +200,7 @@ const formState = reactive<FormState>({
   memo: "",
   senderNote: "",
   receiverNote: "",
+  metadata: "",
 });
 
 // 计算属性
@@ -270,6 +276,7 @@ const resetForm = () => {
   formState.code = [...DEFAULT_CODE];
   formState.senderNote = "";
   formState.receiverNote = "";
+  // Note: metadata is not reset here as it comes from URL params
 };
 
 // 业务逻辑函数
@@ -398,6 +405,7 @@ const handleTokenTransfer = async () => {
       receiver_note: formState.receiverNote,
       sender_address: user.user?.evm_chain_address || "",
       receiver_address: formState.recipient as string,
+      medadata: formState.metadata || undefined,
     };
 
     if (transferParams.sponsorFee) {
@@ -421,7 +429,7 @@ const handleTokenTransfer = async () => {
 };
 
 const initForm = async () => {
-  const { to, amount, chain_id, token_address } = route.query;
+  const { to, amount, chain_id, token_address, metadata } = route.query;
 
   // 处理链ID
   if (chain_id && typeof chain_id === "string") {
@@ -479,6 +487,11 @@ const initForm = async () => {
         i18n.text["Amount in URL must be a number greater than 0"]
       );
     }
+  }
+
+  // 处理metadata
+  if (metadata && typeof metadata === "string") {
+    formState.metadata = metadata;
   }
 };
 

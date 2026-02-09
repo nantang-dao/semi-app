@@ -184,31 +184,6 @@ Retrieves user information.
 
 ---
 
-## `GET /get_by_handle`
-
-**Description:**
-Retrieves user information by their handle or phone number.
-
-**Parameters:**
-- `handle` (string, required): The user's handle or phone number.
-
-**Response:**
-```json
-{
-  "id": "string",
-  "handle": "string or null",
-  "email": "string or null",
-  "phone": "string",
-  "image_url": "string or null",
-  "evm_chain_address": "string or null",
-  "evm_chain_active_key": "string or null",
-  "remaining_gas_credits": number,
-  "total_used_gas_credits": number
-}
-```
-
----
-
 ## `GET /get_me`
 
 **Description:**
@@ -339,9 +314,10 @@ Adds a transaction record for the authenticated user.
 - `data` (string, required): Additional data related to the transaction.
 - `memo` (string, optional): A memo for the transaction.
 - `sender_note` (string, optional): A note for the sender.
-- `receiver_note` (string, optional): A note for the receiver.
 - `sender_address` (string, optional): The sender's address.
 - `receiver_address` (string, optional): The receiver's address.
+- `medadata` (string, optional): Metadata for the transaction.
+- `extra` (string, optional): Extra data for the transaction.
 
 **Response:**
 ```json
@@ -366,14 +342,22 @@ Retrieves all transactions for the authenticated user.
 **Response:**
 ```json
 {
+  "result": "ok",
   "transactions": [
     {
+      "id": "string",
       "tx_hash": "string",
       "gas_used": number,
       "status": "string",
       "chain": "string",
       "data": "string",
       "memo": "string or null",
+      "sender_note": "string or null",
+      "receiver_note": "string or null",
+      "receiver_address": "string",
+      "sender_address": "string",
+      "sender_handle": "string or null",
+      "receiver_handle": "string or null",
       "created_at": "string"
     }
     // ... more transactions
@@ -402,6 +386,8 @@ Adds a transaction for the authenticated user and increments their used gas cred
 - `receiver_note` (string, optional): A note for the receiver.
 - `sender_address` (string, optional): The sender's address.
 - `receiver_address` (string, optional): The receiver's address.
+- `metadata` (string, optional): Arbitrary metadata about the transaction.
+- `extra` (object, optional): Extra structured data for the transaction (JSON object).
 
 **Response:**
 ```json
@@ -615,9 +601,8 @@ Retrieves the contact list for a user.
   "result": "ok",
   "contacts": [
     {
-      "memo": "string",
-      "address": "string",
-      "chain": "string"
+      "name": "string",
+      "phone": "string"
     }
   ]
 }

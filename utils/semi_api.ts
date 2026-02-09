@@ -299,6 +299,7 @@ export interface TransactionRecord {
   receiver_address?: string;
   sender_handle?: string | null;
   receiver_handle?: string | null;
+  medadata?: string;
 }
 
 // 上传交易记录

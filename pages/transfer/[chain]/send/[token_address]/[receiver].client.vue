@@ -29,6 +29,7 @@ onMounted(async () => {
   const chain = firstParam(route.params.chain);
   const tokenAddress = firstParam(route.params.token_address);
   const receiver = firstParam(route.params.receiver);
+  const metadata = firstParam(route.params.metadata);
 
   const amount = (() => {
     const v = route.query.amount;
@@ -43,6 +44,7 @@ onMounted(async () => {
       token_address: tokenAddress === "native" ? undefined : tokenAddress,
       to: receiver,
       amount,
+      metadata,
     },
     replace: true,
   });
