@@ -39,7 +39,7 @@
 
       <div class="text-sm text-gray-500 flex justify-end w-full">
         <NuxtLink href="/login" class="text-primary flex items-center gap-1">
-          <UIcon name="ci:phone" class="text-base" /> {{ i18n.text["Login with phone number"] }} 
+          <UIcon name="ci:phone" class="text-base" /> {{ i18n.text["Login with phone number"] }}
         </NuxtLink>
       </div>
     </div>
@@ -83,9 +83,15 @@ const onSubmit = async () => {
 
       // Check if coming from OAuth flow
       const redirectParam = route.query.redirect as string;
-      const redirectQuery = redirectParam === "oauth" ? "?redirect=oauth" : "";
 
-      await router.push(`/verifyemail?email=${formState.email}${redirectQuery}`);
+      // 使用查询参数对象而不是字符串拼接
+      await router.push({
+        path: '/verifyemail',
+        query: {
+          email: formState.email,
+          ...(redirectParam === 'oauth' ? { redirect: 'oauth' } : {})
+        }
+      });
     } else {
       toast.add({
         title: i18n.text["Please enter correct email"],

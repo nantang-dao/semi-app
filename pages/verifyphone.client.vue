@@ -154,7 +154,8 @@ const onSubmit = async () => {
         const redirectParam = route.query.redirect as string;
         if (redirectParam === "oauth") {
           // Redirect back to OAuth authorize endpoint to continue the flow
-          await router.push("/api/oauth/authorize");
+          // 使用 window.location.href 而不是 router.push，因为这是服务器 API 路由
+          window.location.href = "/api/oauth/authorize";
         } else {
           await router.push("/");
         }
