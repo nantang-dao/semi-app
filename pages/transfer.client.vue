@@ -135,12 +135,19 @@ import {
 import { isGasSponsorshipChain } from "~/utils/gas_sponsorship";
 import { isPhoneNumber } from "~/utils";
 import { serializeError } from "serialize-error";
-import { TrackJS } from "trackjs";
+let trackJsTrack: ((error: Error) => void) | null = null;
 
-TrackJS.install({
-  //token: "2caaa43bd51e4145974e83e69df5a990"
-  token: "d4dd5f59b67a4a489f69e4beb29703e7"
-});
+const initTrackJs = async () => {
+  try {
+    const { TrackJS } = await import("trackjs");
+    TrackJS.install({
+      token: "d4dd5f59b67a4a489f69e4beb29703e7",
+    });
+    trackJsTrack = (error: Error) => TrackJS.track(error);
+  } catch (error) {
+    console.warn("TrackJS unavailable; continuing without client error tracking.", error);
+  }
+};
 
 // 类型定义
 interface FormState {
@@ -247,7 +254,9 @@ const getErrorMessage = (error: unknown): string => {
 
 const handleError = (error: unknown, title: string, description?: string) => {
   console.error(error);
-  TrackJS.track(error as Error);
+  if (error instanceof Error) {
+    trackJsTrack?.(error);
+  }
   try {
     $fetch("/api/log-error", {
       method: "POST",
@@ -556,5 +565,8 @@ const handleReset = () => {
 watch(() => formState.token, fetchTokenBalance, { immediate: true });
 
 // 生命周期
-onMounted(initForm);
+onMounted(async () => {
+  await initTrackJs();
+  await initForm();
+});
 </script>
