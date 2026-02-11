@@ -316,7 +316,7 @@ Adds a transaction record for the authenticated user.
 - `sender_note` (string, optional): A note for the sender.
 - `sender_address` (string, optional): The sender's address.
 - `receiver_address` (string, optional): The receiver's address.
-- `medadata` (string, optional): Metadata for the transaction.
+- `metadata` (string, optional): Metadata for the transaction.
 - `extra` (string, optional): Extra data for the transaction.
 
 **Response:**

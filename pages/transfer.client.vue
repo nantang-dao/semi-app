@@ -414,7 +414,7 @@ const handleTokenTransfer = async () => {
       receiver_note: formState.receiverNote,
       sender_address: user.user?.evm_chain_address || "",
       receiver_address: formState.recipient as string,
-      medadata: formState.metadata || undefined,
+      metadata: formState.metadata || undefined,
     };
 
     if (transferParams.sponsorFee) {
