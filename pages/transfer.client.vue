@@ -141,7 +141,7 @@ const initTrackJs = async () => {
   try {
     const { TrackJS } = await import("trackjs");
     TrackJS.install({
-      token: "d4dd5f59b67a4a489f69e4beb29703e7",
+      token: "41669e16206a432f8bb61b64ac3cd43f",
     });
     trackJsTrack = (error: Error) => TrackJS.track(error);
   } catch (error) {
