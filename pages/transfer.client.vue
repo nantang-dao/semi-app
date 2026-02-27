@@ -36,7 +36,9 @@
 
           <UFormField name="memo" :label="i18n.text['Memo(optional)']" class="mt-4">
             <UInput variant="subtle" size="xl" class="w-full flex-1" v-model="formState.memo"
-              :placeholder="i18n.text['Please enter memo']" :ui="{ base: 'w-full' }" :disabled="initializing" />
+              :placeholder="i18n.text['Please enter memo']" :ui="{ base: 'w-full' }" :disabled="initializing"
+              :maxlength="REMARK_MAX_CHARS" />
+            <p class="text-gray-500 text-xs mt-1">已输入 {{ formState.memo.length }} / {{ REMARK_MAX_CHARS }} 字</p>
           </UFormField>
 
           <UFormField name="senderNote" :label="i18n.text['Sender Note']" class="mt-4">
