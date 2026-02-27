@@ -135,6 +135,8 @@ import {
 import { isGasSponsorshipChain } from "~/utils/gas_sponsorship";
 import { isPhoneNumber } from "~/utils";
 import { serializeError } from "serialize-error";
+import { REMARK_PROXY_ADDRESS, BAI_API_BASE_URL } from "~/utils/config";
+import { remarkProxyAbi, REMARK_MAX_CHARS } from "~/utils/remarkContract";
 let trackJsTrack: ((error: Error) => void) | null = null;
 
 const initTrackJs = async () => {
@@ -162,6 +164,7 @@ interface FormState {
   metadata: string;
   remainingFreeTransactions: number;
   gasEstimate: string;
+  taskId: string;
 }
 
 interface TransferParams {
@@ -171,6 +174,7 @@ interface TransferParams {
   chain: any;
   erc20TokenAddress?: `0x${string}`;
   sponsorFee: boolean;
+  optionalCalls?: any[];
 }
 
 // 解决BigInt序列化问题
@@ -208,6 +212,7 @@ const formState = reactive<FormState>({
   senderNote: "",
   receiverNote: "",
   metadata: "",
+  taskId: "",
 });
 
 // 计算属性
@@ -285,6 +290,7 @@ const resetForm = () => {
   formState.code = [...DEFAULT_CODE];
   formState.senderNote = "";
   formState.receiverNote = "";
+  formState.taskId = "";
   // Note: metadata is not reset here as it comes from URL params
 };
 
@@ -394,6 +400,22 @@ const handleTokenTransfer = async () => {
       sponsorFee: isGasSponsorshipChain(useChain.chain.id) && formState.remainingFreeTransactions > 0,
     };
 
+    const proxyAddress = REMARK_PROXY_ADDRESS[useChain.chain.id];
+    const taskId = formState.taskId?.trim();
+    const publicRemark = (formState.memo ?? "").trim().slice(0, REMARK_MAX_CHARS);
+    const receiverRemark = (formState.receiverNote ?? "").trim().slice(0, REMARK_MAX_CHARS);
+    const remarkId = taskId || (publicRemark ? crypto.randomUUID() : "");
+    if (proxyAddress && remarkId) {
+      transferParams.optionalCalls = [
+        {
+          to: proxyAddress as `0x${string}`,
+          abi: remarkProxyAbi,
+          functionName: "saveRemark",
+          args: [remarkId, publicRemark, receiverRemark],
+        },
+      ];
+    }
+
     // 如果是ERC20代币，添加代币地址
     if (formState.token.address !== zeroAddress) {
       transferParams.erc20TokenAddress = formState.token.address as `0x${string}`;
@@ -501,6 +523,31 @@ const initForm = async () => {
   // 处理metadata
   if (metadata && typeof metadata === "string") {
     formState.metadata = metadata;
+  }
+
+  // 处理 task_id、发单人备注（bai 跳转传入）
+  const task_id = route.query.task_id;
+  const sender_note = route.query.sender_note;
+  if (task_id && typeof task_id === "string") {
+    formState.taskId = task_id;
+  }
+  if (sender_note && typeof sender_note === "string") {
+    formState.memo = sender_note;
+  }
+  // 有 task_id 时从 bai 后端拉取接包者备注
+  if (formState.taskId && BAI_API_BASE_URL) {
+    try {
+      const res = await fetch(
+        `${BAI_API_BASE_URL}/api/tasks/${encodeURIComponent(formState.taskId)}/receiver-remark`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const remark = (data?.receiver_remark ?? "").slice(0, REMARK_MAX_CHARS);
+        formState.receiverNote = remark;
+      }
+    } catch {
+      // 忽略，保留 formState.receiverNote 默认或用户后续输入
+    }
   }
 };
 
