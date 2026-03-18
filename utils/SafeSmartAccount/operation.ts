@@ -224,7 +224,7 @@ export const transfer = async ({
   optionalCalls,
 }: TransferOptions) => {
   const smartAccount = await getSafeAccount(privateKey, chain);
-  const { publicClient, bundlerClient } = await prepareClient(chain, sponsorFee);
+  const { publicClient, bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
 
   const tx = {
     to,
@@ -247,6 +247,9 @@ export const transfer = async ({
   if (gasParams) {
     Object.assign(params, gasParams);
   }
+  if (paymasterClient) {
+    params.paymaster = paymasterClient;
+  }
 
   await assertAccountHasCode(publicClient, smartAccount.address, sponsorFee);
   await assertCanPrefund(publicClient, smartAccount.address, gasParams, sponsorFee);
@@ -268,7 +271,7 @@ export const transferErc20 = async ({
   }
 
   const smartAccount = await getSafeAccount(privateKey, chain);
-  const { publicClient, bundlerClient } = await prepareClient(chain, sponsorFee);
+  const { publicClient, bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
 
   const decimals = await publicClient.readContract({
     address: erc20TokenAddress,
@@ -300,6 +303,9 @@ export const transferErc20 = async ({
   });
   if (gasParams) {
     Object.assign(params, gasParams);
+  }
+  if (paymasterClient) {
+    params.paymaster = paymasterClient;
   }
 
   await assertAccountHasCode(publicClient, smartAccount.address, sponsorFee);
@@ -405,7 +411,7 @@ export const deploy = async ({
   sponsorFee = false,
 }: DeployOptions) => {
   const smartAccount = await getSafeAccount(privateKey, chain);
-  const { bundlerClient } = await prepareClient(chain, sponsorFee);
+  const { bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
 
   const tx = {
     abi: CreateCallAbi,
@@ -427,6 +433,9 @@ export const deploy = async ({
   });
   if (gasParams) {
     Object.assign(params, gasParams);
+  }
+  if (paymasterClient) {
+    params.paymaster = paymasterClient;
   }
 
   return executeUserOperation(params, bundlerClient);
@@ -459,7 +468,7 @@ export const deployToken = async ({
   }
 
   const smartAccount = await getSafeAccount(privateKey, chain);
-  const { bundlerClient } = await prepareClient(chain, sponsorFee);
+  const { bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
 
   const tx = {
     abi: tokenFactoryAbi,
@@ -481,6 +490,9 @@ export const deployToken = async ({
   });
   if (gasParams) {
     Object.assign(params, gasParams);
+  }
+  if (paymasterClient) {
+    params.paymaster = paymasterClient;
   }
 
   return executeUserOperation(params, bundlerClient);
