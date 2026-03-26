@@ -126,7 +126,7 @@ import { useUserStore } from "@/stores/user";
 import { getBalance, getErc20Balance } from "~/utils/balance";
 import { predictSafeAccountAddress, transfer, transferErc20 } from "~/utils/SafeSmartAccount";
 import { displayBalance } from "~/utils/display";
-import { isAddress, zeroAddress } from "viem";
+import { hexToBigInt, isAddress, keccak256, toBytes, zeroAddress } from "viem";
 import { keystoreToPrivateKey } from "~/utils/encryption";
 import {
   getUserByHandleOrPhone,
@@ -137,7 +137,7 @@ import {
 import { isGasSponsorshipChain } from "~/utils/gas_sponsorship";
 import { isPhoneNumber } from "~/utils";
 import { serializeError } from "serialize-error";
-import { REMARK_PROXY_ADDRESS, BAI_API_BASE_URL } from "~/utils/config";
+import { REMARK_PROXY_ADDRESS } from "~/utils/config";
 import { remarkProxyAbi, REMARK_MAX_CHARS } from "~/utils/remarkContract";
 let trackJsTrack: ((error: Error) => void) | null = null;
 
@@ -166,7 +166,10 @@ interface FormState {
   metadata: string;
   remainingFreeTransactions: number;
   gasEstimate: string;
-  taskId: string;
+  /** bai: task_info_id UUID (pool) */
+  poolUuid: string;
+  /** bai: task row id UUID (task) */
+  taskUuid: string;
 }
 
 interface TransferParams {
@@ -214,7 +217,8 @@ const formState = reactive<FormState>({
   senderNote: "",
   receiverNote: "",
   metadata: "",
-  taskId: "",
+  poolUuid: "",
+  taskUuid: "",
 });
 
 // 计算属性
@@ -292,7 +296,8 @@ const resetForm = () => {
   formState.code = [...DEFAULT_CODE];
   formState.senderNote = "";
   formState.receiverNote = "";
-  formState.taskId = "";
+  formState.poolUuid = "";
+  formState.taskUuid = "";
   // Note: metadata is not reset here as it comes from URL params
 };
 
@@ -403,17 +408,25 @@ const handleTokenTransfer = async () => {
     };
 
     const proxyAddress = REMARK_PROXY_ADDRESS[useChain.chain.id];
-    const taskId = formState.taskId?.trim();
     const publicRemark = (formState.memo ?? "").trim().slice(0, REMARK_MAX_CHARS);
     const receiverRemark = (formState.receiverNote ?? "").trim().slice(0, REMARK_MAX_CHARS);
-    const remarkId = taskId || (publicRemark ? crypto.randomUUID() : "");
-    if (proxyAddress && remarkId) {
+
+    const uuidToU256 = (uuid: string): bigint => {
+      return hexToBigInt(keccak256(toBytes(uuid)));
+    };
+
+    const poolUuid = formState.poolUuid?.trim();
+    const taskUuid = formState.taskUuid?.trim();
+    const poolId = poolUuid ? uuidToU256(poolUuid) : undefined;
+    const taskId = taskUuid ? uuidToU256(taskUuid) : undefined;
+
+    if (proxyAddress && poolId !== undefined && taskId !== undefined) {
       transferParams.optionalCalls = [
         {
           to: proxyAddress as `0x${string}`,
           abi: remarkProxyAbi,
           functionName: "saveRemark",
-          args: [remarkId, publicRemark, receiverRemark],
+          args: [poolId, taskId, publicRemark, receiverRemark],
         },
       ];
     }
@@ -527,29 +540,22 @@ const initForm = async () => {
     formState.metadata = metadata;
   }
 
-  // 处理 task_id、发单人备注（bai 跳转传入）
-  const task_id = route.query.task_id;
-  const sender_note = route.query.sender_note;
-  if (task_id && typeof task_id === "string") {
-    formState.taskId = task_id;
+  // 处理 task_id、备注（bai 跳转传入，统一通过 URL 传递，不依赖 bai 后端）
+  const pool_uuid = route.query.pool_uuid;
+  const task_uuid = route.query.task_uuid;
+  const task_id = route.query.task_id; // backward compat: old param name for task row uuid
+  const memo = route.query.memo;
+  const receiver_remark = route.query.receiver_remark;
+  if (pool_uuid && typeof pool_uuid === "string") formState.poolUuid = pool_uuid;
+  if (task_uuid && typeof task_uuid === "string") formState.taskUuid = task_uuid;
+  // backward compat: if only task_id is provided, treat it as task_uuid
+  if (!formState.taskUuid && task_id && typeof task_id === "string") formState.taskUuid = task_id;
+
+  if (memo && typeof memo === "string") {
+    formState.memo = memo.slice(0, REMARK_MAX_CHARS);
   }
-  if (sender_note && typeof sender_note === "string") {
-    formState.memo = sender_note;
-  }
-  // 有 task_id 时从 bai 后端拉取接包者备注
-  if (formState.taskId && BAI_API_BASE_URL) {
-    try {
-      const res = await fetch(
-        `${BAI_API_BASE_URL}/api/tasks/${encodeURIComponent(formState.taskId)}/receiver-remark`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const remark = (data?.receiver_remark ?? "").slice(0, REMARK_MAX_CHARS);
-        formState.receiverNote = remark;
-      }
-    } catch {
-      // 忽略，保留 formState.receiverNote 默认或用户后续输入
-    }
+  if (receiver_remark && typeof receiver_remark === "string") {
+    formState.receiverNote = receiver_remark.slice(0, REMARK_MAX_CHARS);
   }
 };
 

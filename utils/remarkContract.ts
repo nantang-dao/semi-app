@@ -1,7 +1,8 @@
 export const remarkProxyAbi = [
   {
     inputs: [
-      { name: "taskId", type: "string", internalType: "string" },
+      { name: "poolId", type: "uint256", internalType: "uint256" },
+      { name: "taskId", type: "uint256", internalType: "uint256" },
       { name: "senderRemark", type: "string", internalType: "string" },
       { name: "receiverRemark", type: "string", internalType: "string" },
     ],
