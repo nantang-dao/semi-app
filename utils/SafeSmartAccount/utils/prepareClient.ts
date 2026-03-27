@@ -39,5 +39,6 @@ export const prepareClient = async (chain: Chain, sponsorFee: boolean) => {
   return {
     publicClient,
     bundlerClient,
+    paymasterClient,
   };
 };

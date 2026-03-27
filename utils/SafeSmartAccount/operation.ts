@@ -14,6 +14,8 @@ export interface TransferOptions {
   privateKey: `0x${string}`;
   chain: Chain;
   sponsorFee: boolean;
+  /** 同一笔 UserOp 的额外 call（如 saveRemark） */
+  optionalCalls?: any[];
 }
 
 interface GasPrice {
@@ -54,17 +56,20 @@ export interface GetGasParametersOptionsBase {
 }
 
 export type GetGasParametersOptions = GetGasParametersOptionsBase &
-  ({ callData: `0x${string}`; tx?: never } | { tx: any; callData?: never });
+  (
+    | { callData: `0x${string}`; tx?: never; calls?: never }
+    | { tx: any; callData?: never; calls?: never }
+    | { calls: any[]; tx?: never; callData?: never }
+  );
 
 const getGasParameters = async ({
   chain,
   smartAccount,
   tx,
   callData,
+  calls,
   bundlerClient,
 }: GetGasParametersOptions) => {
-  // if (chain.id !== 10 && chain.id !== 1) return null
-
   const gasPrice = await pimlicoGetUserOperationGasPrice(chain);
   console.log("[Gas Price]:", {
     maxFeePerGas: gasPrice.maxFeePerGas.toString(),
@@ -73,19 +78,28 @@ const getGasParameters = async ({
 
   let gas: any;
   try {
-    gas = !!tx
-      ? await bundlerClient.estimateUserOperationGas({
-          account: smartAccount,
-          calls: [tx],
-          maxFeePerGas: gasPrice.maxFeePerGas,
-          maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
-        })
-      : await bundlerClient.estimateUserOperationGas({
-          account: smartAccount,
-          callData,
-          maxFeePerGas: gasPrice.maxFeePerGas,
-          maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
-        });
+    if (calls !== undefined && calls.length > 0) {
+      gas = await bundlerClient.estimateUserOperationGas({
+        account: smartAccount,
+        calls,
+        maxFeePerGas: gasPrice.maxFeePerGas,
+        maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
+      });
+    } else if (!!tx) {
+      gas = await bundlerClient.estimateUserOperationGas({
+        account: smartAccount,
+        calls: [tx],
+        maxFeePerGas: gasPrice.maxFeePerGas,
+        maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
+      });
+    } else {
+      gas = await bundlerClient.estimateUserOperationGas({
+        account: smartAccount,
+        callData,
+        maxFeePerGas: gasPrice.maxFeePerGas,
+        maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
+      });
+    }
   } catch (error: unknown) {
     console.error("[Gas Estimate Error]:", error);
     throw new Error(
@@ -201,34 +215,46 @@ const assertCanPrefund = async (
   }
 };
 
-export const transfer = async ({ to, amount, privateKey, chain, sponsorFee }: TransferOptions) => {
+export const transfer = async ({
+  to,
+  amount,
+  privateKey,
+  chain,
+  sponsorFee,
+  optionalCalls,
+}: TransferOptions) => {
   const smartAccount = await getSafeAccount(privateKey, chain);
-  const { publicClient, bundlerClient } = await prepareClient(chain, sponsorFee);
+  const { publicClient, bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
 
   const tx = {
     to,
     value: parseEther(amount),
   } as const;
 
+  const calls = [tx, ...(optionalCalls ?? [])];
+
   const params = {
     account: smartAccount,
-    calls: [tx],
+    calls,
   };
 
   const gasParams = await getGasParameters({
     chain,
     smartAccount,
-    tx,
+    calls,
     bundlerClient,
   });
   if (gasParams) {
     Object.assign(params, gasParams);
   }
+  if (paymasterClient) {
+    params.paymaster = paymasterClient;
+  }
 
   await assertAccountHasCode(publicClient, smartAccount.address, sponsorFee);
   await assertCanPrefund(publicClient, smartAccount.address, gasParams, sponsorFee);
 
-  return executeUserOperation({...params, verificationGasLimit: BigInt(600000)}, bundlerClient);
+  return executeUserOperation({ ...params, verificationGasLimit: BigInt(600000) }, bundlerClient);
 };
 
 export const transferErc20 = async ({
@@ -238,13 +264,14 @@ export const transferErc20 = async ({
   chain,
   erc20TokenAddress,
   sponsorFee,
+  optionalCalls,
 }: TransferOptions) => {
   if (!erc20TokenAddress) {
     throw new Error("ERC20 token address is required");
   }
 
   const smartAccount = await getSafeAccount(privateKey, chain);
-  const { publicClient, bundlerClient } = await prepareClient(chain, sponsorFee);
+  const { publicClient, bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
 
   const decimals = await publicClient.readContract({
     address: erc20TokenAddress,
@@ -261,25 +288,30 @@ export const transferErc20 = async ({
     to: erc20TokenAddress,
   } as const;
 
+  const calls = [tx, ...(optionalCalls ?? [])];
+
   const params = {
     account: smartAccount,
-    calls: [tx],
+    calls,
   };
 
   const gasParams = await getGasParameters({
     chain,
     smartAccount,
-    tx,
+    calls,
     bundlerClient,
   });
   if (gasParams) {
     Object.assign(params, gasParams);
   }
+  if (paymasterClient) {
+    params.paymaster = paymasterClient;
+  }
 
   await assertAccountHasCode(publicClient, smartAccount.address, sponsorFee);
   await assertCanPrefund(publicClient, smartAccount.address, gasParams, sponsorFee);
 
-  return executeUserOperation({...params, verificationGasLimit: BigInt(600000)}, bundlerClient);
+  return executeUserOperation({ ...params, verificationGasLimit: BigInt(600000) }, bundlerClient);
 };
 
 export const pimlicoGetUserOperationGasPrice = async (chain: Chain): Promise<GasPrice> => {
@@ -379,7 +411,7 @@ export const deploy = async ({
   sponsorFee = false,
 }: DeployOptions) => {
   const smartAccount = await getSafeAccount(privateKey, chain);
-  const { bundlerClient } = await prepareClient(chain, sponsorFee);
+  const { bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
 
   const tx = {
     abi: CreateCallAbi,
@@ -401,6 +433,9 @@ export const deploy = async ({
   });
   if (gasParams) {
     Object.assign(params, gasParams);
+  }
+  if (paymasterClient) {
+    params.paymaster = paymasterClient;
   }
 
   return executeUserOperation(params, bundlerClient);
@@ -433,7 +468,7 @@ export const deployToken = async ({
   }
 
   const smartAccount = await getSafeAccount(privateKey, chain);
-  const { bundlerClient } = await prepareClient(chain, sponsorFee);
+  const { bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
 
   const tx = {
     abi: tokenFactoryAbi,
@@ -455,6 +490,9 @@ export const deployToken = async ({
   });
   if (gasParams) {
     Object.assign(params, gasParams);
+  }
+  if (paymasterClient) {
+    params.paymaster = paymasterClient;
   }
 
   return executeUserOperation(params, bundlerClient);

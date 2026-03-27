@@ -215,7 +215,7 @@
   "Create badge may take a few minutes to complete.": "创建徽章可能需要几分钟时间完成。",
   "View in Explorer": "区块浏览器",
   "Invalid passcode": "密码错误",
-  "Memo(optional)": "备注(可选，公开可见)",
+  "Memo(optional)": "备注(可选，公开可见，可自行填写，最多32字，将上链)",
   "Memo": "备注（公开可见）",
   "Please enter memo": "请输入备注",
   "Sender Note": "发送者备注（可选，仅发送方可见）",

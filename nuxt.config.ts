@@ -3,6 +3,12 @@ export default defineNuxtConfig({
   ssr: false,
   compatibilityDate: "2025-05-15",
   devtools: { enabled: false },
+  runtimeConfig: {
+    public: {
+      /** Semi REST API 根地址（get_me、get_token_classes 等），须通过 NUXT_PUBLIC_API_URL 配置 */
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || "",
+    },
+  },
   ui: {
     fonts: false,
   },

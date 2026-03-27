@@ -113,3 +113,15 @@ export const TOKEN_FACTORY_CONTRACT: RPCUrl = {
   10: "0xa872b5aaa360f703f1d66ee8f52c19889c26d72e",
   11155111: "0xe45f4196a6ea36c42d8c64536bb34f69ff6c96ba",
 };
+
+// 备注上链 Proxy 地址（按链配置）
+export interface RemarkProxyUrl {
+  [key: number]: string | undefined;
+}
+export const REMARK_PROXY_ADDRESS: RemarkProxyUrl = {
+  10: import.meta.env.VITE_OP_REMARK_PROXY,
+  11155111: import.meta.env.VITE_SEPOLIA_REMARK_PROXY,
+};
+
+// bai 后端 API 基址，用于拉取 receiver_remark（GET /api/tasks/:id/receiver-remark）
+export const BAI_API_BASE_URL = import.meta.env.VITE_BAI_API_URL || "";
