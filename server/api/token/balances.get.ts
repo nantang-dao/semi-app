@@ -8,16 +8,14 @@ const chains = {
   "10": optimism,
 } as const;
 
-const API_BASE_URL = "https://semi.fly.dev";
-
 interface TokenClassResponse {
   result?: "ok";
   error?: string;
   token_classes: TokenClass[];
 }
 
-async function getTokenClasses(): Promise<TokenClassResponse> {
-  const response = await fetch(`${API_BASE_URL}/get_token_classes`);
+async function getTokenClasses(apiBaseUrl: string): Promise<TokenClassResponse> {
+  const response = await fetch(`${apiBaseUrl}/get_token_classes`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch token classes: ${response.statusText}`);
@@ -27,6 +25,11 @@ async function getTokenClasses(): Promise<TokenClassResponse> {
 }
 
 export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig(event);
+  const apiBaseUrl = String(config.public.apiUrl || process.env.NUXT_PUBLIC_API_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
+
   const query = getQuery(event);
   const { chain_id, wallet_address } = query;
 
@@ -56,7 +59,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Fetch whitelisted token classes
-    const { token_classes } = await getTokenClasses();
+    const { token_classes } = await getTokenClasses(apiBaseUrl);
 
     // Filter tokens by chain_id
     const currentTokenClasses = token_classes.filter(

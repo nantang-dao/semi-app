@@ -417,10 +417,24 @@ const handleTokenTransfer = async () => {
 
     const poolUuid = formState.poolUuid?.trim();
     const taskUuid = formState.taskUuid?.trim();
-    const poolId = poolUuid ? uuidToU256(poolUuid) : undefined;
-    const taskId = taskUuid ? uuidToU256(taskUuid) : undefined;
+    const hasAnyRemark = Boolean(publicRemark || receiverRemark);
 
-    if (proxyAddress && poolId !== undefined && taskId !== undefined) {
+    // Two modes:
+    // - task mode (bai): pool_uuid + task_uuid -> derive uint256 ids
+    // - normal transfer: generate a unique id per transfer (remarkUuid), so each transfer can write remarks on-chain
+    let poolId: bigint | undefined;
+    let taskId: bigint | undefined;
+    if (poolUuid && taskUuid) {
+      poolId = uuidToU256(poolUuid);
+      taskId = uuidToU256(taskUuid);
+    } else if (hasAnyRemark) {
+      const remarkUuid = crypto.randomUUID();
+      const remarkId = uuidToU256(remarkUuid);
+      poolId = remarkId;
+      taskId = remarkId;
+    }
+
+    if (proxyAddress && poolId !== undefined && taskId !== undefined && hasAnyRemark) {
       transferParams.optionalCalls = [
         {
           to: proxyAddress as `0x${string}`,
