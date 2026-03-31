@@ -62,7 +62,7 @@
     <div v-else-if="activeMainTab === 'badges'">
       <UTabs
         :items="badgeTabs"
-        v-model="activeSubTabIndex"
+        v-model="activeSubTab"
         :unmount-on-hide="false"
         class="w-full overflow-auto"
       >
@@ -127,14 +127,17 @@ const badgeTabs = computed<TabsItem[]>(() => [
   {
     label: i18n.text["Owned"],
     slot: "owned" as const,
+    value: "owned",
   },
   {
     label: i18n.text["Created"],
     slot: "created" as const,
+    value: "created",
   },
   {
     label: i18n.text["Pending"],
     slot: "pending" as const,
+    value: "pending",
   },
 ]);
 
@@ -157,30 +160,15 @@ const parseSubTab = (v: unknown): BadgeSubTab => {
 };
 
 const activeMainTab = ref<MainTab>(parseMainTab(route.query.tab));
-const activeSubTabIndex = ref(
-  (() => {
-    const slot = parseSubTab(route.query.subtab);
-    const idx = badgeTabs.value.findIndex((t) => t.slot === slot);
-    return idx === -1 ? 0 : idx;
-  })()
-);
+const activeSubTab = ref<BadgeSubTab>(parseSubTab(route.query.subtab));
 
 const updateMainTab = (tab: "badges" | "nfts") => {
   activeMainTab.value = tab;
   router.replace({ query: { ...route.query, tab } });
 };
 
-watch(activeSubTabIndex, (newVal) => {
-  const clampedIndex = Math.max(0, Math.min(newVal, badgeTabs.value.length - 1));
-  if (clampedIndex !== newVal) {
-    activeSubTabIndex.value = clampedIndex;
-    return;
-  }
-
-  const subtab = badgeTabs.value[clampedIndex]?.slot;
-  if (subtab) {
-    router.replace({ query: { ...route.query, subtab } });
-  }
+watch(activeSubTab, (subtab) => {
+  router.replace({ query: { ...route.query, subtab } });
 });
 
 watch(
@@ -193,16 +181,14 @@ watch(
 watch(
   () => route.query.subtab,
   (newSubTab) => {
-    const slot = parseSubTab(newSubTab);
-    const index = badgeTabs.value.findIndex((t) => t.slot === slot);
-    activeSubTabIndex.value = index === -1 ? 0 : index;
+    activeSubTab.value = parseSubTab(newSubTab);
   }
 );
 
 onMounted(() => {
   // Normalize URL so the page never ends up blank due to weird query shapes (e.g. tab[]=badges)
   const normalizedTab = activeMainTab.value;
-  const normalizedSubtab = badgeTabs.value[activeSubTabIndex.value]?.slot ?? "owned";
+  const normalizedSubtab = activeSubTab.value ?? "owned";
 
   const currentTab = firstQueryValue(route.query.tab);
   const currentSubtab = firstQueryValue(route.query.subtab);
