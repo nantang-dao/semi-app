@@ -124,11 +124,9 @@ const onSubmit = async () => {
           color: "success",
         });
 
-        // Check if coming from OAuth flow
         const redirectParam = route.query.redirect as string;
         if (redirectParam === "oauth") {
-          // Redirect back to OAuth authorize endpoint to continue the flow
-          await router.push("/api/oauth/authorize");
+          await router.push("/oauth/authorize");
         } else {
           await router.push("/");
         }
