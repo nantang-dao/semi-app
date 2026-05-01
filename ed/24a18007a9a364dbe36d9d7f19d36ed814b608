@@ -1,0 +1,23 @@
+pages/oauth/authorize.client.vue
+  d09588fa00adafee 114-138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "ed24a18007a9a364dbe36d9d7f19d36ed814b608",
+  "prompts": {
+    "d09588fa00adafee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": "jiangplus",
+      "messages": [],
+      "total_additions": 25,
+      "total_deletions": 10,
+      "accepted_lines": 25,
+      "overriden_lines": 0
+    }
+  }
+}
