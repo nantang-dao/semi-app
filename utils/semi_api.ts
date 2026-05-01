@@ -39,7 +39,7 @@ interface RemainingGasCreditsResponse extends BaseResponse {
   remaining_free_transactions: number;
 }
 
-// Semi Rails REST 根地址：优先 runtimeConfig.public.apiUrl（与 NUXT_PUBLIC_API_URL 同源），避免模块顶层 import.meta 与 Nuxt 注入不一致
+// Semi Rails REST base URL: reads from runtimeConfig.public.apiUrl (set via VITE_API_URL env var)
 function normalizeSemiRestBaseUrl(url: string): string {
   return url.trim().replace(/\/+$/, "");
 }
@@ -52,30 +52,21 @@ export function getSemiRestBaseUrl(): string {
       return normalizeSemiRestBaseUrl(u);
     }
   } catch {
-    /* 无 Nuxt 上下文时再尝试 import.meta */
+    // no Nuxt context, fall through to import.meta
   }
-  const v = import.meta.env.NUXT_PUBLIC_API_URL;
+  const v = import.meta.env.VITE_API_URL;
   if (typeof v === "string" && v.trim()) {
     return normalizeSemiRestBaseUrl(v);
   }
-  if (import.meta.dev) {
-    console.warn(
-      "[semi_api] Semi REST 基址未设置：请在 semi-app 根目录 .env 中配置 NUXT_PUBLIC_API_URL"
-    );
-  }
-  return "";
+  return "https://semi.fly.dev";
 }
 
 function requireSemiRestBaseUrl(): string {
-  const base = getSemiRestBaseUrl();
-  if (!base) {
-    throw new Error(
-      "Semi REST 基址未配置：请设置 NUXT_PUBLIC_API_URL（runtimeConfig.public.apiUrl）"
-    );
-  }
-  return base;
+  return getSemiRestBaseUrl();
 }
 
+// Legacy alias kept for any direct references outside the file
+export const API_BASE_URL = "https://semi.fly.dev";
 export const AUTH_TOKEN_KEY = "semi_auth_token";
 
 const MOCK_RESPONSE = false;
