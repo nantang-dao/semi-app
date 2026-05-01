@@ -111,16 +111,31 @@ onMounted(async () => {
   let pending: OAuthPendingParams | null = null
 
   if (fromUrl.client_id && fromUrl.redirect_uri) {
-    // Fresh request — generate PKCE
-    const verifier = generateCodeVerifier()
-    const challenge = await generateCodeChallenge(verifier)
-    pending = {
-      ...fromUrl,
-      code_verifier: verifier,
-      code_challenge: challenge,
-      code_challenge_method: "S256",
-      response_type: "code",
-    } as OAuthPendingParams
+    const clientChallenge = route.query.code_challenge as string
+    const clientChallengeMethod = (route.query.code_challenge_method as string) || "S256"
+
+    if (clientChallenge) {
+      // Third-party client (e.g. Hola) already generated PKCE — use it as-is.
+      // The client holds the code_verifier; we only need to forward the challenge.
+      pending = {
+        ...fromUrl,
+        code_verifier: "",
+        code_challenge: clientChallenge,
+        code_challenge_method: clientChallengeMethod as "S256",
+        response_type: "code",
+      } as OAuthPendingParams
+    } else {
+      // First-party flow (no external client) — generate PKCE here.
+      const verifier = generateCodeVerifier()
+      const challenge = await generateCodeChallenge(verifier)
+      pending = {
+        ...fromUrl,
+        code_verifier: verifier,
+        code_challenge: challenge,
+        code_challenge_method: "S256",
+        response_type: "code",
+      } as OAuthPendingParams
+    }
     saveOAuthParams(pending)
   } else {
     // Returning from login — restore from sessionStorage
