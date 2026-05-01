@@ -139,7 +139,8 @@ const onSubmit = async () => {
       description: i18n.text["Redirecting to homepage"],
       color: "success",
     });
-    await router.push("/");
+    const redirectParam = route.query.redirect as string;
+    await router.push(redirectParam === "oauth" ? "/oauth/authorize" : "/");
   } catch (error) {
     console.error("登录失败:", error);
     toast.add({
@@ -152,7 +153,8 @@ const onSubmit = async () => {
   }
 };
 
-const handleBack = async () => {
-  router.push("/login");
+const handleBack = () => {
+  const redirectParam = route.query.redirect as string;
+  router.push(redirectParam === "oauth" ? "/login?redirect=oauth" : "/login");
 };
 </script>

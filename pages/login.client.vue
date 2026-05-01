@@ -36,7 +36,10 @@
         </UButton>
       </UForm>
       <div class="text-sm text-gray-500 flex justify-end w-full">
-        <NuxtLink href="/email-login" class="text-primary flex items-center gap-1">
+        <NuxtLink
+          :href="route.query.redirect === 'oauth' ? '/email-login?redirect=oauth' : '/email-login'"
+          class="text-primary flex items-center gap-1"
+        >
           <UIcon name="ci:mail" class="text-base" /> {{ i18n.text["Login with email"] }}
         </NuxtLink>
       </div>
