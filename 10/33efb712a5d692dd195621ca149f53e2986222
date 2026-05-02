@@ -1,0 +1,55 @@
+assets/i18n/zh.json
+  d09588fa00adafee 218
+.env.example
+  d09588fa00adafee 33-36
+server/api/oauth/applications.post.ts
+  d09588fa00adafee 1-12
+utils/semi_api.ts
+  d09588fa00adafee 42-68,135,149,173,187,197,215,225,246,253,265,279,299,306,333,347,362,372,379,425,439,450,460,495,520,535
+server/api/oauth/applications/[id].delete.ts
+  d09588fa00adafee 1-11
+utils/SafeSmartAccount/operation.ts
+  d09588fa00adafee 17-18,59-63,70,81-102,218-225,227,234-235,238,244,250-252,257,267,274,291-292,295,301,307-309,314,414,437-439,471,494-495
+server/api/oauth/applications.get.ts
+  d09588fa00adafee 1-9
+pages/badges/index.client.vue
+  d09588fa00adafee 65,130,135,140,163,170-171,184,191
+pages/transfer.client.vue
+  d09588fa00adafee 39-41,129,140-141,169-172,182,220-221,299-300,410-447,556-572
+server/api/token/balances.get.ts
+  d09588fa00adafee 17-18,28-32,62
+utils/config.ts
+  d09588fa00adafee 116-127
+package.json
+  d09588fa00adafee 8
+server/api/oauth/applications/[id].patch.ts
+  d09588fa00adafee 1-13
+utils/remarkContract.ts
+  d09588fa00adafee 1-16
+utils/SafeSmartAccount/utils/prepareClient.ts
+  d09588fa00adafee 42
+nuxt.config.ts
+  d09588fa00adafee 6-15
+pages/oauth/apps.client.vue
+  d09588fa00adafee 1-326
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "1033efb712a5d692dd195621ca149f53e2986222",
+  "prompts": {
+    "d09588fa00adafee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": "jiangplus",
+      "messages": [],
+      "total_additions": 621,
+      "total_deletions": 86,
+      "accepted_lines": 621,
+      "overriden_lines": 0
+    }
+  }
+}
