@@ -3,7 +3,7 @@
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const authToken = getCookie(event, "semi_auth_token")
-  const backendUrl = process.env.NUXT_PUBLIC_API_URL || "https://semi.fly.dev"
+  const backendUrl = process.env.VITE_API_URL || "https://semi.fly.dev"
 
   if (!authToken) {
     throw createError({ statusCode: 401, statusMessage: "Not authenticated" })

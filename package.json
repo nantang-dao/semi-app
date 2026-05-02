@@ -5,7 +5,7 @@
   "scripts": {
     "build": "nuxt build",
     "db-schema-push": "bunx instant-cli@latest push schema && bunx instant-cli@latest push perms",
-    "dev": "nuxt dev --host 0.0.0.0 --port 3000",
+    "dev": "nuxt dev --host 0.0.0.0 --port 3001",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",

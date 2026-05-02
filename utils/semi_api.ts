@@ -39,7 +39,33 @@ interface RemainingGasCreditsResponse extends BaseResponse {
   remaining_free_transactions: number;
 }
 
-// API 基础配置
+// Semi Rails REST base URL: reads from runtimeConfig.public.apiUrl (set via VITE_API_URL env var)
+function normalizeSemiRestBaseUrl(url: string): string {
+  return url.trim().replace(/\/+$/, "");
+}
+
+export function getSemiRestBaseUrl(): string {
+  try {
+    const config = useRuntimeConfig();
+    const u = config.public.apiUrl;
+    if (typeof u === "string" && u.trim()) {
+      return normalizeSemiRestBaseUrl(u);
+    }
+  } catch {
+    // no Nuxt context, fall through to import.meta
+  }
+  const v = import.meta.env.VITE_API_URL;
+  if (typeof v === "string" && v.trim()) {
+    return normalizeSemiRestBaseUrl(v);
+  }
+  return "https://semi.fly.dev";
+}
+
+function requireSemiRestBaseUrl(): string {
+  return getSemiRestBaseUrl();
+}
+
+// Legacy alias kept for any direct references outside the file
 export const API_BASE_URL = "https://semi.fly.dev";
 export const AUTH_TOKEN_KEY = "semi_auth_token";
 
@@ -106,7 +132,7 @@ export function logout(): void {
 
 // 1. 获取欢迎信息
 export async function getHello(): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE_URL}/`);
+  const response = await fetch(`${requireSemiRestBaseUrl()}/`);
   return handleRequest<{ message: string }>(response);
 }
 
@@ -120,7 +146,7 @@ export async function sendSMS(phone: string): Promise<BaseResponse> {
     } as BaseResponse;
   }
 
-  const response = await fetch(`${API_BASE_URL}/send_sms`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/send_sms`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ phone }),
@@ -144,7 +170,7 @@ export async function signIn(phone: string, code: string): Promise<SignInRespons
     return moc_response;
   }
 
-  const response = await fetch(`${API_BASE_URL}/signin`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/signin`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ phone, code }),
@@ -158,7 +184,7 @@ export async function signIn(phone: string, code: string): Promise<SignInRespons
 
 // 4. 设置用户句柄
 export async function setHandle(id: string, handle: string): Promise<BaseResponse> {
-  const response = await fetch(`${API_BASE_URL}/set_handle`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/set_handle`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ id, handle }),
@@ -168,7 +194,7 @@ export async function setHandle(id: string, handle: string): Promise<BaseRespons
 
 // 5. 设置用户头像 URL
 export async function setImageUrl(id: string, image_url: string): Promise<BaseResponse> {
-  const response = await fetch(`${API_BASE_URL}/set_image_url`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/set_image_url`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ id, image_url }),
@@ -186,7 +212,7 @@ export interface SetEncryptedKeysProps {
 }
 
 export async function setEncryptedKeys(props: SetEncryptedKeysProps): Promise<BaseResponse> {
-  const response = await fetch(`${API_BASE_URL}/set_encrypted_keys`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/set_encrypted_keys`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(props),
@@ -196,7 +222,7 @@ export async function setEncryptedKeys(props: SetEncryptedKeysProps): Promise<Ba
 
 // 7. 获取加密密钥
 export async function getEncryptedKeys(id: string): Promise<EncryptedKeysResponse> {
-  const response = await fetch(`${API_BASE_URL}/get_encrypted_keys?id=${id}`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/get_encrypted_keys?id=${id}`, {
     headers: getAuthHeaders(),
   });
   return handleRequest<EncryptedKeysResponse>(response);
@@ -217,14 +243,14 @@ export async function getUser(id: string): Promise<UserInfo> {
     return moc_response;
   }
 
-  const response = await fetch(`${API_BASE_URL}/get_user?id=${id}`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/get_user?id=${id}`, {
     headers: getAuthHeaders(),
   });
   return handleRequest<UserInfo>(response);
 }
 
 export async function getMe(): Promise<UserInfo> {
-  const response = await fetch(`${API_BASE_URL}/get_me`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/get_me`, {
     headers: getAuthHeaders(),
   });
   return handleRequest<UserInfo>(response);
@@ -236,7 +262,7 @@ export async function setEvmChainAddress(
   evm_chain_address: string,
   evm_chain_active_key: string
 ): Promise<BaseResponse> {
-  const response = await fetch(`${API_BASE_URL}/set_evm_chain_address`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/set_evm_chain_address`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ id, evm_chain_address, evm_chain_active_key }),
@@ -250,7 +276,7 @@ export async function signinWithPassword(phone: string, password: string) {
   const hax = sha256(bytes);
   console.log("password_hash", hax);
 
-  const response = await fetch(`${API_BASE_URL}/signin_with_password`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/signin_with_password`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ phone, password: hax }),
@@ -270,14 +296,14 @@ export async function getRemainingGasCredits(): Promise<RemainingGasCreditsRespo
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    const response = await fetch(`${API_BASE_URL}/remaining_free_transactions`, {
+    const response = await fetch(`${requireSemiRestBaseUrl()}/remaining_free_transactions`, {
       signal: controller.signal,
       headers: getAuthHeaders(),
     });
     return handleRequest<RemainingGasCreditsResponse>(response);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("Request timed out: " + `${API_BASE_URL}/remaining_free_transactions`);
+      throw new Error("Request timed out: " + `${requireSemiRestBaseUrl()}/remaining_free_transactions`);
     }
     throw error;
   } finally {
@@ -304,7 +330,7 @@ export interface TransactionRecord {
 
 // 上传交易记录
 export async function uploadTransaction(transaction: TransactionRecord): Promise<BaseResponse> {
-  const response = await fetch(`${API_BASE_URL}/add_transaction`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/add_transaction`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(transaction),
@@ -318,7 +344,7 @@ export async function setTransactionNote(props: {
   sender_note?: string;
   receiver_note?: string;
 }): Promise<BaseResponse> {
-  const response = await fetch(`${API_BASE_URL}/set_transaction_note`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/set_transaction_note`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(props),
@@ -333,7 +359,7 @@ export interface TransactionRecordResponse extends BaseResponse {
 
 export async function getTransactions(txhashes?: string): Promise<TransactionRecordResponse> {
   const response = await fetch(
-    `${API_BASE_URL}/get_transactions${txhashes ? `?tx_hashes=${txhashes}` : ""}`,
+    `${requireSemiRestBaseUrl()}/get_transactions${txhashes ? `?tx_hashes=${txhashes}` : ""}`,
     {
       headers: getAuthHeaders(),
     }
@@ -343,14 +369,14 @@ export async function getTransactions(txhashes?: string): Promise<TransactionRec
 }
 
 export async function getUserByHandle(handle: string): Promise<UserInfo> {
-  const response = await fetch(`${API_BASE_URL}/get_by_handle?handle=${handle}`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/get_by_handle?handle=${handle}`, {
     headers: getAuthHeaders(),
   });
   return handleRequest<UserInfo>(response);
 }
 
 export async function getUserByHandleOrPhone(handleOrPhone: string): Promise<UserInfo | null> {
-  const response = await fetch(`${API_BASE_URL}/get_by_handle?handle=${handleOrPhone}`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/get_by_handle?handle=${handleOrPhone}`, {
     headers: getAuthHeaders(),
   });
 
@@ -396,7 +422,7 @@ export interface TokenClass {
 }
 
 export async function addTokenClass(props: TokenClass): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/add_token_class`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/add_token_class`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(props),
@@ -410,7 +436,7 @@ export interface TokenClassResponse extends BaseResponse {
 }
 
 export async function getTokenClass(): Promise<TokenClassResponse> {
-  const response = await fetch(`${API_BASE_URL}/get_token_classes`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/get_token_classes`, {
     headers: getAuthHeaders(),
   });
 
@@ -421,7 +447,7 @@ export async function getTokenClass(): Promise<TokenClassResponse> {
 export async function uploadTransactionWithGasCredits(
   transaction: TransactionRecord
 ): Promise<BaseResponse> {
-  const response = await fetch(`${API_BASE_URL}/add_transaction_with_gas_credits`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/add_transaction_with_gas_credits`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(transaction),
@@ -431,7 +457,7 @@ export async function uploadTransactionWithGasCredits(
 
 // 发送邮箱验证码
 export async function sendEmailCode(email: string): Promise<BaseResponse> {
-  const response = await fetch(`${API_BASE_URL}/send_email`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/send_email`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ email }),
@@ -466,7 +492,7 @@ export async function signInWithEmail(
     return moc_response;
   }
 
-  const response = await fetch(`${API_BASE_URL}/signin_with_email`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/signin_with_email`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ email, code }),
@@ -491,7 +517,7 @@ export async function setContacts(
   id: string,
   contact_list: Contact[]
 ): Promise<BaseResponse> {
-  const response = await fetch(`${API_BASE_URL}/set_contacts`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/set_contacts`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ id, contact_list }),
@@ -506,7 +532,7 @@ interface GetContactsResponse extends BaseResponse {
 
 // 获取联系人列表
 export async function getContacts(id: string): Promise<GetContactsResponse> {
-  const response = await fetch(`${API_BASE_URL}/get_contacts?id=${id}`, {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/get_contacts?id=${id}`, {
     headers: getAuthHeaders(),
   });
   return handleRequest<GetContactsResponse>(response);

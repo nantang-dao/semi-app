@@ -2,7 +2,7 @@
 // Returns app info JSON for the consent page to render.
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const backendUrl = process.env.NUXT_PUBLIC_API_URL || "https://semi.fly.dev"
+  const backendUrl = process.env.VITE_API_URL || "https://semi.fly.dev"
 
   const params = new URLSearchParams()
   for (const [k, v] of Object.entries(query)) {

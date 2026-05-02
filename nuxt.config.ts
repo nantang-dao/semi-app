@@ -3,6 +3,16 @@ export default defineNuxtConfig({
   ssr: false,
   compatibilityDate: "2025-05-15",
   devtools: { enabled: false },
+  // Fix: Nuxt 3.21.4 regression "Vite Node IPC socket path not configured" with ssr:false
+  // See: https://github.com/nuxt/nuxt/issues/34957
+  experimental: {
+    viteEnvironmentApi: true,
+  },
+  runtimeConfig: {
+    public: {
+      apiUrl: process.env.VITE_API_URL || "",
+    },
+  },
   ui: {
     fonts: false,
   },
