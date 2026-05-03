@@ -1,0 +1,27 @@
+server/utils/nft.ts
+  d09588fa00adafee 15-20,31-42,44-49,63-64,70,72-77,80-81,85-86,88-89,99
+server/api/nft/[contractAddress]/[tokenId]/holders.get.ts
+  d09588fa00adafee 9-12,27-33,36
+nuxt.config.ts
+  d09588fa00adafee 19-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "f109d907c926b69f84e70e78b37fd2a66506edd6",
+  "prompts": {
+    "d09588fa00adafee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": "jiangplus",
+      "messages": [],
+      "total_additions": 59,
+      "total_deletions": 70,
+      "accepted_lines": 55,
+      "overriden_lines": 0
+    }
+  }
+}
