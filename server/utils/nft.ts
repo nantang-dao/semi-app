@@ -1,25 +1,4 @@
 import type { Chain } from "viem";
-import { Alchemy, Network } from "alchemy-sdk";
-
-// 网络映射配置
-const CHAIN_TO_NETWORK: Record<number, Network> = {
-  1: Network.ETH_MAINNET,
-  10: Network.OPT_MAINNET,
-  11155111: Network.ETH_SEPOLIA,
-};
-
-// 获取 Alchemy 实例（服务器端）
-const getAlchemyInstance = (chain: Chain): Alchemy => {
-  const network = CHAIN_TO_NETWORK[chain.id];
-  if (!network) {
-    throw new Error(`Unsupported chain ID: ${chain.id}`);
-  }
-
-  return new Alchemy({
-    apiKey: process.env.VITE_ALCHEMY_API_KEY || process.env.ALCHEMY_API_KEY,
-    network,
-  });
-};
 
 export interface NFT {
   contractAddress: string;
@@ -33,6 +12,12 @@ export interface NFT {
   rawMetadata?:any;
 }
 
+const CHAIN_TO_NETWORK: Record<number, string> = {
+  1: "eth-mainnet",
+  10: "opt-mainnet",
+  11155111: "eth-sepolia",
+};
+
 /**
  * 获取用户拥有的NFT
  * @param walletAddress 钱包地址
@@ -43,9 +28,25 @@ export async function getOwnedNFTs(
   walletAddress: string,
   chain: Chain
 ): Promise<NFT[]> {
-  try {
-    const alchemy = getAlchemyInstance(chain);
+  const network = CHAIN_TO_NETWORK[chain.id];
+  if (!network) {
+    throw new Error(`Unsupported chain ID: ${chain.id}`);
+  }
 
+  // Dynamic import so alchemy-sdk is not loaded at Lambda cold start
+  const { Alchemy, Network } = await import("alchemy-sdk");
+  const networkMap: Record<string, typeof Network[keyof typeof Network]> = {
+    "eth-mainnet": Network.ETH_MAINNET,
+    "opt-mainnet": Network.OPT_MAINNET,
+    "eth-sepolia": Network.ETH_SEPOLIA,
+  };
+
+  const alchemy = new Alchemy({
+    apiKey: process.env.VITE_ALCHEMY_API_KEY || process.env.ALCHEMY_API_KEY,
+    network: networkMap[network],
+  });
+
+  try {
     const allNFTs: NFT[] = [];
     let pageKey: string | undefined = undefined;
 
@@ -55,51 +56,37 @@ export async function getOwnedNFTs(
         pageKey,
       });
 
-      // 处理ERC721和ERC1155
       for (const nft of response.ownedNfts) {
-        // 获取完整的元数据（包含 attributes）
         let fullMetadata = null;
         let attributes: Record<string,any> | undefined = undefined;
 
-        try{
-          const metadataResponse = await alchemy.nft.getNftMetadata
-          (
+        try {
+          const metadataResponse = await alchemy.nft.getNftMetadata(
             nft.contract.address,
             nft.tokenId
           );
           fullMetadata = metadataResponse.raw;
 
-          // 获取 attributes
-          if(metadataResponse.raw?.metadata)
-          {
+          if (metadataResponse.raw?.metadata) {
             const metadata = metadataResponse.raw.metadata;
-            // 处理 attrbutes 的不同格式
-            if(metadata.attributes)
-            {
-              if(Array.isArray(metadata.attributes))
-              {
-                // OpenSea 的元数据标准: [{trait_type: "时间", value: "2025-11-23"}]
-                attributes={};
-                metadata.attributes.forEach((attr:any)=>
-                {
-                  if(attr.trait_type && attr.value !== undefined)
-                  {
-                    attributes![attr.trait_type]=attr.value;
+            if (metadata.attributes) {
+              if (Array.isArray(metadata.attributes)) {
+                attributes = {};
+                metadata.attributes.forEach((attr: any) => {
+                  if (attr.trait_type && attr.value !== undefined) {
+                    attributes![attr.trait_type] = attr.value;
                   }
                 });
-              } else if(typeof metadata.attributes === 'object')
-              {
-                  // 直接对象格式: {时间: "2025-11-23"}
-                  attributes = metadata.attributes;
+              } else if (typeof metadata.attributes === "object") {
+                attributes = metadata.attributes;
               }
             }
           }
-        } catch (error)
-        {
-          console.warn('Failed to fetch full metadata for ${nft.contract.address}/${nft.tokenId}:', error);
+        } catch (error) {
+          console.warn(`Failed to fetch full metadata for ${nft.contract.address}/${nft.tokenId}:`, error);
         }
-        
-        const nftData: NFT = {
+
+        allNFTs.push({
           contractAddress: nft.contract.address,
           tokenId: nft.tokenId,
           name: nft.name || nft.contract.name || `#${nft.tokenId}`,
@@ -109,9 +96,7 @@ export async function getOwnedNFTs(
           collectionName: nft.contract.name,
           attributes,
           rawMetadata: fullMetadata,
-        };
-
-        allNFTs.push(nftData);
+        });
       }
 
       pageKey = response.pageKey;

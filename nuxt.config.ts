@@ -16,13 +16,11 @@ export default defineNuxtConfig({
   ui: {
     fonts: false,
   },
+  icon: {
+    serverBundle: false,
+  },
   modules: ["@nuxt/icon", "@nuxt/ui", "@pinia/nuxt"],
   css: ["~/assets/css/main.css"],
-  nitro: {
-    externals: {
-      inline: ["alchemy-sdk"],
-    },
-  },
   routeRules: {
     "/api/**": {
       cors: true,
