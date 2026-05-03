@@ -33,9 +33,9 @@ export default defineNuxtConfig({
   modules: ["@nuxt/icon", "@nuxt/ui", "@pinia/nuxt"],
   css: ["~/assets/css/main.css"],
   routeRules: {
-    "/api/**": {
-      cors: true,
-    },
+    // /metadata/** is fetched cross-origin by wallets and indexers, so CORS is needed.
+    // /api/** is called same-origin by the SPA client — no CORS needed and adding it
+    // generates a Vercel headers-only route that intercepts requests before the Lambda.
     "/metadata/**": {
       cors: true,
     },
