@@ -3,7 +3,7 @@ export default defineEventHandler(async (event) => {
   if (!authToken) throw createError({ statusCode: 401, statusMessage: "Not authenticated" })
 
   const body = await readBody(event)
-  const backendUrl = process.env.VITE_API_URL || "https://semi.fly.dev"
+  const backendUrl = getBackendUrl()
   return $fetch(`${backendUrl}/oauth/applications`, {
     method: "POST",
     headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" },

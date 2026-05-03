@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, "id")
   const body = await readBody(event)
-  const backendUrl = process.env.VITE_API_URL || "https://semi.fly.dev"
+  const backendUrl = getBackendUrl()
   return $fetch(`${backendUrl}/oauth/applications/${id}`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" },

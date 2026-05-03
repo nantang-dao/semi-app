@@ -1,5 +1,9 @@
 import { getNamehash } from "@/utils/encryption";
 
+export function getBackendUrl(): string {
+  return (process.env.VITE_API_URL || "https://semi.fly.dev").replace(/\/+$/, "");
+}
+
 export function getProfileId(wallet_address: string, chain_id: number) {
   return getNamehash(`${wallet_address}.${chain_id}.semi`);
 }

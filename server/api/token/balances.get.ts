@@ -25,8 +25,7 @@ async function getTokenClasses(apiBaseUrl: string): Promise<TokenClassResponse> 
 }
 
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig(event);
-  const apiBaseUrl = String(config.public.apiUrl || process.env.NUXT_PUBLIC_API_URL || "")
+  const apiBaseUrl = getBackendUrl()
     .trim()
     .replace(/\/+$/, "");
 
