@@ -1,0 +1,23 @@
+nuxt.config.ts
+  d09588fa00adafee 21-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "36ddf2199dce7cf24c034f3d77c7c18a02e1dcaa",
+  "prompts": {
+    "d09588fa00adafee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": "jiangplus",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 0,
+      "accepted_lines": 5,
+      "overriden_lines": 0
+    }
+  }
+}
