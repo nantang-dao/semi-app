@@ -18,6 +18,17 @@ export default defineNuxtConfig({
   },
   icon: {
     serverBundle: false,
+    // SPA: clients fetch icons directly from Iconify CDN — no server handler needed
+    fallbackToApi: "client-only",
+  },
+  hooks: {
+    // Remove @nuxt/icon server handler so @iconify/utils is never statically imported
+    // at Lambda cold start. Icons are served via client-side CDN fallback instead.
+    "nitro:config"(nitroConfig) {
+      nitroConfig.handlers = (nitroConfig.handlers ?? []).filter(
+        (h) => !String(h.handler).includes("@nuxt/icon")
+      );
+    },
   },
   modules: ["@nuxt/icon", "@nuxt/ui", "@pinia/nuxt"],
   css: ["~/assets/css/main.css"],
