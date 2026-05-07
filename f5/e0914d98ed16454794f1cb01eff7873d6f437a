@@ -1,0 +1,21 @@
+server/api/oauth/admin/applications.get.ts
+  s_d09588fa00adaf::t_e1ed31abc5ecb0 1-15
+pages/admin/oauth.client.vue
+  s_d09588fa00adaf::t_452e64c84f59dc 1-149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "f5e0914d98ed16454794f1cb01eff7873d6f437a",
+  "prompts": {},
+  "sessions": {
+    "s_d09588fa00adaf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
