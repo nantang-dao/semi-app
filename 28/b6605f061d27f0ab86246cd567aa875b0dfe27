@@ -1,0 +1,94 @@
+pages/safe/[id]/transactions/new.client.vue
+  s_d09588fa00adaf::t_8ee0671d1d8074 124-134
+  s_d09588fa00adaf::t_c2e139b6764605 184
+  s_d09588fa00adaf::t_5d1bbe58874d09 5,18-19,24,28,32,36-37,40,44-45,50,58,60-61,67,73,82,84,188,194
+server/api/safe/wallets/index.get.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 5
+server/api/safe/wallets/[id]/transactions/[tx_id]/sign.delete.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 7
+pages/safe/create.client.vue
+  s_d09588fa00adaf::t_3065c2db2b9616 109-116
+  s_d09588fa00adaf::t_07dc636075c3f5 171-172,174,176-177
+  s_d09588fa00adaf::t_bb1385dfdb0716 126-127,129-132
+  s_d09588fa00adaf::t_f482b94a436acb 197-198,200-201,206,209-211,215-226,228,230-234
+  s_d09588fa00adaf::t_2113c1b04a008d 54-56
+  s_d09588fa00adaf::t_71dbc7b1ad1144 164-167
+  s_d09588fa00adaf::t_9e7c922921ecfd 138
+  s_d09588fa00adaf::t_e85765eab9fa1d 139-140
+  s_d09588fa00adaf::t_e43bd416240d1c 5,26,28,41,45,47,68,84-85,90,92,95,101,106-107,120-121,144,152-153,181
+  s_d09588fa00adaf::t_4af8516265539f 263-272
+  s_d09588fa00adaf::t_e9c350ebe31cec 288-290
+  s_d09588fa00adaf::t_e09aa05af161ea 199,202-205,208,212-214,235,237
+  s_d09588fa00adaf::t_e91bd2ed551b16 247-262,273,282-283
+  s_d09588fa00adaf::t_095bddc2126c04 67,69-79
+  s_d09588fa00adaf::t_5a3cd5b0482236 168-170,173,175,180
+  s_d09588fa00adaf::t_318b8e93dc8a4f 29-38
+server/api/safe/wallets/[id].get.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 6
+server/api/safe/wallets/[id]/transactions/index.post.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 7
+server/utils/index.ts
+  s_d09588fa00adaf::t_728b6d682b575c 7-23
+pages/safe/[id]/index.client.vue
+  s_d09588fa00adaf::t_489d455c99adc5 33,46-65
+  s_d09588fa00adaf::t_ea72fbc09b5837 7,13,17,21,36,40,67,70,88,90,92,101,113,115,118,241,245-250
+  s_d09588fa00adaf::t_4442127eb0cff7 188-196,201
+  s_d09588fa00adaf::t_d36f50e3f9b639 210-220
+  s_d09588fa00adaf::t_0576d101bea454 128-131,134-135,137,143-147,158,174-175,186-187,209,221-227,229-230,235-238
+  s_d09588fa00adaf::t_84b1f7938616b6 20,23-32
+  s_d09588fa00adaf::t_a588f150366aee 124
+  s_d09588fa00adaf::t_ca998c1475a04d 148-157,161-164,166-167,171-172,176
+  s_d09588fa00adaf::t_6202ca8d461a7e 204
+  s_d09588fa00adaf::t_5359f8e3f612b9 159-160,165,168-170,173,177-185,197-200,202-203,205-208,228,231-234
+server/api/safe/wallets/[id]/transactions/[tx_id]/index.delete.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 7
+server/api/safe/wallets/[id].delete.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 6
+components/Profile.client.vue
+  s_d09588fa00adaf::t_4cf085576e868f 42-47
+pages/safe/[id]/settings.client.vue
+  s_d09588fa00adaf::t_d60b1966ed82b4 5,13,16,19,21,25,33,38,42,61,65,67,69,72,105,108,118,121
+server/api/safe/wallets/[id]/transactions/[tx_id]/index.get.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 7
+server/api/safe/wallets/index.post.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 6
+pages/safe/index.client.vue
+  s_d09588fa00adaf::t_d328a3e00ef6c6 4,6,14,18-20,34,39,42,55,59-60
+server/api/safe/wallets/[id]/transactions/[tx_id]/sign.post.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 8
+server/api/safe/wallets/[id]/transactions/index.get.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 7
+pages/safe/[id]/transactions/[tx_id].client.vue
+  s_d09588fa00adaf::t_8550c4f4a9f8fd 159-169
+  s_d09588fa00adaf::t_4aa7b643b4faf9 7,12-13,16,18,21,25,29,33,37,41,45,53,57,59,66,83,85,87,89,93,99,108-109,117-118,122,131,197,200,210,213,219-222,229
+utils/semi_api.ts
+  s_d09588fa00adaf::t_799404a3d6e2cb 404-415
+  s_d09588fa00adaf::t_d9ec8f37eefaa6 11-17,20-22,34-35
+  s_d09588fa00adaf::t_c675aacf029599 18-19
+utils/safe_multisig.ts
+  s_d09588fa00adaf::t_d9a5a295ce0339 4
+  s_d09588fa00adaf::t_b970966a14b57d 53-62,70,73-76,79-84,86-93,96-144,146-156,158
+  s_d09588fa00adaf::t_214da4122cc935 63
+  s_d09588fa00adaf::t_c1bcad84d1f21c 3,7
+  s_d09588fa00adaf::t_f42f548b4adf51 2,8-10
+  s_d09588fa00adaf::t_9f238bde259a39 160-164,166-176,178-186,188-189,191-192
+  s_d09588fa00adaf::t_cd1c210fe26fc7 1,5-6,11-52,64-69,71-72,77-78,85,94-95,145,157,159,165,177,187,190,193-205
+server/api/safe/wallets/[id]/set_safe_address.patch.ts
+  s_d09588fa00adaf::t_700baa2b0c945d 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "28b6605f061d27f0ab86246cd567aa875b0dfe27",
+  "prompts": {},
+  "sessions": {
+    "s_d09588fa00adaf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
