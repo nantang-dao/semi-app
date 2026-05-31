@@ -1,0 +1,59 @@
+service: semi-app
+image: ghcr.io/jiangplus/semi-app
+
+servers:
+  web:
+    hosts: [sg.sola.day]
+    primary: true
+
+registry:
+  server: ghcr.io
+  username: jiangplus
+  password: KAMAL_REGISTRY_PASSWORD
+
+proxy:
+  host: web.semi.im
+  app_port: 3000
+  ssl: true
+  health_check_path: /up
+  deploy_timeout: 30
+  drain_timeout: 30
+
+ssh:
+  user: root
+
+builder:
+  arch: amd64
+  remote: ssh://ubuntu@wamo.city
+
+env:
+  PORT: "3000"
+  NODE_ENV: production
+
+secrets:
+  load: [.env]
+  inject:
+    - INSTANT_APP_ID
+    - INSTANT_APP_ADMIN_TOKEN
+    - SOLA_BADGE_ADMIN_WALLET_PRIVATE_KEY
+    - OP_SOLA_BADGE_ADMIN_WALLET_PRIVATE_KEY
+    - SEPOLIA_SOLA_BADGE_ADMIN_WALLET_PRIVATE_KEY
+    - OAUTH_VALID_CLIENT_IDS
+
+pipelines:
+  deploy:
+    - build
+    - push
+    - lock: acquire
+    - boot-proxy
+    - boot-app: {rolling: true}
+    - prune
+    - lock: release
+    - hook:
+        run: |
+          [ -z "$CF_API_TOKEN" ] && echo "Skipping DNS: CF_API_TOKEN not set" && exit 0
+          EXISTING=$(CF_API_TOKEN=$CF_API_TOKEN flarectl dns list --zone semi.im 2>/dev/null | awk '$3 == "web.semi.im" && $2 == "CNAME" {print $1}')
+          [ -n "$EXISTING" ] && flarectl dns delete --zone semi.im --id "$EXISTING"
+          flarectl dns create --zone semi.im --type CNAME --name web --content sg.sola.day --proxy
+          echo "DNS: web.semi.im -> sg.sola.day"
+        local: true
