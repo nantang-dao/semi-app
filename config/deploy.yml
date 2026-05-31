@@ -7,8 +7,6 @@ servers:
 
 ssh:
   user: root
-  keepalive: true
-  keepalive_interval: 30
 
 proxy:
   ssl: true
