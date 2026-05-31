@@ -1,5 +1,5 @@
 service: semi-app
-image: ghcr.io/jiangplus/semi-app
+image: jiangplus/semi-app
 
 servers:
   web:
@@ -7,6 +7,8 @@ servers:
 
 ssh:
   user: root
+  keepalive: true
+  keepalive_interval: 30
 
 proxy:
   ssl: true
