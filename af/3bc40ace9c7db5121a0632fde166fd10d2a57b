@@ -1,0 +1,26 @@
+Dockerfile
+  s_ed5afad461cfc3::t_1964e8b82d91f0 8,10
+ginger.yml
+  s_ed5afad461cfc3::t_b2caacf678fcd0 42-59
+  s_ed5afad461cfc3::t_fe7622f745a2e2 1-41
+.gitignore
+  s_ed5afad461cfc3::t_b7908cf360bf7f 25
+.env.build
+  s_ed5afad461cfc3::t_2fa538f58d3e7d 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "af3bc40ace9c7db5121a0632fde166fd10d2a57b",
+  "prompts": {},
+  "sessions": {
+    "s_ed5afad461cfc3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "392f65c3-30a2-4db3-a806-09ad375806d0",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
