@@ -1,0 +1,28 @@
+#!/bin/bash
+set -e
+
+# Requires: flarectl (https://github.com/cloudflare/cloudflare-go)
+# CF_API_TOKEN must be set in .env
+
+CF_API_TOKEN=$(grep '^CF_API_TOKEN=' .env | cut -d= -f2-)
+
+if [ -z "$CF_API_TOKEN" ]; then
+  echo "Skipping DNS update: CF_API_TOKEN not set in .env"
+  exit 0
+fi
+
+export CF_API_TOKEN
+
+# Upsert CNAME web.semi.im -> sg.sola.day
+ZONE=semi.im
+NAME=web
+TARGET=sg.sola.day
+
+EXISTING=$(CF_API_TOKEN=$CF_API_TOKEN flarectl dns list --zone $ZONE 2>/dev/null | awk "\$3 == \"$NAME.$ZONE\" && \$2 == \"CNAME\" {print \$1}")
+
+if [ -n "$EXISTING" ]; then
+  flarectl dns delete --zone $ZONE --id "$EXISTING"
+fi
+
+flarectl dns create --zone $ZONE --type CNAME --name $NAME --content $TARGET --proxy
+echo "DNS: $NAME.$ZONE -> $TARGET (proxied)"
