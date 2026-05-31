@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id")
   const query = getQuery(event)
   const backendUrl = getBackendUrl()
-  return $fetch(`${backendUrl}/safe/wallets/${id}/transactions`, {
+  return backendFetch(`${backendUrl}/safe/wallets/${id}/transactions`, {
     headers: { Authorization: `Bearer ${authToken}` },
     query,
   })

@@ -2,7 +2,7 @@
   <div class="container mx-auto px-4 py-8 max-w-2xl">
     <div class="flex items-center gap-2 mb-6">
       <UButton variant="ghost" icon="i-heroicons-arrow-left" @click="navigateTo(`/safe/${safeId}`)" />
-      <h1 class="text-2xl font-bold">New Transaction</h1>
+      <h1 class="text-2xl font-bold">发起交易</h1>
     </div>
 
     <div v-if="loadingSafe" class="flex justify-center py-8">
@@ -15,39 +15,39 @@
         icon="i-heroicons-exclamation-triangle"
         color="warning"
         class="mb-4"
-        title="Safe not deployed on-chain"
-        description="This Safe doesn't have an on-chain address yet. Set the Safe address first before proposing transactions."
+        title="Safe 尚未部署到链上"
+        description="此 Safe 还没有链上合约地址，请先在设置中填写 Safe 地址，再发起交易。"
       />
 
       <UCard>
         <div class="space-y-4">
-          <UFormGroup label="To Address" required>
+          <UFormGroup label="收款地址" required>
             <UInput v-model="form.to" placeholder="0x..." />
           </UFormGroup>
 
-          <UFormGroup label="Value (ETH)">
+          <UFormGroup label="金额（ETH）">
             <UInput v-model="form.value_eth" type="number" step="0.0001" placeholder="0.0" />
           </UFormGroup>
 
-          <UFormGroup label="Data (hex calldata)">
+          <UFormGroup label="调用数据（hex calldata）">
             <UInput v-model="form.data" placeholder="0x" />
           </UFormGroup>
 
-          <UFormGroup label="Description">
-            <UInput v-model="form.description" placeholder="What is this transaction for?" />
+          <UFormGroup label="备注">
+            <UInput v-model="form.description" placeholder="说明这笔交易的用途" />
           </UFormGroup>
 
-          <UFormGroup label="Expires in (hours)">
+          <UFormGroup label="过期时间（小时）">
             <UInput v-model="form.expires_hours" type="number" placeholder="72" />
           </UFormGroup>
 
-          <!-- Computed hash preview -->
-          <UFormGroup label="Safe Tx Hash (auto-computed)">
+          <!-- 自动计算的交易哈希 -->
+          <UFormGroup label="Safe 交易哈希（自动计算）">
             <div v-if="computedHash" class="font-mono text-xs bg-gray-50 p-2 rounded break-all text-gray-700">
               {{ computedHash }}
             </div>
             <div v-else class="text-sm text-gray-400 italic">
-              Fill in Safe address, To, and Nonce to compute
+              填写 Safe 地址、收款地址和 Nonce 后自动计算
             </div>
           </UFormGroup>
 
@@ -55,22 +55,22 @@
             <UInput v-model.number="form.nonce" type="number" :placeholder="String(nextNonce)" />
           </UFormGroup>
 
-          <UDivider label="Sign immediately (optional)" />
+          <UDivider label="立即签名（可选）" />
 
-          <UFormGroup label="Passcode" description="Enter your wallet passcode to sign this proposal now">
-            <UInput v-model="passcode" type="password" placeholder="Wallet passcode" />
+          <UFormGroup label="支付密码" description="输入钱包密码立即为此提案签名">
+            <UInput v-model="passcode" type="password" placeholder="钱包支付密码" />
           </UFormGroup>
         </div>
 
         <template #footer>
           <div class="flex justify-between">
-            <UButton variant="outline" @click="navigateTo(`/safe/${safeId}`)">Cancel</UButton>
+            <UButton variant="outline" @click="navigateTo(`/safe/${safeId}`)">取消</UButton>
             <UButton
               :loading="submitting"
               :disabled="!form.to || !computedHash || !safe?.safe_address"
               @click="submit"
             >
-              {{ passcode ? 'Propose & Sign' : 'Create Proposal' }}
+              {{ passcode ? '提交并签名' : '提交提案' }}
             </UButton>
           </div>
         </template>
@@ -79,9 +79,9 @@
 
     <UModal v-model="showError">
       <UCard>
-        <template #header><h3 class="font-semibold text-red-600">Error</h3></template>
+        <template #header><h3 class="font-semibold text-red-600">错误</h3></template>
         <p>{{ errorMessage }}</p>
-        <template #footer><UButton @click="showError = false">OK</UButton></template>
+        <template #footer><UButton @click="showError = false">确定</UButton></template>
       </UCard>
     </UModal>
   </div>
@@ -121,6 +121,17 @@ const form = reactive({
 
 const effectiveNonce = computed(() => form.nonce ?? nextNonce.value)
 
+// Safe owner identity is the EOA signing key (Option A), not the smart account address.
+function mySignerKey() {
+  const user = userStore.user
+  if (!user) return undefined
+  return user.evm_chain_active_key
+    ?? user.wallets?.find(w => w.id === user.active_wallet_id)?.evm_chain_active_key
+    ?? user.wallets?.find(w => w.is_primary)?.evm_chain_active_key
+    ?? user.wallets?.[0]?.evm_chain_active_key
+    ?? undefined
+}
+
 const computedHash = computed(() => {
   if (!safe.value?.safe_address || !form.to) return null
   try {
@@ -159,7 +170,6 @@ async function submit() {
 
     const txId = res.transaction.id
 
-    // If passcode provided, sign immediately
     if (passcode.value && userStore.user?.encrypted_keys) {
       try {
         const keystore = typeof userStore.user.encrypted_keys === "string"
@@ -171,18 +181,17 @@ async function submit() {
           method: "POST",
           body: {
             signature,
-            signer_address: userStore.user.evm_chain_address,
+            signer_address: mySignerKey(),
           },
         })
       } catch (signErr: any) {
-        // Proposal created, signing failed — navigate anyway, user can sign on detail page
-        console.warn("Auto-sign failed:", signErr?.message)
+        console.warn("自动签名失败：", signErr?.message)
       }
     }
 
     await navigateTo(`/safe/${safeId}/transactions/${txId}`)
   } catch (e: any) {
-    errorMessage.value = e?.data?.error ?? e?.message ?? "Failed to create transaction"
+    errorMessage.value = e?.data?.error ?? e?.message ?? "创建交易失败"
     showError.value = true
   } finally {
     submitting.value = false

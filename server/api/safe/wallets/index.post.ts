@@ -3,7 +3,7 @@ export default defineEventHandler(async (event) => {
   if (!authToken) throw createError({ statusCode: 401, statusMessage: "Not authenticated" })
   const body = await readBody(event)
   const backendUrl = getBackendUrl()
-  return $fetch(`${backendUrl}/safe/wallets`, {
+  return backendFetch(`${backendUrl}/safe/wallets`, {
     method: "POST",
     headers: { Authorization: `Bearer ${authToken}` },
     body,

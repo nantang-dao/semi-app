@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id")
   const tx_id = getRouterParam(event, "tx_id")
   const backendUrl = getBackendUrl()
-  return $fetch(`${backendUrl}/safe/wallets/${id}/transactions/${tx_id}/sign`, {
+  return backendFetch(`${backendUrl}/safe/wallets/${id}/transactions/${tx_id}/sign`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${authToken}` },
   })

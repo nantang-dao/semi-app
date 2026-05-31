@@ -39,6 +39,12 @@
         </div>
         <span class="text-sm mt-1">{{ i18n.text.Badges }}</span>
       </div>
+      <div class="flex flex-col items-center cursor-pointer" @click="navigateTo('/safe')">
+        <div class="bg-indigo-50 rounded-full w-14 h-14 flex items-center justify-center mb-1">
+          <UIcon name="i-heroicons-shield-check" size="24" class="text-indigo-500" />
+        </div>
+        <span class="text-sm mt-1">Safe</span>
+      </div>
     </div>
 
     <!-- 分割线 -->

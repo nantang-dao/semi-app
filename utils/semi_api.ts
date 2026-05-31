@@ -8,6 +8,18 @@ interface BaseResponse {
 }
 
 // 用户信息接口
+export interface WalletInfo {
+  id: string;
+  name: string | null;
+  wallet_type: string | null;
+  chain: string | null;
+  chain_id: number | null;
+  evm_chain_address: string | null;
+  evm_chain_active_key: string | null;
+  encrypted_keys: any | null;
+  is_primary: boolean;
+}
+
 export interface UserInfo {
   id: string;
   handle: string | null;
@@ -19,6 +31,8 @@ export interface UserInfo {
   remaining_gas_credits?: number;
   total_used_gas_credits?: number;
   encrypted_keys?: string | null;
+  active_wallet_id?: string | null;
+  wallets?: WalletInfo[];
 }
 
 // 登录响应接口
@@ -377,6 +391,18 @@ export async function getUserByHandle(handle: string): Promise<UserInfo> {
 
 export async function getUserByHandleOrPhone(handleOrPhone: string): Promise<UserInfo | null> {
   const response = await fetch(`${requireSemiRestBaseUrl()}/get_by_handle?handle=${handleOrPhone}`, {
+    headers: getAuthHeaders(),
+  });
+
+  try {
+    return await handleRequest<UserInfo | null>(response);
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function getUserByAddress(address: string): Promise<UserInfo | null> {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/get_by_address?address=${encodeURIComponent(address)}`, {
     headers: getAuthHeaders(),
   });
 

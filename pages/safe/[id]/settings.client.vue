@@ -2,7 +2,7 @@
   <div class="container mx-auto px-4 py-8 max-w-2xl">
     <div class="flex items-center gap-2 mb-6">
       <UButton variant="ghost" icon="i-heroicons-arrow-left" @click="navigateTo(`/safe/${safeId}`)" />
-      <h1 class="text-2xl font-bold">Safe Settings</h1>
+      <h1 class="text-2xl font-bold">Safe 设置</h1>
     </div>
 
     <div v-if="loading" class="flex justify-center py-8">
@@ -10,21 +10,19 @@
     </div>
 
     <template v-else-if="safe">
-      <!-- Set / update on-chain Safe address -->
+      <!-- 链上 Safe 地址 -->
       <UCard class="mb-6">
         <template #header>
-          <h2 class="font-semibold">On-chain Safe Address</h2>
+          <h2 class="font-semibold">链上 Safe 合约地址</h2>
         </template>
         <p class="text-sm text-gray-600 mb-4">
-          Link this Safe record to an on-chain Gnosis Safe contract address.
-          The Safe contract must already be deployed. The address is used to compute
-          transaction hashes and verify signatures.
+          将此 Safe 记录关联到已部署的 Gnosis Safe 合约地址。该地址用于计算交易哈希和验证签名。
         </p>
-        <UFormGroup label="Safe Contract Address">
+        <UFormGroup label="Safe 合约地址">
           <UInput v-model="safeAddress" placeholder="0x..." />
         </UFormGroup>
         <p v-if="safe.safe_address" class="text-xs text-gray-500 mt-2">
-          Current: <span class="font-mono">{{ safe.safe_address }}</span>
+          当前地址：<span class="font-mono">{{ safe.safe_address }}</span>
         </p>
         <template #footer>
           <UButton
@@ -32,16 +30,16 @@
             :disabled="!safeAddress || safeAddress === safe.safe_address"
             @click="saveSafeAddress"
           >
-            {{ safe.safe_address ? 'Update Address' : 'Set Address' }}
+            {{ safe.safe_address ? '更新地址' : '设置地址' }}
           </UButton>
         </template>
       </UCard>
 
-      <!-- Owners list (read-only for now, Phase 3: add/remove via on-chain tx) -->
+      <!-- 签名人列表（只读） -->
       <UCard class="mb-6">
         <template #header>
           <div class="flex justify-between items-center">
-            <h2 class="font-semibold">Signers</h2>
+            <h2 class="font-semibold">签名人</h2>
             <UBadge>{{ safe.threshold }}-of-{{ safe.owners?.length }}</UBadge>
           </div>
         </template>
@@ -60,18 +58,18 @@
           </div>
         </div>
         <p class="text-xs text-gray-400 mt-3">
-          Adding or removing signers requires a multi-sig transaction (on-chain, Phase 2).
+          添加或移除签名人需要通过多签交易在链上完成（Phase 2）。
         </p>
       </UCard>
 
-      <!-- Archive -->
+      <!-- 危险区域 -->
       <UCard v-if="isCreator">
-        <template #header><h2 class="font-semibold text-red-600">Danger Zone</h2></template>
+        <template #header><h2 class="font-semibold text-red-600">危险操作</h2></template>
         <p class="text-sm text-gray-600 mb-4">
-          Archiving hides this Safe from your list. On-chain funds are unaffected.
+          归档后此 Safe 将从列表中隐藏，链上资金不受影响。
         </p>
         <UButton color="error" variant="outline" :loading="archiving" @click="archive">
-          Archive this Safe
+          归档此 Safe
         </UButton>
       </UCard>
     </template>
@@ -104,10 +102,10 @@ async function saveSafeAddress() {
       method: "PATCH",
       body: { safe_address: safeAddress.value },
     })
-    toast.add({ title: "Safe address updated", color: "success" })
+    toast.add({ title: "Safe 地址已更新", color: "success" })
     await refresh()
   } catch (e: any) {
-    toast.add({ title: "Error", description: e?.data?.error ?? e?.message, color: "error" })
+    toast.add({ title: "更新失败", description: e?.data?.error ?? e?.message, color: "error" })
   } finally {
     savingAddress.value = false
   }
@@ -117,10 +115,10 @@ async function archive() {
   archiving.value = true
   try {
     await $fetch(`/api/safe/wallets/${safeId}`, { method: "DELETE" })
-    toast.add({ title: "Safe archived", color: "success" })
+    toast.add({ title: "Safe 已归档", color: "success" })
     await navigateTo("/safe")
   } catch (e: any) {
-    toast.add({ title: "Error", description: e?.data?.error ?? e?.message, color: "error" })
+    toast.add({ title: "操作失败", description: e?.data?.error ?? e?.message, color: "error" })
   } finally {
     archiving.value = false
   }
