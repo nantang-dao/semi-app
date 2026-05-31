@@ -1,0 +1,22 @@
+config/deploy.yml
+  s_ed5afad461cfc3::t_707ce9df602cc2 2
+  s_ed5afad461cfc3::t_0f0ab4fb86ca39 35
+.kamal/secrets
+  s_ed5afad461cfc3::t_af069168000268 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "30788142fbbed1abcd236c406f0e502d1ff27519",
+  "prompts": {},
+  "sessions": {
+    "s_ed5afad461cfc3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "392f65c3-30a2-4db3-a806-09ad375806d0",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
