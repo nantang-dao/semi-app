@@ -1,0 +1,20 @@
+config/deploy.yml
+  s_ed5afad461cfc3::t_8f8e33c476749c 2
+  s_ed5afad461cfc3::t_d1acaec7fd63e3 10-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "8cab075117e70c2d9ef1935ede64ad6caca829e2",
+  "prompts": {},
+  "sessions": {
+    "s_ed5afad461cfc3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "392f65c3-30a2-4db3-a806-09ad375806d0",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
