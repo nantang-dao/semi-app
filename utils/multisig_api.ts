@@ -66,8 +66,15 @@ export interface MultisigTx {
   updated_at: string;
   signatures?: MultisigSignatureData[];
   user_op_snapshot?: UserOpSnapshot;
-  /** 终态交易的 owner 快照（含签名状态），活跃交易为 null */
-  owner_snapshot?: OwnerSnapshotEntry[] | null;
+  /** 终态交易的 owner 快照（含签名状态和发起人），活跃交易为 null */
+  owner_snapshot?: OwnerSnapshot | null;
+  /** 发起人信息（实时） */
+  proposer?: ProposerInfo | null;
+}
+
+export interface OwnerSnapshot {
+  owners: OwnerSnapshotEntry[];
+  proposer: ProposerInfo;
 }
 
 export interface OwnerSnapshotEntry {
@@ -75,6 +82,12 @@ export interface OwnerSnapshotEntry {
   name: string | null;
   signed: boolean;
   signed_at?: string | null;
+}
+
+export interface ProposerInfo {
+  id: string;
+  address: string | null;
+  name: string | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -246,6 +259,16 @@ export async function confirmMultisigTx(params: {
 /** Report execution failure */
 export async function failMultisigTx(multisig_tx_id: string): Promise<{ result: string }> {
   const resp = await fetch(`${base()}/fail_multisig_tx`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ multisig_tx_id }),
+  });
+  return handleRequest(resp);
+}
+
+/** Reset a stuck executing transaction back to ready (owner only, after 5 min) */
+export async function resetExecutingMultisigTx(multisig_tx_id: string): Promise<{ result: string }> {
+  const resp = await fetch(`${base()}/reset_executing_multisig_tx`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ multisig_tx_id }),

@@ -36,6 +36,13 @@
               <span class="text-sm text-gray-500">{{ i18n.text['multisig.type'] }}</span>
               <span class="text-sm font-medium">{{ txTypeLabel }}</span>
             </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-500">{{ i18n.text['multisig.proposer'] || '发起人' }}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm font-medium">{{ proposerName }}</span>
+                <span v-if="proposerAddress" class="text-xs text-gray-400 font-mono">{{ abbr(proposerAddress) }}</span>
+              </div>
+            </div>
             <!-- 配置变更详情 -->
             <div v-if="configChangeDescription" class="bg-blue-50 rounded-lg px-3 py-2 text-sm text-blue-700">
               {{ configChangeDescription }}
@@ -126,6 +133,18 @@
 
       <!-- Bottom action area (fixed) -->
       <div class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 px-4 py-4 space-y-3">
+        <!-- Executing: show reset option if stuck -->
+        <template v-if="tx.status === 'executing'">
+          <p class="text-center text-sm text-gray-500">{{ i18n.text['multisig.executingHint'] || '交易正在执行中，请等待链上确认...' }}</p>
+          <button
+            v-if="canResetExecuting"
+            class="w-full text-center text-sm text-red-500 underline"
+            @click="handleResetExecuting"
+          >
+            {{ i18n.text['multisig.resetExecuting'] || '执行超时？点击重置为待执行状态' }}
+          </button>
+        </template>
+
         <!-- Not a current signer (e.g. removed owner): cannot sign -->
         <template v-if="!isTerminal && !isCurrentOwner">
           <p class="text-center text-sm text-amber-600">
@@ -204,6 +223,7 @@ import {
   executeMultisigTx,
   confirmMultisigTx,
   failMultisigTx,
+  resetExecutingMultisigTx,
   withdrawMultisigTx,
   proposeMultisigTx,
   syncMultisigWallet,
@@ -290,9 +310,17 @@ const bannerClass = computed(() => {
   const s = tx.value?.status
   if (s === 'signing' || s === 'queued') return 'bg-blue-50 text-blue-700'
   if (s === 'ready') return 'bg-green-50 text-green-700'
+  if (s === 'executing') return 'bg-yellow-50 text-yellow-700'
   if (s === 'executed') return 'bg-green-50 text-green-800'
   if (s === 'failed') return 'bg-red-50 text-red-700'
   return 'bg-gray-100 text-gray-500'
+})
+
+const canResetExecuting = computed(() => {
+  if (tx.value?.status !== 'executing') return false
+  // 5 分钟后才允许重置
+  const updatedAt = new Date(tx.value.updated_at).getTime()
+  return Date.now() - updatedAt > 5 * 60 * 1000
 })
 
 const estimatedGasEth = computed(() => {
@@ -319,6 +347,25 @@ const displayGasValue = computed(() => {
   return estimatedGasEth.value
 })
 
+// 发起人信息：终态交易从快照读取，活跃交易从实时数据读取
+const proposerName = computed(() => {
+  const snapshot = tx.value?.owner_snapshot
+  // 终态交易：优先从快照读取
+  if (snapshot && !Array.isArray(snapshot) && snapshot.proposer?.name) {
+    return snapshot.proposer.name
+  }
+  // 活跃交易：从实时 proposer 字段读取
+  return tx.value?.proposer?.name || ''
+})
+
+const proposerAddress = computed(() => {
+  const snapshot = tx.value?.owner_snapshot
+  if (snapshot && !Array.isArray(snapshot) && snapshot.proposer?.address) {
+    return snapshot.proposer.address
+  }
+  return tx.value?.proposer?.address || ''
+})
+
 const txTypeLabel = computed(() => {
   const labels: Record<string, string> = {
     transfer: i18n.text['multisig.transferEth'] || 'ETH Transfer',
@@ -336,26 +383,31 @@ const txTypeLabel = computed(() => {
 const configChangeDescription = computed(() => {
   if (!tx.value?.call_detail) return null
   const d = tx.value.call_detail
-  const findName = (addr: string) => {
+  const findName = (addr: string, nameField?: string) => {
     if (!addr) return ''
+    // 0. 优先使用 call_detail 中后端补充的名字字段
+    if (nameField && d[nameField]) return d[nameField]
     const lower = addr.toLowerCase()
     // 1. 从当前 owner 列表找
     const o = owners.value.find((o) => o.owner_address?.toLowerCase() === lower)
     if (o?.handle || o?.phone) return o.handle || o.phone
     // 2. 从该交易的 owner_snapshot 中找（覆盖已被移除的 owner）
-    const entry = (tx.value.owner_snapshot || []).find((e: any) => e.address?.toLowerCase() === lower)
+    const snapshotOwners = tx.value.owner_snapshot
+      ? (Array.isArray(tx.value.owner_snapshot) ? tx.value.owner_snapshot : tx.value.owner_snapshot.owners || [])
+      : []
+    const entry = snapshotOwners.find((e: any) => e.address?.toLowerCase() === lower)
     if (entry?.name) return entry.name
     return abbr(addr)
   }
   switch (tx.value.tx_type) {
     case 'add_owner':
-      return `${i18n.text['multisig.addOwner'] || 'Add Owner'}: ${findName(d.new_owner)} → ${i18n.text['multisig.threshold'] || 'Threshold'} ${d.new_threshold}`
+      return `${i18n.text['multisig.addOwner'] || 'Add Owner'}: ${findName(d.new_owner, 'new_owner_name')} → ${i18n.text['multisig.threshold'] || 'Threshold'} ${d.new_threshold}`
     case 'remove_owner':
-      return `${i18n.text['multisig.removeOwner'] || 'Remove Owner'}: ${findName(d.owner)} → ${i18n.text['multisig.threshold'] || 'Threshold'} ${d.new_threshold}`
+      return `${i18n.text['multisig.removeOwner'] || 'Remove Owner'}: ${findName(d.owner, 'owner_name')} → ${i18n.text['multisig.threshold'] || 'Threshold'} ${d.new_threshold}`
     case 'change_threshold':
       return `${i18n.text['multisig.threshold'] || 'Threshold'}: ${tx.value.threshold_at_creation} → ${d.new_threshold}`
     case 'replace_owner':
-      return `${i18n.text['multisig.replaceOwner'] || 'Replace Signer'}: ${findName(d.old_owner)} → ${findName(d.new_owner)}`
+      return `${i18n.text['multisig.replaceOwner'] || 'Replace Signer'}: ${findName(d.old_owner, 'old_owner_name')} → ${findName(d.new_owner, 'new_owner_name')}`
     default:
       return null
   }
@@ -521,6 +573,21 @@ async function doExecute(passcode: string) {
     tx.value.status = 'failed'
   } finally {
     executing.value = false
+  }
+}
+
+// ─── Reset Executing ──────────────────────────────────────────────────────────
+
+async function handleResetExecuting() {
+  if (!tx.value) return
+  const ok = window.confirm(i18n.text['multisig.confirmResetExecuting'] || '确认重置？交易将回到待执行状态，您可以重新执行。')
+  if (!ok) return
+  try {
+    await resetExecutingMultisigTx(tx.value.id)
+    toast.add({ title: i18n.text['multisig.resetSuccess'] || '已重置为待执行', color: 'success' })
+    await loadTx()
+  } catch (err: any) {
+    toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
   }
 }
 

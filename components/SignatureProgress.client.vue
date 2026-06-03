@@ -26,9 +26,9 @@
     <!-- Signer list -->
     <div v-if="showList" class="space-y-2">
       <!-- 快照模式（终态交易）：使用 owner_snapshot 展示完整 owner 列表及签名状态 -->
-      <template v-if="ownerSnapshot && ownerSnapshot.length > 0">
+      <template v-if="snapshotEntries.length > 0">
         <div
-          v-for="entry in ownerSnapshot"
+          v-for="entry in snapshotEntries"
           :key="entry.address"
           class="flex items-center justify-between py-1.5"
         >
@@ -79,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import type { MultisigOwner, MultisigSignatureData, OwnerSnapshotEntry } from '~/utils/multisig_api'
+import type { MultisigOwner, MultisigSignatureData, OwnerSnapshot, OwnerSnapshotEntry } from '~/utils/multisig_api'
 import { useI18n } from '~/stores/i18n'
 
 const i18n = useI18n()
@@ -95,8 +95,15 @@ const props = defineProps<{
   /** 提案时门限，仅活跃交易且与当前门限不同时展示 */
   proposalThreshold?: number
   /** 终态交易的 owner 快照：含完整 owner 列表及签名状态 */
-  ownerSnapshot?: OwnerSnapshotEntry[] | null
+  ownerSnapshot?: OwnerSnapshot | null
 }>()
+
+const snapshotEntries = computed<OwnerSnapshotEntry[]>(() => {
+  if (!props.ownerSnapshot) return []
+  // 兼容旧格式（纯数组）和新格式（{ owners, proposer }）
+  if (Array.isArray(props.ownerSnapshot)) return props.ownerSnapshot
+  return props.ownerSnapshot.owners || []
+})
 
 const signedCount = computed(() => props.signedCount ?? props.signatures.length)
 

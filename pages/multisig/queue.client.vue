@@ -113,7 +113,7 @@
                 </span>
               </div>
               <p class="text-xs text-gray-400 mt-0.5">
-                {{ i18n.text['multisig.proposedBy'] }} {{ abbr(tx.proposer_id) }} · {{ timeAgo(tx.created_at) }}
+                {{ i18n.text['multisig.proposedBy'] }} {{ tx.proposer?.name || abbr(tx.proposer?.address || String(tx.proposer_id)) }} · {{ timeAgo(tx.created_at) }}
               </p>
             </div>
             <span
@@ -486,8 +486,10 @@ function txLabel(tx: MultisigTx): string {
   }
   // 配置变更交易显示具体内容
   const d = tx.call_detail
-  const findName = (addr: string) => {
+  const findName = (addr: string, nameField?: string) => {
     if (!addr) return ''
+    // 0. 优先使用 call_detail 中后端补充的名字字段
+    if (nameField && d?.[nameField]) return d[nameField]
     const lower = addr.toLowerCase()
     // 1. 从当前 owner 列表找
     const o = owners.value.find((o) => o.owner_address?.toLowerCase() === lower)
@@ -495,20 +497,23 @@ function txLabel(tx: MultisigTx): string {
     // 2. 从所有已加载交易的 owner_snapshot 中找（覆盖已被移除的 owner）
     const allTxs = [...queueTxs.value, ...historyTxs.value]
     for (const t of allTxs) {
-      const entry = (t.owner_snapshot || []).find((e: any) => e.address?.toLowerCase() === lower)
+      const snapshotOwners = t.owner_snapshot
+        ? (Array.isArray(t.owner_snapshot) ? t.owner_snapshot : t.owner_snapshot.owners || [])
+        : []
+      const entry = snapshotOwners.find((e: any) => e.address?.toLowerCase() === lower)
       if (entry?.name) return entry.name
     }
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   }
   switch (tx.tx_type) {
     case 'add_owner':
-      return `${base}: ${findName(d?.new_owner)} → ${i18n.text['multisig.threshold'] || 'Threshold'} ${d?.new_threshold}`
+      return `${base}: ${findName(d?.new_owner, 'new_owner_name')} → ${i18n.text['multisig.threshold'] || 'Threshold'} ${d?.new_threshold}`
     case 'remove_owner':
-      return `${base}: ${findName(d?.owner)} → ${i18n.text['multisig.threshold'] || 'Threshold'} ${d?.new_threshold}`
+      return `${base}: ${findName(d?.owner, 'owner_name')} → ${i18n.text['multisig.threshold'] || 'Threshold'} ${d?.new_threshold}`
     case 'change_threshold':
       return `${base}: ${tx.threshold_at_creation} → ${d?.new_threshold}`
     case 'replace_owner':
-      return `${base}: ${findName(d?.old_owner)} → ${findName(d?.new_owner)}`
+      return `${base}: ${findName(d?.old_owner, 'old_owner_name')} → ${findName(d?.new_owner, 'new_owner_name')}`
   }
   return base
 }
