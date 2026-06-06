@@ -49,9 +49,9 @@
             <div class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-sm">👤</div>
             <div>
               <p class="text-sm font-medium text-gray-800">
-                {{ owner.handle || owner.phone || abbr(owner.owner_address) }}
+                {{ owner.handle || owner.phone || '' }}
               </p>
-              <p class="text-xs text-gray-400 font-mono">{{ abbr(owner.owner_address) }}</p>
+              <CopyableAddress :address="owner.owner_address" text-class="text-xs text-gray-400" />
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -113,7 +113,7 @@
         <div v-if="addOwnerResult" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
           <div>
             <p class="text-sm font-medium">{{ addOwnerResult.handle || addOwnerResult.name }}</p>
-            <p class="text-xs text-gray-400">{{ abbr(addOwnerResult.evm_chain_active_key) }}</p>
+            <CopyableAddress :address="addOwnerResult.evm_chain_active_key" text-class="text-xs text-gray-400" />
           </div>
           <template v-if="isAlreadyOwner(addOwnerResult.evm_chain_active_key)">
             <span class="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">{{ i18n.text['multisig.alreadySigner'] || '已是签名者' }}</span>
@@ -138,14 +138,14 @@
 
         <div v-if="ownerChangeMode === 'remove' && removeTarget" class="p-3 bg-gray-50 rounded-lg text-sm">
           <p class="text-gray-500 mb-1">{{ i18n.text['multisig.removeTarget'] || 'Remove signer' }}</p>
-          <p class="font-medium">{{ removeTarget.handle || removeTarget.phone || abbr(removeTarget.owner_address) }}</p>
-          <p class="text-xs text-gray-400 font-mono mt-1">{{ removeTarget.owner_address }}</p>
+          <p class="font-medium">{{ removeTarget.handle || removeTarget.phone || '' }}</p>
+          <CopyableAddress :address="removeTarget.owner_address" text-class="text-xs text-gray-400 mt-1" />
         </div>
 
         <div v-if="ownerChangeMode === 'add' && addOwnerResult" class="p-3 bg-gray-50 rounded-lg text-sm">
           <p class="text-gray-500 mb-1">{{ i18n.text['multisig.addTarget'] || 'Add signer' }}</p>
           <p class="font-medium">{{ addOwnerResult.handle || addOwnerResult.name }}</p>
-          <p class="text-xs text-gray-400 font-mono mt-1">{{ addOwnerResult.evm_chain_active_key }}</p>
+          <CopyableAddress :address="addOwnerResult.evm_chain_active_key" text-class="text-xs text-gray-400 mt-1" />
         </div>
 
         <div class="space-y-2 text-sm">
@@ -239,8 +239,8 @@
 
         <div class="p-3 bg-gray-50 rounded-lg text-sm">
           <p class="text-gray-500 mb-1">{{ i18n.text['multisig.replaceTarget'] || '将替换' }}</p>
-          <p class="font-medium">{{ replaceTarget?.handle || replaceTarget?.phone || abbr(replaceTarget?.owner_address || '') }}</p>
-          <p class="text-xs text-gray-400 font-mono mt-1">{{ replaceTarget?.owner_address }}</p>
+          <p class="font-medium">{{ replaceTarget?.handle || replaceTarget?.phone || '' }}</p>
+          <CopyableAddress v-if="replaceTarget?.owner_address" :address="replaceTarget.owner_address" text-class="text-xs text-gray-400 mt-1" />
         </div>
 
         <UInput
@@ -251,7 +251,7 @@
         <div v-if="replaceOwnerResult" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
           <div>
             <p class="text-sm font-medium">{{ replaceOwnerResult.handle || replaceOwnerResult.name }}</p>
-            <p class="text-xs text-gray-400">{{ abbr(replaceOwnerResult.evm_chain_active_key) }}</p>
+            <CopyableAddress :address="replaceOwnerResult.evm_chain_active_key" text-class="text-xs text-gray-400" />
           </div>
           <template v-if="isAlreadyOwner(replaceOwnerResult.evm_chain_active_key)">
             <span class="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">{{ i18n.text['multisig.alreadySigner'] || '已是签名者' }}</span>
@@ -277,13 +277,13 @@
         <div class="p-3 bg-gray-50 rounded-lg text-sm space-y-2">
           <div>
             <p class="text-gray-500 mb-1">{{ i18n.text['multisig.replaceTarget'] || '将替换' }}</p>
-            <p class="font-medium">{{ replaceTarget?.handle || replaceTarget?.phone || abbr(replaceTarget?.owner_address || '') }}</p>
-            <p class="text-xs text-gray-400 font-mono mt-1">{{ replaceTarget?.owner_address }}</p>
+            <p class="font-medium">{{ replaceTarget?.handle || replaceTarget?.phone || '' }}</p>
+            <CopyableAddress v-if="replaceTarget?.owner_address" :address="replaceTarget.owner_address" text-class="text-xs text-gray-400 mt-1" />
           </div>
           <div class="border-t border-gray-200 pt-2">
             <p class="text-gray-500 mb-1">{{ i18n.text['multisig.addTarget'] || 'Add signer' }}</p>
             <p class="font-medium">{{ replaceOwnerResult?.handle || replaceOwnerResult?.name }}</p>
-            <p class="text-xs text-gray-400 font-mono mt-1">{{ replaceOwnerResult?.evm_chain_active_key }}</p>
+            <CopyableAddress v-if="replaceOwnerResult?.evm_chain_active_key" :address="replaceOwnerResult.evm_chain_active_key" text-class="text-xs text-gray-400 mt-1" />
           </div>
         </div>
 

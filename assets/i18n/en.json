@@ -378,6 +378,12 @@
   "multisig.submitReplaceProposal": "Submit replacement proposal",
   "multisig.replaceOwner": "Replace Signer",
   "multisig.threshold": "Threshold",
+  "multisig.wrongPasscode": "Wrong passcode, please try again",
+  "multisig.incomingTransfer": "Incoming",
+  "multisig.filterAll": "All",
+  "multisig.filterSuccess": "Success",
+  "multisig.filterFailed": "Failed",
+  "multisig.filterIncoming": "Incoming",
   "Actual Fee": "Fee (Actual)",
   "gas.estimatedFee": "Fee (Estimated)",
   "gas.estimatedTooltip": "Actual fee is subject to on-chain settlement"

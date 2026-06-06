@@ -40,7 +40,7 @@
               <span class="text-sm text-gray-500">{{ i18n.text['multisig.proposer'] || '发起人' }}</span>
               <div class="flex items-center gap-1.5">
                 <span class="text-sm font-medium">{{ proposerName }}</span>
-                <span v-if="proposerAddress" class="text-xs text-gray-400 font-mono">{{ abbr(proposerAddress) }}</span>
+                <CopyableAddress v-if="proposerAddress" :address="proposerAddress" text-class="text-xs text-gray-400" />
               </div>
             </div>
             <!-- 配置变更详情 -->
@@ -54,9 +54,9 @@
               </div>
             </template>
             <template v-if="tx.call_detail.to">
-              <div class="flex justify-between">
+              <div class="flex justify-between items-center">
                 <span class="text-sm text-gray-500">{{ i18n.text['To'] }}</span>
-                <span class="text-sm font-mono">{{ abbr(tx.call_detail.to) }}</span>
+                <CopyableAddress :address="tx.call_detail.to" text-class="text-sm" />
               </div>
             </template>
             <template v-if="tx.user_op_snapshot">
@@ -87,6 +87,20 @@
               <span class="text-sm text-gray-500">{{ i18n.text['multisig.expires'] }}</span>
               <span class="text-sm text-gray-600">{{ tx.expires_at ? formatDate(tx.expires_at) : '—' }}</span>
             </div>
+            <!-- Memo (public, on-chain) -->
+            <template v-if="tx.memo">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-500">{{ i18n.text['Memo'] }}</span>
+                <span class="text-sm text-gray-700 max-w-[60%] text-right break-all">{{ tx.memo }}</span>
+              </div>
+            </template>
+            <!-- Sender Note (private, off-chain) -->
+            <template v-if="tx.sender_note">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-500">{{ i18n.text['Sender Note'] }}</span>
+                <span class="text-sm text-blue-600 max-w-[60%] text-right break-all">{{ tx.sender_note }}</span>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -205,8 +219,9 @@
     <!-- Passcode modal -->
     <PasscodeModal
       v-if="showPasscode"
+      :error-message="passcodeError"
       @confirm="onPasscodeConfirm"
-      @cancel="showPasscode = false"
+      @cancel="showPasscode = false; passcodeError = ''"
     />
   </div>
 </template>
@@ -240,6 +255,7 @@ import {
 } from '~/utils/SafeSmartAccount/multisig'
 import { keystoreToPrivateKey } from '~/utils/encryption'
 import { chainMap } from '~/stores/chain'
+import { uploadTransaction } from '~/utils/semi_api'
 
 const route = useRoute()
 const router = useRouter()
@@ -255,6 +271,7 @@ const owners = ref<MultisigOwner[]>([])
 const signing = ref(false)
 const executing = ref(false)
 const showPasscode = ref(false)
+const passcodeError = ref('')
 const actualGasEth = ref<string | null>(null)
 const loadingActualGas = ref(false)
 let passcodeAction: 'sign' | 'execute' = 'sign'
@@ -458,21 +475,33 @@ async function fetchActualGas(txData: MultisigTx) {
 
 function handleSign() {
   passcodeAction = 'sign'
+  passcodeError.value = ''
   showPasscode.value = true
 }
 
 function handleExecute() {
   passcodeAction = 'execute'
+  passcodeError.value = ''
   showPasscode.value = true
 }
 
 async function onPasscodeConfirm(passcode: string) {
-  showPasscode.value = false
+  passcodeError.value = ''
   if (passcodeAction === 'sign') {
     await doSign(passcode)
   } else {
     await doExecute(passcode)
   }
+}
+
+/** Check if an error is a passcode decryption failure */
+function isWrongPasscodeError(err: any): boolean {
+  // DOMException from SubtleCrypto.decrypt when AES-GCM tag verification fails
+  if (err instanceof DOMException) return true
+  const msg = (err?.message || err?.toString() || '').toLowerCase()
+  return msg.includes('decrypt') || msg.includes('decryption') || msg.includes('invalid keystore') ||
+    msg.includes('operation error') || msg.includes('operation-specific') || msg.includes('tag') ||
+    msg.includes('authentication') || msg.includes('bad decrypt')
 }
 
 async function doSign(passcode: string) {
@@ -517,10 +546,16 @@ async function doSign(passcode: string) {
       user_op_snapshot: nonce ? snapshot : undefined,
     })
 
+    showPasscode.value = false
     toast.add({ title: i18n.text['multisig.signedSuccess'] || 'Signed!', color: 'success' })
     await loadTx()
   } catch (err: any) {
-    toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
+    if (isWrongPasscodeError(err)) {
+      passcodeError.value = i18n.text['multisig.wrongPasscode'] || '支付码错误，请重新输入'
+    } else {
+      showPasscode.value = false
+      toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
+    }
   } finally {
     signing.value = false
   }
@@ -530,13 +565,15 @@ async function doExecute(passcode: string) {
   if (!tx.value) return
   executing.value = true
   try {
-    const { tx: lockedTx } = await executeMultisigTx(tx.value.id)
-    if (!lockedTx.user_op_snapshot || !lockedTx.signatures) throw new Error('Missing snapshot/signatures')
-
+    // 1. 先验证支付码是否正确（不锁定后端状态）
     const encryptedKeys = userStore.user?.encrypted_keys
     if (!encryptedKeys) throw new Error('No encrypted keys')
     const keystore = typeof encryptedKeys === 'string' ? JSON.parse(encryptedKeys) : encryptedKeys
-    await keystoreToPrivateKey(keystore, passcode) // validate passcode only
+    const privateKey = await keystoreToPrivateKey(keystore, passcode) as `0x${string}`
+
+    // 2. 支付码正确，锁定后端状态
+    const { tx: lockedTx } = await executeMultisigTx(tx.value.id)
+    if (!lockedTx.user_op_snapshot || !lockedTx.signatures) throw new Error('Missing snapshot/signatures')
 
     const chain = chainMap[lockedTx.user_op_snapshot.chainId]
     if (!chain) throw new Error('Unsupported chain')
@@ -564,13 +601,44 @@ async function doExecute(passcode: string) {
     )
 
     await confirmMultisigTx({ multisig_tx_id: tx.value.id, tx_hash: txHash })
+
+    // 与单签一致：执行成功后上传交易记录到常规交易表，使收款方能查到备注
+    try {
+      const safeAddress = multisigStore.activeWallet?.safe_address || ''
+      console.log('[doExecute] Uploading transaction with memo:', tx.value.memo, 'sender_note:', tx.value.sender_note, 'tx_hash:', txHash)
+      await uploadTransaction({
+        tx_hash: txHash,
+        gas_used: '0',
+        status: 'success',
+        chain: chain.name.toLowerCase(),
+        data: '',
+        memo: tx.value.memo || '',
+        sender_note: tx.value.sender_note || '',
+        sender_address: safeAddress,
+        receiver_address: tx.value.call_detail?.to || '',
+      })
+      console.log('[doExecute] Upload transaction success')
+    } catch (e) {
+      console.error('[doExecute] Upload transaction failed:', e)
+    }
+
     await handlePostOwnerConfigConfirm(tx.value.tx_type, tx.value.call_detail)
+    showPasscode.value = false
     toast.add({ title: i18n.text['Transfer Success'] || 'Executed!', color: 'success' })
     await loadTx()
   } catch (err: any) {
-    await failMultisigTx(tx.value.id).catch(() => {})
-    toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
-    tx.value.status = 'failed'
+    if (isWrongPasscodeError(err)) {
+      passcodeError.value = i18n.text['multisig.wrongPasscode'] || '支付码错误，请重新输入'
+      // 密码错误时后端状态不会被锁定，无需重置
+    } else {
+      showPasscode.value = false
+      // 只有后端已锁定状态才标记失败
+      if (tx.value?.status === 'executing') {
+        await failMultisigTx(tx.value.id).catch(() => {})
+      }
+      toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
+      await loadTx()
+    }
   } finally {
     executing.value = false
   }
@@ -769,16 +837,28 @@ function buildCallsFromTx(t: MultisigTx): { to: `0x${string}`; value?: bigint; d
     if (!safe) return []
     return [{ to: safe, value: 0n, data: '0x' }]
   }
+
+  let calls: { to: `0x${string}`; value?: bigint; data?: `0x${string}` }[] = []
+
   if (t.tx_type === 'transfer' && t.call_detail.to) {
     const ethAmount = t.call_detail.amount || '0'
     const weiValue = BigInt(Math.round(parseFloat(ethAmount) * 1e18))
-    return [{ to: t.call_detail.to as `0x${string}`, value: weiValue }]
-  }
-  if (t.evm_call_data) {
+    calls = [{ to: t.call_detail.to as `0x${string}`, value: weiValue }]
+  } else if (t.evm_call_data) {
     const activeWallet = multisigStore.activeWallet
-    return [{ to: activeWallet?.safe_address as `0x${string}`, data: t.evm_call_data as `0x${string}`, value: 0n }]
+    calls = [{ to: activeWallet?.safe_address as `0x${string}`, data: t.evm_call_data as `0x${string}`, value: 0n }]
   }
-  return []
+
+  // 附加备注上链调用（与单签一致，通过 Remark Proxy saveRemark）
+  if (t.call_detail.remark_to && t.call_detail.remark_data) {
+    calls.push({
+      to: t.call_detail.remark_to as `0x${string}`,
+      data: t.call_detail.remark_data as `0x${string}`,
+      value: 0n,
+    })
+  }
+
+  return calls
 }
 
 function abbr(address?: string): string {

@@ -39,9 +39,9 @@
             <div>
               <template v-if="entry.name">
                 <p class="text-sm font-medium text-gray-800">{{ entry.name }}</p>
-                <p class="text-xs text-gray-400">{{ abbr(entry.address) }}</p>
+                <CopyableAddress :address="entry.address" text-class="text-xs text-gray-400" />
               </template>
-              <p v-else class="text-sm font-medium text-gray-800 font-mono">{{ abbr(entry.address) }}</p>
+              <CopyableAddress v-else :address="entry.address" text-class="text-sm font-medium text-gray-800" />
             </div>
           </div>
           <div>
@@ -63,9 +63,9 @@
             </div>
             <div>
               <p class="text-sm font-medium text-gray-800">
-                {{ owner.handle || owner.phone || abbr(owner.owner_address) }}
+                {{ owner.handle || owner.phone || '' }}
               </p>
-              <p class="text-xs text-gray-400">{{ abbr(owner.owner_address) }}</p>
+              <CopyableAddress :address="owner.owner_address" text-class="text-xs text-gray-400" />
             </div>
           </div>
           <div>

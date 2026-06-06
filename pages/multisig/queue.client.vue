@@ -113,7 +113,8 @@
                 </span>
               </div>
               <p class="text-xs text-gray-400 mt-0.5">
-                {{ i18n.text['multisig.proposedBy'] }} {{ tx.proposer?.name || abbr(tx.proposer?.address || String(tx.proposer_id)) }} · {{ timeAgo(tx.created_at) }}
+                {{ i18n.text['multisig.proposedBy'] }} {{ tx.proposer?.name || '' }}
+                <CopyableAddress v-if="tx.proposer?.address" :address="tx.proposer.address" /> · {{ timeAgo(tx.created_at) }}
               </p>
             </div>
             <span
@@ -174,31 +175,82 @@
 
     <!-- History tab -->
     <div v-else class="flex-1 overflow-y-auto space-y-3 pb-20">
-      <div v-if="!historyTxs.length" class="text-center text-gray-400 text-sm mt-12">
+      <!-- Filter tabs -->
+      <div class="flex gap-2 mb-3">
+        <button
+          v-for="f in historyFilters"
+          :key="f.key"
+          class="px-3 py-1 text-xs font-medium rounded-full transition-colors border"
+          :class="historyFilter === f.key ? f.activeClass : 'border-gray-200 text-gray-500 bg-white'"
+          @click="historyFilter = f.key"
+        >
+          {{ f.label }}
+        </button>
+      </div>
+
+      <div v-if="!filteredHistoryTxs.length" class="text-center text-gray-400 text-sm mt-12">
         {{ i18n.text['multisig.noHistory'] }}
       </div>
       <div
-        v-for="tx in historyTxs"
-        :key="tx.id"
+        v-for="item in filteredHistoryTxs"
+        :key="item.id"
         class="bg-white rounded-xl border border-gray-100 p-4 cursor-pointer hover:shadow-sm transition-all"
-        @click="router.push(`/multisig/${tx.id}`)"
+        :class="{ 'border-l-4 border-l-yellow-400': item._type === 'incoming' }"
+        @click="item._type === 'incoming' ? (selectedIncoming = item as IncomingTx, showIncomingDetail = true) : router.push(`/multisig/${item.id}`)"
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="text-lg">{{ txIcon(tx) }}</span>
+            <span class="text-lg">{{ item._type === 'incoming' ? '📥' : txIcon(item as any) }}</span>
             <div>
-              <p class="text-sm font-medium text-gray-800">{{ txLabel(tx) }}</p>
-              <p class="text-xs text-gray-400">{{ timeAgo(tx.created_at) }}</p>
+              <p class="text-sm font-medium text-gray-800">
+                {{ item._type === 'incoming' ? (i18n.text['multisig.incomingTransfer'] || '收款') : txLabel(item as any) }}
+              </p>
+              <p class="text-xs text-gray-400">
+                <template v-if="item._type === 'incoming'">
+                  {{ i18n.text['FROM'] }} <CopyableAddress :address="(item as IncomingTx).from" /> · {{ timeAgo((item as IncomingTx).timestamp) }}
+                </template>
+                <template v-else>
+                  {{ timeAgo((item as MultisigTx).created_at) }}
+                </template>
+              </p>
             </div>
           </div>
-          <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="statusClass(tx.status)">
-            {{ i18n.text['multisig.status.' + tx.status] || tx.status }}
-          </span>
+          <div class="flex items-center gap-2">
+            <template v-if="item._type === 'incoming'">
+              <span class="text-sm font-semibold text-green-600">
+                +{{ (item as IncomingTx).amount }} {{ (item as IncomingTx).symbol }}
+              </span>
+            </template>
+            <template v-else>
+              <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="statusClass((item as MultisigTx).status)">
+                {{ i18n.text['multisig.status.' + (item as MultisigTx).status] || (item as MultisigTx).status }}
+              </span>
+            </template>
+          </div>
         </div>
-        <div v-if="tx.tx_hash" class="mt-2 flex justify-end">
+        <!-- Memo/Sender Note display (only for outgoing proposals) -->
+        <div v-if="item._type !== 'incoming' && ((item as MultisigTx).memo || (item as MultisigTx).sender_note)" class="mt-2 space-y-1">
+          <p v-if="(item as MultisigTx).memo" class="text-xs text-gray-500 flex items-center gap-1">
+            <UIcon name="ci:chat-alt" size="12" />
+            {{ (item as MultisigTx).memo }}
+          </p>
+          <p v-if="(item as MultisigTx).sender_note" class="text-xs text-blue-500 flex items-center gap-1">
+            <UIcon name="ci:chat-alt-check" size="12" />
+            {{ (item as MultisigTx).sender_note }}
+          </p>
+        </div>
+        <!-- Incoming: memo display -->
+        <div v-if="item._type === 'incoming'" class="mt-2">
+          <p v-if="(item as IncomingTx).memo" class="text-xs text-gray-500 flex items-center gap-1">
+            <UIcon name="ci:chat-alt" size="12" />
+            {{ (item as IncomingTx).memo }}
+          </p>
+          <p v-else class="text-xs text-gray-400">-</p>
+        </div>
+        <div v-if="(item._type === 'incoming' && (item as IncomingTx).tx_hash) || (item._type !== 'incoming' && (item as MultisigTx).tx_hash)" class="mt-2 flex justify-end">
           <button
             class="text-xs text-primary-500 hover:text-primary-700 transition-colors"
-            @click.stop="toExplorer(tx.tx_hash)"
+            @click.stop="toExplorer((item as any).tx_hash!)"
           >
             {{ i18n.text['multisig.viewOnChain'] || '链上查询->' }}
           </button>
@@ -214,11 +266,63 @@
       +
     </button>
 
+    <!-- Incoming transfer detail modal -->
+    <div v-if="showIncomingDetail && selectedIncoming" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @click.self="showIncomingDetail = false">
+      <div class="absolute inset-0 bg-black/40" @click="showIncomingDetail = false" />
+      <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 m-0 sm:m-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-semibold text-gray-800">
+            {{ i18n.text['multisig.incomingTransfer'] || '收款' }}
+          </h3>
+          <button class="text-gray-400 hover:text-gray-600" @click="showIncomingDetail = false">
+            <UIcon name="ci:close-md" size="18" />
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-500">{{ i18n.text['multisig.type'] }}</span>
+            <span class="text-sm font-medium text-green-600">{{ i18n.text['multisig.incomingTransfer'] || '收款' }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-500">{{ i18n.text['FROM'] }}</span>
+            <CopyableAddress :address="selectedIncoming.from" text-class="text-sm" />
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-500">{{ i18n.text['To'] }}</span>
+            <CopyableAddress :address="selectedIncoming.to" text-class="text-sm" />
+          </div>
+          <div class="flex justify-between">
+            <span class="text-sm text-gray-500">{{ i18n.text['multisig.amount'] }}</span>
+            <span class="text-sm font-semibold text-green-600">+{{ selectedIncoming.amount }} {{ selectedIncoming.symbol }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-sm text-gray-500">{{ i18n.text['multisig.nonce'] || 'Time' }}</span>
+            <span class="text-sm text-gray-600">{{ formatDate(selectedIncoming.timestamp) }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-500">{{ i18n.text['Memo'] }}</span>
+            <span class="text-sm text-gray-700 max-w-[60%] text-right break-all">{{ selectedIncoming.memo || '-' }}</span>
+          </div>
+        </div>
+
+        <div v-if="selectedIncoming.tx_hash" class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+          <button
+            class="text-sm text-primary-500 hover:text-primary-700 transition-colors"
+            @click="toExplorer(selectedIncoming.tx_hash!)"
+          >
+            {{ i18n.text['multisig.viewOnChain'] || '链上查询->' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Passcode modal for execute -->
     <PasscodeModal
       v-if="showPasscode"
+      :error-message="passcodeError"
       @confirm="onExecutePasscode"
-      @cancel="showPasscode = false"
+      @cancel="showPasscode = false; passcodeError = ''"
     />
   </div>
 </template>
@@ -228,14 +332,31 @@ import { useMultisigStore } from '~/stores/multisig'
 import { useUserStore } from '~/stores/user'
 import { useChainStore } from '~/stores/chain'
 import { useI18n } from '~/stores/i18n'
-import { getMultisigWalletOwners, getMultisigTxs, executeMultisigTx, confirmMultisigTx, failMultisigTx, syncMultisigWallet } from '~/utils/multisig_api'
+import { getMultisigWalletOwners, getMultisigTxs, executeMultisigTx, confirmMultisigTx, failMultisigTx, resetExecutingMultisigTx, syncMultisigWallet, lookupMultisigTxMemos } from '~/utils/multisig_api'
 import { executeMultisigUserOp, getSafeOwnersAndThreshold } from '~/utils/SafeSmartAccount/multisig'
 import { keystoreToPrivateKey } from '~/utils/encryption'
 import { chainMap } from '~/stores/chain'
 import type { MultisigTx, MultisigOwner } from '~/utils/multisig_api'
 import { getBalance, getPopularERC20Balance, type ERC20Balance } from '~/utils/balance'
+import { uploadTransaction } from '~/utils/semi_api'
 import { displayBalance } from '~/utils/display'
 import { getTokenClass } from '~/utils/semi_api'
+import { getReceiveActions } from '~/utils/actions'
+
+/** Incoming transfer record for multisig wallet history */
+interface IncomingTx {
+  id: string
+  _type: 'incoming'
+  from: string
+  to: string
+  amount: string
+  symbol: string
+  tx_hash: string | null
+  timestamp: string
+  memo?: string | null
+}
+
+type HistoryItem = MultisigTx | IncomingTx
 
 const router = useRouter()
 const multisigStore = useMultisigStore()
@@ -248,11 +369,16 @@ const tab = ref<'queue' | 'history'>('queue')
 const loading = ref(false)
 const queueTxs = ref<MultisigTx[]>([])
 const historyTxs = ref<MultisigTx[]>([])
+const incomingTxs = ref<IncomingTx[]>([])
+const historyFilter = ref<'all' | 'success' | 'failed' | 'incoming'>('all')
 const owners = ref<MultisigOwner[]>([])
 const ownerCount = ref(0)
 const showPasscode = ref(false)
+const passcodeError = ref('')
 const executing = ref(false)
 let executingTx: MultisigTx | null = null
+const showIncomingDetail = ref(false)
+const selectedIncoming = ref<IncomingTx | null>(null)
 
 const activeWallet = computed(() => multisigStore.activeWallet)
 const currentUserAddress = computed(() => userStore.user?.evm_chain_active_key?.toLowerCase() || '')
@@ -261,6 +387,36 @@ const currentUserAddress = computed(() => userStore.user?.evm_chain_active_key?.
 const ethBalance = ref<bigint>(0n)
 const tokenBalances = ref<ERC20Balance[]>([])
 
+// History filter tabs
+const historyFilters = computed(() => [
+  { key: 'all' as const, label: i18n.text['multisig.filterAll'] || '全部', activeClass: 'border-gray-400 text-gray-700 bg-gray-50' },
+  { key: 'success' as const, label: i18n.text['multisig.filterSuccess'] || '成功', activeClass: 'border-green-400 text-green-700 bg-green-50' },
+  { key: 'failed' as const, label: i18n.text['multisig.filterFailed'] || '失败', activeClass: 'border-red-400 text-red-700 bg-red-50' },
+  { key: 'incoming' as const, label: i18n.text['multisig.filterIncoming'] || '收款', activeClass: 'border-yellow-400 text-yellow-700 bg-yellow-50' },
+])
+
+/** Merged and sorted history items (outgoing proposals + incoming transfers) */
+const mergedHistory = computed<HistoryItem[]>(() => {
+  const items: HistoryItem[] = [...historyTxs.value, ...incomingTxs.value]
+  items.sort((a, b) => {
+    const timeA = a._type === 'incoming' ? new Date((a as IncomingTx).timestamp).getTime() : new Date((a as MultisigTx).created_at).getTime()
+    const timeB = b._type === 'incoming' ? new Date((b as IncomingTx).timestamp).getTime() : new Date((b as MultisigTx).created_at).getTime()
+    return timeB - timeA
+  })
+  return items
+})
+
+const FAILED_STATUSES = ['failed', 'withdrawn', 'superseded', 'expired']
+
+/** Filtered history based on selected filter */
+const filteredHistoryTxs = computed<HistoryItem[]>(() => {
+  const filter = historyFilter.value
+  if (filter === 'all') return mergedHistory.value
+  if (filter === 'success') return mergedHistory.value.filter(item => item._type !== 'incoming' && (item as MultisigTx).status === 'executed')
+  if (filter === 'failed') return mergedHistory.value.filter(item => item._type !== 'incoming' && FAILED_STATUSES.includes((item as MultisigTx).status))
+  if (filter === 'incoming') return mergedHistory.value.filter(item => item._type === 'incoming')
+  return mergedHistory.value
+})
 async function fetchBalances() {
   if (!activeWallet.value?.safe_address) return
   try {
@@ -295,6 +451,12 @@ onActivated(async () => {
 
 watch([activeWallet, () => chainStore.chain], () => {
   fetchBalances()
+  fetchQueue()
+  fetchOwners()
+  // 如果当前在历史标签页，也刷新历史
+  if (tab.value === 'history') {
+    fetchHistory()
+  }
 })
 
 async function fetchOwners() {
@@ -327,12 +489,63 @@ async function fetchHistory() {
   if (!activeWallet.value) return
   loading.value = true
   try {
-    const { txs } = await getMultisigTxs(activeWallet.value.id, 'history')
-    historyTxs.value = txs
+    const [historyResult] = await Promise.all([
+      getMultisigTxs(activeWallet.value.id, 'history'),
+      fetchIncomingTxs(),
+    ])
+    historyTxs.value = historyResult.txs
   } catch (e) {
     console.error(e)
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchIncomingTxs() {
+  if (!activeWallet.value?.safe_address) return
+  try {
+    const chain = chainStore.chain
+    const { token_classes } = await getTokenClass()
+    const currentTokenClasses = token_classes.filter((t) => t.chain_id === chain.id)
+    const actions = await getReceiveActions(activeWallet.value.safe_address, chain, currentTokenClasses)
+    incomingTxs.value = actions.map((a: any) => ({
+      id: `incoming-${a.txHex || Math.random().toString(36).slice(2)}`,
+      _type: 'incoming' as const,
+      from: a.from || '',
+      to: activeWallet.value!.safe_address,
+      amount: displayBalance(a.value, 6, a.decimals || 18),
+      symbol: a.symbol || chain.nativeCurrency.symbol,
+      tx_hash: a.txHex || null,
+      timestamp: a.date || new Date().toISOString(),
+      memo: null as string | null,
+    }))
+
+    // 通过 tx_hash 从后端查找备注（与单签通过 getTransactions 匹配逻辑一致）
+    const txHashes = incomingTxs.value.map(tx => tx.tx_hash).filter(Boolean) as string[]
+    if (txHashes.length > 0) {
+      try {
+        console.log('[fetchIncomingTxs] Looking up memos for tx_hashes:', txHashes)
+        const { memos } = await lookupMultisigTxMemos(txHashes)
+        console.log('[fetchIncomingTxs] Memos response:', JSON.stringify(memos))
+        // 后端返回的 key 是小写 tx_hash，前端也用小写匹配
+        const lowerMemos: Record<string, { memo: string | null; sender_note: string | null }> = {}
+        for (const [k, v] of Object.entries(memos)) {
+          lowerMemos[k.toLowerCase()] = v
+        }
+        incomingTxs.value.forEach(tx => {
+          if (tx.tx_hash) {
+            const match = lowerMemos[tx.tx_hash.toLowerCase()]
+            console.log(`[fetchIncomingTxs] Matching ${tx.tx_hash.toLowerCase()}:`, match)
+            if (match?.memo) tx.memo = match.memo
+          }
+        })
+      } catch (e) {
+        console.error('[fetchIncomingTxs] Memo lookup failed:', e)
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch incoming transactions:', e)
+    incomingTxs.value = []
   }
 }
 
@@ -375,23 +588,36 @@ function hasCurrentUserSigned(tx: MultisigTx): boolean {
 
 function handleExecute(tx: MultisigTx) {
   executingTx = tx
+  passcodeError.value = ''
   showPasscode.value = true
 }
 
+/** Check if an error is a passcode decryption failure */
+function isWrongPasscodeError(err: any): boolean {
+  // DOMException from SubtleCrypto.decrypt when AES-GCM tag verification fails
+  if (err instanceof DOMException) return true
+  const msg = (err?.message || err?.toString() || '').toLowerCase()
+  return msg.includes('decrypt') || msg.includes('decryption') || msg.includes('invalid keystore') ||
+    msg.includes('operation error') || msg.includes('operation-specific') || msg.includes('tag') ||
+    msg.includes('authentication') || msg.includes('bad decrypt')
+}
+
 async function onExecutePasscode(passcode: string) {
-  showPasscode.value = false
+  passcodeError.value = ''
   if (!executingTx) return
   const tx = executingTx
   executing.value = true
 
   try {
-    const { tx: lockedTx } = await executeMultisigTx(tx.id)
-    if (!lockedTx.user_op_snapshot || !lockedTx.signatures) throw new Error('Missing snapshot or signatures')
-
+    // 1. 先验证支付码是否正确（不锁定后端状态）
     const encryptedKeys = userStore.user?.encrypted_keys
     if (!encryptedKeys) throw new Error('No encrypted keys')
     const keystore = typeof encryptedKeys === 'string' ? JSON.parse(encryptedKeys) : encryptedKeys
-    await keystoreToPrivateKey(keystore, passcode) // validate passcode
+    await keystoreToPrivateKey(keystore, passcode)
+
+    // 2. 支付码正确，锁定后端状态
+    const { tx: lockedTx } = await executeMultisigTx(tx.id)
+    if (!lockedTx.user_op_snapshot || !lockedTx.signatures) throw new Error('Missing snapshot or signatures')
 
     const chain = chainMap[lockedTx.user_op_snapshot.chainId]
     if (!chain) throw new Error('Unsupported chain')
@@ -419,6 +645,27 @@ async function onExecutePasscode(passcode: string) {
     )
 
     await confirmMultisigTx({ multisig_tx_id: tx.id, tx_hash: txHash })
+
+    // 与单签一致：执行成功后上传交易记录到常规交易表，使收款方能查到备注
+    try {
+      const safeAddress = multisigStore.activeWallet?.safe_address || ''
+      console.log('[execute] Uploading transaction with memo:', tx.memo, 'sender_note:', tx.sender_note, 'tx_hash:', txHash)
+      await uploadTransaction({
+        tx_hash: txHash,
+        gas_used: '0',
+        status: 'success',
+        chain: chain.name.toLowerCase(),
+        data: '',
+        memo: tx.memo || '',
+        sender_note: tx.sender_note || '',
+        sender_address: safeAddress,
+        receiver_address: tx.call_detail?.to || '',
+      })
+      console.log('[execute] Upload transaction success')
+    } catch (e) {
+      console.error('[execute] Upload transaction failed:', e)
+    }
+
     if (['add_owner', 'remove_owner', 'change_threshold', 'replace_owner'].includes(tx.tx_type)) {
       const walletId = multisigStore.activeWalletId
       // 配置类交易执行后，以链上真实状态刷新后端 DB 镜像，保证队列门限即时一致
@@ -449,11 +696,20 @@ async function onExecutePasscode(passcode: string) {
         return
       }
     }
+    showPasscode.value = false
     toast.add({ title: i18n.text['Transfer Success'] || 'Success', description: txHash, color: 'success' })
     await fetchQueue()
   } catch (err: any) {
-    await failMultisigTx(tx.id).catch(() => {})
-    toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
+    if (isWrongPasscodeError(err)) {
+      passcodeError.value = i18n.text['multisig.wrongPasscode'] || '支付码错误，请重新输入'
+      // 密码错误时后端状态不会被锁定，无需重置
+    } else {
+      showPasscode.value = false
+      // 只有后端已锁定状态才标记失败
+      await failMultisigTx(tx.id).catch(() => {})
+      toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
+    }
+    await fetchQueue()
   } finally {
     executing.value = false
     executingTx = null
@@ -553,5 +809,9 @@ function timeAgo(dateStr: string): string {
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h ago`
   return `${Math.floor(hrs / 24)}d ago`
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleString()
 }
 </script>

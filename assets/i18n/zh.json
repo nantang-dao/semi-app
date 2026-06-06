@@ -384,6 +384,12 @@
   "multisig.submitReplaceProposal": "提交替换提案",
   "multisig.replaceOwner": "替换签名者",
   "multisig.threshold": "阈值",
+  "multisig.wrongPasscode": "支付码错误，请重新输入",
+  "multisig.incomingTransfer": "收款",
+  "multisig.filterAll": "全部",
+  "multisig.filterSuccess": "成功",
+  "multisig.filterFailed": "失败",
+  "multisig.filterIncoming": "收款",
   "Actual Fee": "手续费（实际）",
   "gas.estimatedFee": "手续费（预估）",
   "gas.estimatedTooltip": "实际费用以链上结算为准"

@@ -35,7 +35,7 @@
             <span>👤</span>
             <div>
               <p class="text-sm font-medium text-gray-800">{{ currentUserDisplay }}</p>
-              <p class="text-xs text-gray-400">{{ abbr(currentUserAddress) }}</p>
+              <CopyableAddress :address="currentUserAddress" text-class="text-xs text-gray-400" />
             </div>
           </div>
           <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{{ i18n.text['multisig.you'] }}</span>
@@ -50,8 +50,8 @@
           <div class="flex items-center gap-2">
             <span>👤</span>
             <div>
-              <p class="text-sm font-medium text-gray-800">{{ owner.name || owner.handle || abbr(owner.address) }}</p>
-              <p class="text-xs text-gray-400">{{ abbr(owner.address) }}</p>
+              <p class="text-sm font-medium text-gray-800">{{ owner.name || owner.handle || '' }}</p>
+              <CopyableAddress :address="owner.address" text-class="text-xs text-gray-400" />
             </div>
           </div>
           <button class="text-red-400 hover:text-red-600 text-sm" @click="removeOwner(idx)">✕</button>
@@ -82,7 +82,7 @@
               <span>👤</span>
               <div class="text-left">
                 <p class="text-sm font-medium">{{ result.handle || result.name }}</p>
-                <p class="text-xs text-gray-400">{{ abbr(result.evm_chain_active_key) }}</p>
+                <CopyableAddress :address="result.evm_chain_active_key" text-class="text-xs text-gray-400" />
               </div>
             </div>
             <span v-if="isAlreadyAdded(result.evm_chain_active_key)" class="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">{{ i18n.text['multisig.alreadySigner'] || '已是签名者' }}</span>

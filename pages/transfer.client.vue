@@ -670,11 +670,32 @@ const handleMultisigProposal = async () => {
       evmCallData = encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [formState.recipient as `0x${string}`, amountBN] });
     }
 
+    // 备注上链：与单签一致，通过 Remark Proxy 合约的 saveRemark 调用将备注写入链上
+    const proxyAddress = REMARK_PROXY_ADDRESS[useChain.chain.id];
+    const publicRemark = (formState.memo ?? '').trim().slice(0, REMARK_MAX_CHARS);
+    const hasRemark = Boolean(publicRemark);
+    if (proxyAddress && hasRemark) {
+      const { encodeFunctionData } = await import('viem');
+      const uuidToU256 = (uuid: string): bigint => hexToBigInt(keccak256(toBytes(uuid)));
+      const remarkUuid = crypto.randomUUID();
+      const remarkId = uuidToU256(remarkUuid);
+      const remarkCallData = encodeFunctionData({
+        abi: remarkProxyAbi,
+        functionName: 'saveRemark',
+        args: [remarkId, remarkId, publicRemark, ''],
+      });
+      // 将 remark 调用信息存入 call_detail，签名时 buildCallsFromTx 会读取并附加
+      callDetail.remark_to = proxyAddress;
+      callDetail.remark_data = remarkCallData;
+    }
+
     const { tx } = await proposeMultisigTx({
       wallet_id: wallet.id,
       tx_type: txType,
       call_detail: callDetail,
       evm_call_data: evmCallData,
+      memo: formState.memo || undefined,
+      sender_note: formState.senderNote || undefined,
     });
 
     toast.add({

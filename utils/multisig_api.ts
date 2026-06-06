@@ -62,6 +62,10 @@ export interface MultisigTx {
   signer_addresses?: string[];
   /** 已存在的拒签竞争交易 ID（仅非 cancel 类型） */
   pending_reject_tx_id?: string | null;
+  /** 公开备注（上链） */
+  memo?: string | null;
+  /** 发送者备注（不上链，仅发送方可见） */
+  sender_note?: string | null;
   created_at: string;
   updated_at: string;
   signatures?: MultisigSignatureData[];
@@ -141,7 +145,7 @@ export async function createMultisigWallet(params: {
 }
 
 /** Get all multisig wallets where current user is an owner */
-export async function getMultisigWallets(): Promise<{ result: string; wallets: MultisigWallet[] }> {
+export async function getMultisigWallets(): Promise<{ result: string; wallets: MultisigWallet[]; pending_signature_counts: Record<string, number> }> {
   const resp = await fetch(`${base()}/get_multisig_wallets`, {
     headers: getAuthHeaders(),
   });
@@ -184,6 +188,8 @@ export async function proposeMultisigTx(params: {
   evm_call_data: string;
   replaces_tx_id?: string;
   user_op_snapshot?: UserOpSnapshot;
+  memo?: string;
+  sender_note?: string;
 }): Promise<{ result: string; tx: MultisigTx }> {
   const resp = await fetch(`${base()}/propose_multisig_tx`, {
     method: "POST",
@@ -282,6 +288,17 @@ export async function withdrawMultisigTx(multisig_tx_id: string): Promise<{ resu
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ multisig_tx_id }),
+  });
+  return handleRequest(resp);
+}
+
+/** Look up memos for multisig transactions by on-chain tx_hash */
+export async function lookupMultisigTxMemos(txHashes: string[]): Promise<{
+  result: string;
+  memos: Record<string, { memo: string | null; sender_note: string | null }>;
+}> {
+  const resp = await fetch(`${base()}/lookup_multisig_tx_memos?tx_hashes=${txHashes.join(",")}`, {
+    headers: getAuthHeaders(),
   });
   return handleRequest(resp);
 }

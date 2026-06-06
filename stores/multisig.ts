@@ -13,6 +13,8 @@ interface MultisigState {
   loading: boolean;
   /** Pending-signature badge count for the active wallet (0 or 1 per UI spec) */
   pendingSignatureCount: number;
+  /** Pending-signature counts for all wallets, keyed by wallet ID */
+  pendingSignatureCounts: Record<string, number>;
 }
 
 export const useMultisigStore = defineStore("multisig", {
@@ -22,6 +24,7 @@ export const useMultisigStore = defineStore("multisig", {
     queueTxs: [],
     loading: false,
     pendingSignatureCount: 0,
+    pendingSignatureCounts: {},
   }),
 
   getters: {
@@ -50,8 +53,11 @@ export const useMultisigStore = defineStore("multisig", {
     async fetchWallets() {
       try {
         this.loading = true;
-        const { wallets } = await getMultisigWallets();
+        const { wallets, pending_signature_counts } = await getMultisigWallets();
         this.wallets = wallets;
+        if (pending_signature_counts) {
+          this.pendingSignatureCounts = pending_signature_counts;
+        }
       } catch (e) {
         console.error("[MultisigStore] fetchWallets error:", e);
       } finally {

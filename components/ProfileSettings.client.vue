@@ -40,7 +40,7 @@
             <span class="text-base">👤</span>
             <div class="text-left">
               <p class="text-sm font-medium text-gray-800">{{ personalWalletName }}</p>
-              <p class="text-xs text-gray-400">{{ abbr(personalWalletAddress) }}</p>
+              <CopyableAddress :address="personalWalletAddress" text-class="text-xs text-gray-400" />
             </div>
           </div>
           <span v-if="!activeMultisigId" class="text-primary-500 text-xs font-semibold">✓</span>
@@ -60,7 +60,7 @@
             <span class="text-base">👥</span>
             <div class="text-left">
               <p class="text-sm font-medium text-gray-800">{{ wallet.name }}</p>
-              <p class="text-xs text-gray-400">{{ abbr(wallet.safe_address) }}</p>
+              <CopyableAddress :address="wallet.safe_address" text-class="text-xs text-gray-400" />
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -139,7 +139,10 @@ const badgeCount = computed(() => {
 })
 
 function multisigBadge(walletId: string): number {
-  // Use store's queue txs for active wallet
+  // Use server-provided pending counts for all wallets
+  const count = multisigStore.pendingSignatureCounts[walletId]
+  if (count !== undefined) return count
+  // Fallback to store's queue txs for active wallet
   if (walletId !== multisigStore.activeWalletId) return 0
   return multisigStore.pendingSignatureCount
 }

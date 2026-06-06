@@ -33,6 +33,10 @@
           />
         </UFormField>
 
+        <p v-if="errorMessage" class="text-sm text-red-500 mt-2">
+          {{ errorMessage }}
+        </p>
+
         <div class="flex gap-3 mt-5">
           <UButton
             type="button"
@@ -70,6 +74,7 @@ const props = defineProps<{
   confirmText?: string;
   cancelText?: string;
   loading?: boolean;
+  errorMessage?: string;
 }>();
 
 const emit = defineEmits<{
@@ -93,6 +98,13 @@ const titleText = computed(() => props.title || i18n.text["Input PIN Code"] || "
 const subtitleText = computed(() => props.subtitle || "");
 const confirmText = computed(() => props.confirmText || i18n.text["Confirm"] || "Confirm");
 const cancelText = computed(() => props.cancelText || i18n.text["Cancel"] || "Cancel");
+
+// Clear error and input when errorMessage changes to a new value
+watch(() => props.errorMessage, (newVal) => {
+  if (newVal) {
+    formState.pin = Array(6).fill("");
+  }
+});
 
 function handleCancel() {
   emit("cancel");
