@@ -1,0 +1,28 @@
+pages/multisig/owners.client.vue
+  s_d09588fa00adaf::t_b80100500abddc 106,138,205,239,276
+  s_d09588fa00adaf::t_66710c1faa5cc3 135,273
+  s_d09588fa00adaf::t_95471dcb641faa 480-484
+  s_d09588fa00adaf::t_c4a908acb9f75c 103,202,236
+  s_d09588fa00adaf::t_f757ba369b5926 111-112
+pages/multisig/queue.client.vue
+  s_d09588fa00adaf::t_2eb1bcdc61757d 270
+  s_d09588fa00adaf::t_0c1962b02a7e5f 272
+pages/multisig/create.client.vue
+  s_d09588fa00adaf::t_af4fdbae9cd612 246-250
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "4e54cca2ca6e42a40bc300e87c0b0eacdeb5a97c",
+  "prompts": {},
+  "sessions": {
+    "s_d09588fa00adaf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
