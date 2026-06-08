@@ -63,6 +63,8 @@ export interface UserOpSnapshot {
   paymasterPostOpGasLimit?: string;
   /** true when gas is sponsored by the paymaster; false = wallet self-pay */
   sponsored?: boolean;
+  /** unix timestamp (seconds) when the paymaster sponsorship expires; 0 = no expiry */
+  paymasterValidUntil?: number;
 }
 
 export interface CollectedSignature {
@@ -131,11 +133,15 @@ export interface BuildSnapshotParams {
 
 // ─── Paymaster sponsorship ───────────────────────────────────────────────────
 
+// 7 days — long enough for any realistic multisig collection window
+const PAYMASTER_VALIDITY_SECONDS = 7 * 24 * 60 * 60;
+
 interface SponsorPaymasterFields {
   paymaster: Address;
   paymasterData: Hex;
   paymasterVerificationGasLimit: bigint;
   paymasterPostOpGasLimit: bigint;
+  validUntil: number;
 }
 
 /**
@@ -168,8 +174,11 @@ async function fetchSponsorPaymasterData(
 
   const paymasterClient = createPaymasterClient({ transport: http(url) });
 
+  const validUntil = Math.floor(Date.now() / 1000) + PAYMASTER_VALIDITY_SECONDS;
+
   // viem returns a OneOf union (v0.6 `paymasterAndData` vs v0.7 split fields);
   // we target the v0.7 entryPoint so cast to read the split fields directly.
+  // `context.validUntil` requests a 7-day validity window from the paymaster (ERC-7677).
   const res: any = await paymasterClient.getPaymasterData({
     chainId: chain.id,
     entryPointAddress: entryPoint07Address,
@@ -182,6 +191,7 @@ async function fetchSponsorPaymasterData(
     maxFeePerGas: userOp.maxFeePerGas,
     maxPriorityFeePerGas: userOp.maxPriorityFeePerGas,
     ...(userOp.factory ? { factory: userOp.factory, factoryData: userOp.factoryData } : {}),
+    context: { validUntil },
   });
 
   if (!res.paymaster) return null;
@@ -191,6 +201,7 @@ async function fetchSponsorPaymasterData(
     paymasterData: (res.paymasterData ?? "0x") as Hex,
     paymasterVerificationGasLimit: res.paymasterVerificationGasLimit ?? 0n,
     paymasterPostOpGasLimit: res.paymasterPostOpGasLimit ?? 0n,
+    validUntil,
   };
 }
 
@@ -254,6 +265,7 @@ export async function buildMultisigUserOpSnapshot(
   let paymasterVerificationGasLimit: string | undefined;
   let paymasterPostOpGasLimit: string | undefined;
   let sponsored = false;
+  let paymasterValidUntil = 0;
 
   if (sponsorFee && isGasSponsorshipChain(chain.id)) {
     try {
@@ -282,6 +294,7 @@ export async function buildMultisigUserOpSnapshot(
           paymasterData: pm.paymasterData,
         } as any);
         sponsored = true;
+        paymasterValidUntil = pm.validUntil;
       }
     } catch (e) {
       console.warn(
@@ -312,6 +325,7 @@ export async function buildMultisigUserOpSnapshot(
     paymasterVerificationGasLimit,
     paymasterPostOpGasLimit,
     sponsored,
+    paymasterValidUntil,
   };
 }
 
@@ -350,6 +364,17 @@ export async function executeMultisigUserOp(
 ): Promise<{ userOpHash: Hex; txHash: Hex; actualGasCost: string }> {
   const bundlerUrl = BUNDLER_URL[chain.id];
   if (!bundlerUrl) throw new Error(`No bundler URL for chain ${chain.id}`);
+
+  // Fail early with a clear message rather than getting a cryptic bundler rejection.
+  if (snapshot.paymasterValidUntil && snapshot.paymasterValidUntil > 0) {
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (nowSec >= snapshot.paymasterValidUntil) {
+      const expiredAt = new Date(snapshot.paymasterValidUntil * 1000).toLocaleString();
+      throw new Error(
+        `Paymaster sponsorship expired at ${expiredAt}. Please re-propose the transaction to refresh it.`
+      );
+    }
+  }
 
   const packedSig = packMultisigSignatures(
     signatures,
