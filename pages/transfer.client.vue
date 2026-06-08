@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col container-size rounded-xl bg-[var(--ui-bg)] shadow-lg p-4">
     <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" class="self-start mb-4"
-      @click="router.push('/')">
+      @click="handleBack">
       {{ i18n.text["Back"] }}
     </UButton>
     <div class="flex flex-col items-center justify-center h-full gap-4 pb-8 w-[80%] mx-auto">
@@ -62,9 +62,16 @@
             </div>
           </div>
 
+          <!-- Multisig proposal hint -->
+          <div v-if="isMultisigMode" class="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p class="text-xs text-gray-500 leading-relaxed">
+              {{ multisigHintText }}
+            </p>
+          </div>
+
           <UButton type="submit" color="primary" class="w-full mt-4 flex justify-center items-center" size="xl"
             :loading="initializing || loading" :disabled="initializing || loading || !isFormValid || !balance">
-            {{ i18n.text["Next"] }}
+            {{ isMultisigMode ? (i18n.text['multisig.submitProposal'] || 'Submit Multisig Proposal') : i18n.text["Next"] }}
           </UButton>
         </UForm>
       </div>
@@ -85,7 +92,7 @@
 
           <div class="text-gray-400 text-sm mt-3" v-if="formState.gasEstimate !== '0'">
             <span class="flex items-center gap-1">
-              {{ i18n.text["Estimated Fee"] }}
+              {{ i18n.text["gas.estimatedFee"] || i18n.text["Estimated Fee"] }}
               <FeeTipPopup />
             </span>
             <span :class="[
@@ -123,6 +130,9 @@
 import { useChainStore, chainMap } from "@/stores/chain";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
+import { useMultisigStore } from "~/stores/multisig";
+import { proposeMultisigTx } from "~/utils/multisig_api";
+import { estimateMultisigTransferGas } from "~/utils/SafeSmartAccount/multisig";
 import { getBalance, getErc20Balance } from "~/utils/balance";
 import { predictSafeAccountAddress, transfer, transferErc20 } from "~/utils/SafeSmartAccount";
 import { displayBalance } from "~/utils/display";
@@ -196,8 +206,42 @@ const route = useRoute();
 const router = useRouter();
 const useChain = useChainStore();
 const user = useUserStore();
+const multisigStore = useMultisigStore();
 const toast = useToast();
 const i18n = useI18n();
+
+// Multisig mode detection
+const isMultisigMode = computed(() => !!multisigStore.activeWallet)
+const multisigGasEstimateEth = ref('')
+const multisigHintText = computed(() => {
+  const wallet = multisigStore.activeWallet
+  if (!wallet) return ''
+  const t = wallet.threshold
+  const n = 0 // owner count unknown here; use threshold as base
+  const gas = multisigGasEstimateEth.value ? `~${multisigGasEstimateEth.value} ETH` : '...'
+  return (i18n.text['multisig.proposalHint'] || `This transaction will be submitted as a multisig proposal and requires ${t} signature(s) to execute. Est. gas: ${gas} (paid by wallet).`)
+    .replace('{t}', String(t)).replace('{gas}', gas)
+})
+
+const handleBack = () => {
+  if (multisigStore.activeWallet) {
+    router.push("/multisig/queue");
+  } else {
+    router.push("/");
+  }
+};
+
+const getActiveSmartAccountAddress = async (): Promise<`0x${string}`> => {
+  // Multisig: use the active multisig wallet safe address
+  if (multisigStore.activeWallet?.safe_address) {
+    return multisigStore.activeWallet.safe_address as `0x${string}`;
+  }
+  // Single-sig: predict address from owner's active key
+  return await predictSafeAccountAddress({
+    owner: user.user?.evm_chain_active_key as `0x${string}`,
+    chain: useChain.chain,
+  });
+};
 
 // 响应式状态
 const initializing = ref(false);
@@ -307,16 +351,13 @@ const fetchTokenBalance = async () => {
 
   try {
     initializing.value = true;
-    const predictSafeAddress = await predictSafeAccountAddress({
-      owner: user.user?.evm_chain_active_key as `0x${string}`,
-      chain: useChain.chain,
-    });
+    const accountAddress = await getActiveSmartAccountAddress();
 
     balance.value =
       formState.token.address === zeroAddress
-        ? await getBalance(predictSafeAddress, useChain.chain)
+        ? await getBalance(accountAddress, useChain.chain)
         : await getErc20Balance(
-          predictSafeAddress,
+          accountAddress,
           formState.token.address as `0x${string}`,
           useChain.chain
         );
@@ -585,6 +626,13 @@ const onSubmit = async () => {
       return;
     }
 
+    // Multisig mode: propose transaction instead of proceeding to step 2
+    if (isMultisigMode.value) {
+      await handleMultisigProposal();
+      loading.value = false;
+      return;
+    }
+
     // 获取免手续费交易次数
     if (!(await fetchGasCredits())) {
       loading.value = false;
@@ -597,6 +645,69 @@ const onSubmit = async () => {
   }
 
   await handleTokenTransfer();
+};
+
+const handleMultisigProposal = async () => {
+  const wallet = multisigStore.activeWallet;
+  if (!wallet || !formState.recipient) return;
+
+  try {
+    const isErc20 = formState.token?.address && formState.token.address !== zeroAddress.toString();
+    const txType = isErc20 ? 'erc20_transfer' : 'transfer';
+    const callDetail: Record<string, any> = {
+      to: formState.recipient,
+      amount: formState.amount,
+      symbol: formState.token?.symbol,
+    };
+    if (isErc20) callDetail.token_address = formState.token?.address;
+
+    // Build evm_call_data for transfer
+    let evmCallData = '0x';
+    if (isErc20 && formState.token?.address) {
+      const { encodeFunctionData, erc20Abi, parseUnits } = await import('viem');
+      const decimals = formState.token.decimals as number;
+      // 精确字符串转换，避免 Number(amount)*10**decimals 丢精度
+      const amountBN = parseUnits(String(formState.amount), decimals);
+      evmCallData = encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [formState.recipient as `0x${string}`, amountBN] });
+    }
+
+    // 备注上链：与单签一致，通过 Remark Proxy 合约的 saveRemark 调用将备注写入链上
+    const proxyAddress = REMARK_PROXY_ADDRESS[useChain.chain.id];
+    const publicRemark = (formState.memo ?? '').trim().slice(0, REMARK_MAX_CHARS);
+    const hasRemark = Boolean(publicRemark);
+    if (proxyAddress && hasRemark) {
+      const { encodeFunctionData } = await import('viem');
+      const uuidToU256 = (uuid: string): bigint => hexToBigInt(keccak256(toBytes(uuid)));
+      const remarkUuid = crypto.randomUUID();
+      const remarkId = uuidToU256(remarkUuid);
+      const remarkCallData = encodeFunctionData({
+        abi: remarkProxyAbi,
+        functionName: 'saveRemark',
+        args: [remarkId, remarkId, publicRemark, ''],
+      });
+      // 将 remark 调用信息存入 call_detail，签名时 buildCallsFromTx 会读取并附加
+      callDetail.remark_to = proxyAddress;
+      callDetail.remark_data = remarkCallData;
+    }
+
+    const { tx } = await proposeMultisigTx({
+      wallet_id: wallet.id,
+      tx_type: txType,
+      call_detail: callDetail,
+      evm_call_data: evmCallData,
+      memo: formState.memo || undefined,
+      sender_note: formState.senderNote || undefined,
+    });
+
+    toast.add({
+      title: i18n.text['multisig.proposalSubmitted'] || 'Proposal submitted!',
+      description: i18n.text['multisig.goToSign'] || 'Go to sign',
+      color: 'success',
+    });
+    router.push(`/multisig/${tx.id}`);
+  } catch (err: any) {
+    handleError(err, i18n.text['multisig.proposalFailed'] || 'Proposal failed');
+  }
 };
 
 const handleQrCodeDetect = (values: string[]) => {
@@ -632,6 +743,14 @@ const handleReset = () => {
 
 // 监听器
 watch(() => formState.token, fetchTokenBalance, { immediate: true });
+
+watch(
+  () => multisigStore.activeWalletId,
+  () => {
+    // When switching between single-sig and multisig, refresh displayed balance.
+    fetchTokenBalance();
+  }
+);
 
 // 生命周期
 onMounted(async () => {

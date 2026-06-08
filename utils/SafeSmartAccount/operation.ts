@@ -3,7 +3,7 @@ import type { Address, Chain } from "viem";
 import { prepareClient } from "./utils/prepareClient";
 import { getSafeAccount, getVirtualSafeAccount } from "./account";
 import { erc20Abi, formatEther, parseEther, toBytes, bytesToHex, zeroAddress } from "viem";
-import { BUNDLER_URL, CREATE_CALL_CONTRACT, TOKEN_FACTORY_CONTRACT } from "../config";
+import { CREATE_CALL_CONTRACT, TOKEN_FACTORY_CONTRACT, pimlicoGasPriceUrl } from "../config";
 import CreateCallAbi from "../deploy/CreateCall.abi.json";
 import { abi as tokenFactoryAbi } from "../deploy/MinimalFactory.json";
 
@@ -316,7 +316,9 @@ export const transferErc20 = async ({
 
 export const pimlicoGetUserOperationGasPrice = async (chain: Chain): Promise<GasPrice> => {
   try {
-    const response = await fetch(`https://api.pimlico.io/v2/10/rpc?apikey=pim_gyNBhaYL6SDxNAH4dYkUxH`, {
+    // Pimlico-specific gas-price endpoint, built from chain.id with the key from env
+    // (was hardcoded to Optimism + a leaked key — every chain got OP gas prices).
+    const response = await fetch(pimlicoGasPriceUrl(chain.id), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -439,6 +441,58 @@ export const deploy = async ({
   }
 
   return executeUserOperation(params, bundlerClient);
+};
+
+/** Multisig verificationGasLimit: 600k base + 60k per additional signer */
+export const multisigVerificationGasLimit = (threshold: number): bigint =>
+  BigInt(600_000 + Math.max(0, threshold - 1) * 60_000);
+
+export interface EstimateMultisigGasOptions {
+  safeAddress: Address;
+  owners: Address[];
+  threshold: number;
+  chain: Chain;
+  calls: any[];
+}
+
+/** Estimate gas for a multisig UserOp (no paymaster — self-pay) */
+export const estimateMultisigGas = async ({
+  safeAddress,
+  owners,
+  threshold,
+  chain,
+  calls,
+}: EstimateMultisigGasOptions) => {
+  const smartAccount = await getVirtualSafeAccount(safeAddress, chain, {
+    threshold,
+    owners,
+  });
+  const { bundlerClient } = await prepareClient(chain, false);
+
+  const gasPrice = await pimlicoGetUserOperationGasPrice(chain);
+
+  let gas: any;
+  try {
+    gas = await bundlerClient.estimateUserOperationGas({
+      account: smartAccount,
+      calls,
+      maxFeePerGas: gasPrice.maxFeePerGas,
+      maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
+    });
+  } catch (error) {
+    console.warn("[Multisig Gas Estimate failed, using defaults]:", error);
+    gas = {
+      callGasLimit: BigInt(200_000),
+      preVerificationGas: BigInt(80_000),
+      verificationGasLimit: multisigVerificationGasLimit(threshold),
+    };
+  }
+
+  return {
+    ...gasPrice,
+    ...gas,
+    verificationGasLimit: multisigVerificationGasLimit(threshold),
+  };
 };
 
 export interface DeployTokenOptions {

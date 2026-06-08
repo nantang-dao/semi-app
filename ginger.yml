@@ -1,0 +1,41 @@
+service: semi-app
+image: ghcr.io/nantang-dao/semi-app
+
+servers:
+  web:
+    hosts: [sg.sola.day]
+    primary: true
+
+registry:
+  server: ghcr.io
+  username: nantang-dao
+  password: KAMAL_REGISTRY_PASSWORD
+
+proxy:
+  hosts: [semi.im, www.semi.im]
+  app_port: 3000
+  ssl: true
+  health_check_path: /
+  deploy_timeout: 60
+  drain_timeout: 30
+
+ssh:
+  user: root
+
+builder:
+  arch: amd64
+  remote: ssh://ubuntu@wamo.city
+
+secrets:
+  load: [.env.production]
+  inject:
+    - KAMAL_REGISTRY_PASSWORD
+    - INSTANT_APP_ID
+    - INSTANT_APP_ADMIN_TOKEN
+    - OAUTH_VALID_CLIENT_IDS
+    - OP_SOLA_BADGE_ADMIN_WALLET_PRIVATE_KEY
+    - SEPOLIA_SOLA_BADGE_ADMIN_WALLET_PRIVATE_KEY
+    - SOLA_BADGE_ADMIN_WALLET_PRIVATE_KEY
+    - NUXT_PUBLIC_API_URL
+
+retain_containers: 3

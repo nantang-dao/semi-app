@@ -68,6 +68,7 @@ export async function signUserOperation(
     validAfter?: number;
     validUntil?: number;
     safe4337ModuleAddress?: Address;
+    threshold?: number;
   }
 ) {
   const {
@@ -78,6 +79,7 @@ export async function signUserOperation(
     safe4337ModuleAddress: _safe4337ModuleAddress,
     version,
     owners,
+    threshold = owners.length,
     signatures: existingSignatures,
     account,
     ...userOperation
@@ -167,7 +169,7 @@ export async function signUserOperation(
     )),
   ];
 
-  if (signatures.length !== owners.length) {
+  if (signatures.length < threshold) {
     return encodeAbiParameters(
       [
         {

@@ -81,7 +81,7 @@ async function handleRequest<T>(response: Response): Promise<T> {
 }
 
 // 获取认证头
-function getAuthHeaders(): HeadersInit {
+export function getAuthHeaders(): HeadersInit {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
