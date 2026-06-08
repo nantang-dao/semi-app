@@ -664,9 +664,10 @@ const handleMultisigProposal = async () => {
     // Build evm_call_data for transfer
     let evmCallData = '0x';
     if (isErc20 && formState.token?.address) {
-      const { encodeFunctionData, erc20Abi } = await import('viem');
+      const { encodeFunctionData, erc20Abi, parseUnits } = await import('viem');
       const decimals = formState.token.decimals as number;
-      const amountBN = BigInt(Math.floor(Number(formState.amount) * 10 ** decimals));
+      // 精确字符串转换，避免 Number(amount)*10**decimals 丢精度
+      const amountBN = parseUnits(String(formState.amount), decimals);
       evmCallData = encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [formState.recipient as `0x${string}`, amountBN] });
     }
 

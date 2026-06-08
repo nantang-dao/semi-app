@@ -256,6 +256,7 @@ import {
 import { keystoreToPrivateKey } from '~/utils/encryption'
 import { chainMap } from '~/stores/chain'
 import { uploadTransaction } from '~/utils/semi_api'
+import { parseEther } from 'viem'
 
 const route = useRoute()
 const router = useRouter()
@@ -564,6 +565,8 @@ async function doSign(passcode: string) {
 async function doExecute(passcode: string) {
   if (!tx.value) return
   executing.value = true
+  // 一旦拿到 txHash，链上已提交成功，无论后续 confirm/上传是否失败都不能再标记为 failed
+  let submittedTxHash: string | undefined
   try {
     // 1. 先验证支付码是否正确（不锁定后端状态）
     const encryptedKeys = userStore.user?.encrypted_keys
@@ -593,14 +596,29 @@ async function doExecute(passcode: string) {
       )
     }
 
-    const { txHash } = await executeMultisigUserOp(
+    const { txHash, actualGasCost } = await executeMultisigUserOp(
       lockedTx.user_op_snapshot,
       eligibleSignatures,
       execThreshold,
       chain
     )
+    submittedTxHash = txHash // 链上已提交，越过此处不可再标记为 failed
 
-    await confirmMultisigTx({ multisig_tx_id: tx.value.id, tx_hash: txHash })
+    // gas 由 paymaster 代付，但实际成本记账给执行者（"最后一个用户"）
+    // confirm 失败属于可恢复状态：交易已上链，绝不能因此把它标记为 failed
+    try {
+      await confirmMultisigTx({ multisig_tx_id: tx.value.id, tx_hash: txHash, gas_used: actualGasCost })
+    } catch (confirmErr: any) {
+      console.error('[doExecute] confirm failed after on-chain success:', confirmErr)
+      showPasscode.value = false
+      toast.add({
+        title: i18n.text['multisig.confirmPending'] || '交易已上链，正在同步…',
+        description: i18n.text['multisig.confirmPendingDesc'] || '稍后刷新即可，无需重新发起',
+        color: 'warning',
+      })
+      await loadTx()
+      return
+    }
 
     // 与单签一致：执行成功后上传交易记录到常规交易表，使收款方能查到备注
     try {
@@ -632,8 +650,9 @@ async function doExecute(passcode: string) {
       // 密码错误时后端状态不会被锁定，无需重置
     } else {
       showPasscode.value = false
-      // 只有后端已锁定状态才标记失败
-      if (tx.value?.status === 'executing') {
+      // 仅当链上从未提交（无 txHash）且后端已锁定时才标记失败；
+      // 已上链的交易即使后续步骤失败也绝不能标记为 failed
+      if (!submittedTxHash && tx.value?.status === 'executing') {
         await failMultisigTx(tx.value.id).catch(() => {})
       }
       toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
@@ -841,8 +860,9 @@ function buildCallsFromTx(t: MultisigTx): { to: `0x${string}`; value?: bigint; d
   let calls: { to: `0x${string}`; value?: bigint; data?: `0x${string}` }[] = []
 
   if (t.tx_type === 'transfer' && t.call_detail.to) {
-    const ethAmount = t.call_detail.amount || '0'
-    const weiValue = BigInt(Math.round(parseFloat(ethAmount) * 1e18))
+    const ethAmount = String(t.call_detail.amount || '0')
+    // 精确字符串转换，避免 parseFloat(...)*1e18 在 >2^53 wei 时丢精度
+    const weiValue = parseEther(ethAmount)
     calls = [{ to: t.call_detail.to as `0x${string}`, value: weiValue }]
   } else if (t.evm_call_data) {
     const activeWallet = multisigStore.activeWallet

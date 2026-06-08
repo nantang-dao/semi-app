@@ -607,6 +607,8 @@ async function onExecutePasscode(passcode: string) {
   if (!executingTx) return
   const tx = executingTx
   executing.value = true
+  // 一旦拿到 txHash，链上已提交成功，无论后续 confirm/上传是否失败都不能再标记为 failed
+  let submittedTxHash: string | undefined
 
   try {
     // 1. 先验证支付码是否正确（不锁定后端状态）
@@ -637,14 +639,29 @@ async function onExecutePasscode(passcode: string) {
       )
     }
 
-    const { txHash } = await executeMultisigUserOp(
+    const { txHash, actualGasCost } = await executeMultisigUserOp(
       lockedTx.user_op_snapshot,
       eligibleSignatures,
       execThreshold,
       chain
     )
+    submittedTxHash = txHash // 链上已提交，越过此处不可再标记为 failed
 
-    await confirmMultisigTx({ multisig_tx_id: tx.id, tx_hash: txHash })
+    // gas 由 paymaster 代付，但实际成本记账给执行者（"最后一个用户"）
+    // confirm 失败属于可恢复状态：交易已上链，绝不能因此把它标记为 failed
+    try {
+      await confirmMultisigTx({ multisig_tx_id: tx.id, tx_hash: txHash, gas_used: actualGasCost })
+    } catch (confirmErr: any) {
+      console.error('[execute] confirm failed after on-chain success:', confirmErr)
+      showPasscode.value = false
+      toast.add({
+        title: i18n.text['multisig.confirmPending'] || '交易已上链，正在同步…',
+        description: i18n.text['multisig.confirmPendingDesc'] || '稍后刷新即可，无需重新发起',
+        color: 'warning',
+      })
+      await fetchQueue()
+      return
+    }
 
     // 与单签一致：执行成功后上传交易记录到常规交易表，使收款方能查到备注
     try {
@@ -705,8 +722,11 @@ async function onExecutePasscode(passcode: string) {
       // 密码错误时后端状态不会被锁定，无需重置
     } else {
       showPasscode.value = false
-      // 只有后端已锁定状态才标记失败
-      await failMultisigTx(tx.id).catch(() => {})
+      // 仅当链上从未提交（无 txHash）时才标记失败；
+      // 已上链的交易即使后续步骤失败也绝不能标记为 failed（否则会诱导重复发起 → 双花）
+      if (!submittedTxHash) {
+        await failMultisigTx(tx.id).catch(() => {})
+      }
       toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
     }
     await fetchQueue()

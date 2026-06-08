@@ -2,7 +2,11 @@
  * Multisig utility functions for Safe Smart Account (ERC-4337 v0.7 + Safe 1.4.1)
  *
  * Flow:
- *  1. Proposer calls `buildMultisigUserOpSnapshot` to create the gas-locked snapshot
+ *  1. Proposer calls `buildMultisigUserOpSnapshot` to create the gas-locked snapshot.
+ *     Gas is sponsored by the Paymaster **by default** — the paymaster data is fetched
+ *     and frozen into the snapshot at this point so that every owner signs the exact
+ *     same SafeOp hash (paymasterAndData is part of the EIP-712 struct). If the chain
+ *     has no Paymaster configured, it transparently falls back to wallet self-pay.
  *  2. Each signer calls `signSafeOpSnapshot` to produce an independent ECDSA signature
  *  3. Executor calls `executeMultisigUserOp` to assemble packed sig and submit to bundler
  */
@@ -18,12 +22,13 @@ import {
   http,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { entryPoint07Address } from "viem/account-abstraction";
-import { EIP712_SAFE_OPERATION_TYPE_V07 } from "./utils/index";
+import { entryPoint07Address, createPaymasterClient } from "viem/account-abstraction";
+import { EIP712_SAFE_OPERATION_TYPE_V07, getPaymasterAndData } from "./utils/index";
 import { getVirtualSafeAccount } from "./account";
 import { prepareClient } from "./utils/prepareClient";
 import { estimateMultisigGas } from "./operation";
-import { BUNDLER_URL, RPC_URL } from "../config";
+import { BUNDLER_URL, RPC_URL, PAYMASTER_URL } from "../config";
+import { isGasSponsorshipChain } from "../gas_sponsorship";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -47,6 +52,17 @@ export interface UserOpSnapshot {
   factoryData?: Hex;
   initCode: Hex;
   chainId: number;
+  // ── Paymaster sponsorship (frozen at snapshot-build time) ──
+  // All owners must sign over the same `paymasterAndData`, so it is locked here.
+  // `paymasterAndData` is the PACKED form that goes into the EIP-712 SafeOp hash;
+  // the individual fields below are the UNPACKED v0.7 userOp fields sent to the bundler.
+  paymasterAndData?: Hex;
+  paymaster?: Address;
+  paymasterData?: Hex;
+  paymasterVerificationGasLimit?: string;
+  paymasterPostOpGasLimit?: string;
+  /** true when gas is sponsored by the paymaster; false = wallet self-pay */
+  sponsored?: boolean;
 }
 
 export interface CollectedSignature {
@@ -76,7 +92,8 @@ export async function signSafeOpSnapshot(
     preVerificationGas: BigInt(snapshot.preVerificationGas),
     verificationGasLimit: BigInt(snapshot.verificationGasLimit),
     callGasLimit: BigInt(snapshot.callGasLimit),
-    paymasterAndData: "0x" as Hex,
+    // Must match exactly what executeMultisigUserOp submits, or checkSignatures reverts.
+    paymasterAndData: (snapshot.paymasterAndData ?? "0x") as Hex,
     validAfter: snapshot.validAfter,
     validUntil: snapshot.validUntil,
     entryPoint: entryPoint07Address,
@@ -105,6 +122,76 @@ export interface BuildSnapshotParams {
   calls: { to: Address; value?: bigint; data?: Hex }[];
   /** 拒签替换：使用与被替换交易相同的 Nonce */
   forcedNonce?: bigint;
+  /**
+   * 是否使用 Paymaster 代付 gas。默认 true（代付）。
+   * 若该链未配置 Paymaster，则自动回退为钱包自付。
+   */
+  sponsorFee?: boolean;
+}
+
+// ─── Paymaster sponsorship ───────────────────────────────────────────────────
+
+interface SponsorPaymasterFields {
+  paymaster: Address;
+  paymasterData: Hex;
+  paymasterVerificationGasLimit: bigint;
+  paymasterPostOpGasLimit: bigint;
+}
+
+/**
+ * Ask the configured Paymaster to sponsor this userOp (ERC-7677 `pm_getPaymasterData`).
+ * Returns null when the chain has no paymaster configured. Throws on RPC/validation
+ * failure so the caller can decide whether to fall back to self-pay.
+ *
+ * NOTE: a verifying paymaster signs over a validity window. Because multisig signature
+ * collection can span a long time, the sponsorship may expire before execution — in
+ * which case the snapshot must be rebuilt (re-proposed). This is inherent to binding
+ * paymasterAndData into the signed SafeOp.
+ */
+async function fetchSponsorPaymasterData(
+  chain: Chain,
+  userOp: {
+    sender: Address;
+    nonce: bigint;
+    callData: Hex;
+    callGasLimit: bigint;
+    verificationGasLimit: bigint;
+    preVerificationGas: bigint;
+    maxFeePerGas: bigint;
+    maxPriorityFeePerGas: bigint;
+    factory?: Address;
+    factoryData?: Hex;
+  }
+): Promise<SponsorPaymasterFields | null> {
+  const url = PAYMASTER_URL[chain.id];
+  if (!url) return null;
+
+  const paymasterClient = createPaymasterClient({ transport: http(url) });
+
+  // viem returns a OneOf union (v0.6 `paymasterAndData` vs v0.7 split fields);
+  // we target the v0.7 entryPoint so cast to read the split fields directly.
+  const res: any = await paymasterClient.getPaymasterData({
+    chainId: chain.id,
+    entryPointAddress: entryPoint07Address,
+    sender: userOp.sender,
+    nonce: userOp.nonce,
+    callData: userOp.callData,
+    callGasLimit: userOp.callGasLimit,
+    verificationGasLimit: userOp.verificationGasLimit,
+    preVerificationGas: userOp.preVerificationGas,
+    maxFeePerGas: userOp.maxFeePerGas,
+    maxPriorityFeePerGas: userOp.maxPriorityFeePerGas,
+    ...(userOp.factory ? { factory: userOp.factory, factoryData: userOp.factoryData } : {}),
+  });
+
+  if (!res.paymaster) return null;
+
+  return {
+    paymaster: res.paymaster as Address,
+    paymasterData: (res.paymasterData ?? "0x") as Hex,
+    paymasterVerificationGasLimit: res.paymasterVerificationGasLimit ?? 0n,
+    paymasterPostOpGasLimit: res.paymasterPostOpGasLimit ?? 0n,
+  };
 }
 
 /**
@@ -115,7 +202,7 @@ export interface BuildSnapshotParams {
 export async function buildMultisigUserOpSnapshot(
   params: BuildSnapshotParams
 ): Promise<UserOpSnapshot> {
-  const { safeAddress, owners, threshold, chain, calls, forcedNonce } = params;
+  const { safeAddress, owners, threshold, chain, calls, forcedNonce, sponsorFee = true } = params;
 
   const account = await getVirtualSafeAccount(safeAddress, chain, {
     threshold,
@@ -157,6 +244,53 @@ export async function buildMultisigUserOpSnapshot(
     initCode = concatHex([factory, factoryData]);
   }
 
+  // ── Paymaster sponsorship (default on) ──
+  // Fetch & freeze the paymaster data NOW so every signer commits to the same
+  // SafeOp hash. Falls back to self-pay if the chain has no paymaster or the
+  // sponsorship request fails.
+  let paymasterAndData: Hex = "0x";
+  let paymaster: Address | undefined;
+  let paymasterData: Hex | undefined;
+  let paymasterVerificationGasLimit: string | undefined;
+  let paymasterPostOpGasLimit: string | undefined;
+  let sponsored = false;
+
+  if (sponsorFee && isGasSponsorshipChain(chain.id)) {
+    try {
+      const pm = await fetchSponsorPaymasterData(chain, {
+        sender: safeAddress,
+        nonce,
+        callData: callData as Hex,
+        callGasLimit,
+        verificationGasLimit,
+        preVerificationGas,
+        maxFeePerGas: rawGas.maxFeePerGas,
+        maxPriorityFeePerGas: rawGas.maxPriorityFeePerGas,
+        factory,
+        factoryData,
+      });
+      if (pm) {
+        paymaster = pm.paymaster;
+        paymasterData = pm.paymasterData;
+        paymasterVerificationGasLimit = pm.paymasterVerificationGasLimit.toString();
+        paymasterPostOpGasLimit = pm.paymasterPostOpGasLimit.toString();
+        // Pack into the EIP-712 form that the SafeOp signature commits to.
+        paymasterAndData = getPaymasterAndData({
+          paymaster: pm.paymaster,
+          paymasterVerificationGasLimit: pm.paymasterVerificationGasLimit,
+          paymasterPostOpGasLimit: pm.paymasterPostOpGasLimit,
+          paymasterData: pm.paymasterData,
+        } as any);
+        sponsored = true;
+      }
+    } catch (e) {
+      console.warn(
+        "[Multisig] Paymaster sponsorship failed — falling back to wallet self-pay:",
+        e
+      );
+    }
+  }
+
   return {
     sender: safeAddress,
     nonce: nonce.toString(),
@@ -172,6 +306,12 @@ export async function buildMultisigUserOpSnapshot(
     factoryData,
     initCode,
     chainId: chain.id,
+    paymasterAndData,
+    paymaster,
+    paymasterData,
+    paymasterVerificationGasLimit,
+    paymasterPostOpGasLimit,
+    sponsored,
   };
 }
 
@@ -207,7 +347,7 @@ export async function executeMultisigUserOp(
   signatures: CollectedSignature[],
   threshold: number,
   chain: Chain
-): Promise<{ userOpHash: Hex; txHash: Hex }> {
+): Promise<{ userOpHash: Hex; txHash: Hex; actualGasCost: string }> {
   const bundlerUrl = BUNDLER_URL[chain.id];
   if (!bundlerUrl) throw new Error(`No bundler URL for chain ${chain.id}`);
 
@@ -238,6 +378,15 @@ export async function executeMultisigUserOp(
     userOp.factoryData = snapshot.factoryData;
   }
 
+  // Paymaster (v0.7 unpacked fields) — must correspond to the packed
+  // paymasterAndData that the signatures committed to in the snapshot.
+  if (snapshot.paymaster) {
+    userOp.paymaster = snapshot.paymaster;
+    userOp.paymasterData = snapshot.paymasterData ?? "0x";
+    userOp.paymasterVerificationGasLimit = toHex(snapshot.paymasterVerificationGasLimit ?? "0");
+    userOp.paymasterPostOpGasLimit = toHex(snapshot.paymasterPostOpGasLimit ?? "0");
+  }
+
   // Send via eth_sendUserOperation
   const sendResp = await fetch(bundlerUrl, {
     method: "POST",
@@ -262,7 +411,16 @@ export async function executeMultisigUserOp(
   const receipt = await pollForUserOpReceipt(bundlerUrl, userOpHash);
   const txHash = receipt.receipt?.transactionHash as Hex;
 
-  return { userOpHash, txHash };
+  // actualGasCost (wei) is what the paymaster actually paid — used to accredit
+  // the gas cost to the executor in the backend DB.
+  let actualGasCost = "0";
+  try {
+    if (receipt.actualGasCost) actualGasCost = BigInt(receipt.actualGasCost).toString();
+  } catch {
+    actualGasCost = "0";
+  }
+
+  return { userOpHash, txHash, actualGasCost };
 }
 
 async function pollForUserOpReceipt(

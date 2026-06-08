@@ -3,7 +3,7 @@ import type { Address, Chain } from "viem";
 import { prepareClient } from "./utils/prepareClient";
 import { getSafeAccount, getVirtualSafeAccount } from "./account";
 import { erc20Abi, formatEther, parseEther, toBytes, bytesToHex, zeroAddress } from "viem";
-import { BUNDLER_URL, CREATE_CALL_CONTRACT, TOKEN_FACTORY_CONTRACT } from "../config";
+import { CREATE_CALL_CONTRACT, TOKEN_FACTORY_CONTRACT, pimlicoGasPriceUrl } from "../config";
 import CreateCallAbi from "../deploy/CreateCall.abi.json";
 import { abi as tokenFactoryAbi } from "../deploy/MinimalFactory.json";
 
@@ -316,7 +316,9 @@ export const transferErc20 = async ({
 
 export const pimlicoGetUserOperationGasPrice = async (chain: Chain): Promise<GasPrice> => {
   try {
-    const response = await fetch(`https://api.pimlico.io/v2/10/rpc?apikey=pim_gyNBhaYL6SDxNAH4dYkUxH`, {
+    // Pimlico-specific gas-price endpoint, built from chain.id with the key from env
+    // (was hardcoded to Optimism + a leaked key — every chain got OP gas prices).
+    const response = await fetch(pimlicoGasPriceUrl(chain.id), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -93,6 +93,18 @@ export const BUNDLER_URL: BundlerUrl = {
   11155111: import.meta.env.VITE_SEPOLIA_BUNDLER_URL!,
 };
 
+// `pimlico_getUserOperationGasPrice` is a Pimlico-specific RPC method, served from
+// Pimlico's own endpoint regardless of which bundler (e.g. ZeroDev) we submit through.
+// The API key comes from env — never hardcode it in source.
+export const PIMLICO_API_KEY = import.meta.env.VITE_PIMLICO_API_KEY as string | undefined;
+
+export const pimlicoGasPriceUrl = (chainId: number): string => {
+  if (!PIMLICO_API_KEY) {
+    throw new Error("VITE_PIMLICO_API_KEY is not configured (required for gas price)");
+  }
+  return `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${PIMLICO_API_KEY}`;
+};
+
 export const RPC_URL: RPCUrl = {
   1: `${import.meta.env.VITE_MAINNET_RPC_URL!}/${import.meta.env.VITE_INFURA_API_KEY!}`,
   10: `${import.meta.env.VITE_OP_RPC_URL!}/${import.meta.env.VITE_INFURA_API_KEY!}`,

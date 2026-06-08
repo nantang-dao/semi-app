@@ -66,6 +66,10 @@ export interface MultisigTx {
   memo?: string | null;
   /** 发送者备注（不上链，仅发送方可见） */
   sender_note?: string | null;
+  /** 执行者（"最后一个用户"）的用户 ID；gas 由 paymaster 代付，但成本记账给该用户 */
+  executor_id?: string | null;
+  /** 实际 gas 成本（wei），记账给 executor */
+  gas_used?: string | null;
   created_at: string;
   updated_at: string;
   signatures?: MultisigSignatureData[];
@@ -253,6 +257,8 @@ export async function executeMultisigTx(
 export async function confirmMultisigTx(params: {
   multisig_tx_id: string;
   tx_hash: string;
+  /** 实际 gas 成本（wei），来自 UserOp 回执的 actualGasCost；记账给执行者 */
+  gas_used?: string;
 }): Promise<{ result: string }> {
   const resp = await fetch(`${base()}/confirm_multisig_tx`, {
     method: "POST",
