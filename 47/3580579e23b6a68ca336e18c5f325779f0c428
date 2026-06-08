@@ -1,0 +1,52 @@
+utils/SafeSmartAccount/operation.ts
+  s_d09588fa00adaf::t_25d433265a1ccc 6
+  s_d09588fa00adaf::t_298696c3a362cf 319-321
+utils/config.ts
+  s_d09588fa00adaf::t_31af93c5fd070a 96-107
+.env.example
+  s_d09588fa00adaf::t_08f8f546ef888b 5-7
+pages/transfer.client.vue
+  s_d09588fa00adaf::t_3bc74cffe6b310 667,669-670
+utils/SafeSmartAccount/multisig.ts
+  s_d09588fa00adaf::t_4f5addc5e59c1f 95-96
+  s_d09588fa00adaf::t_e3010cab6dc7e0 125-170,174-194
+  s_d09588fa00adaf::t_7d5c0b29afbdc8 171-173
+  s_d09588fa00adaf::t_71d9209452bded 205
+  s_d09588fa00adaf::t_6a143f2b7af19a 247-293,309-314
+  s_d09588fa00adaf::t_f0a5f93889b803 350
+  s_d09588fa00adaf::t_26a06ce24efa9c 5-9,25-26,30-31
+  s_d09588fa00adaf::t_4c23ba53ed9e51 55-65
+  s_d09588fa00adaf::t_72444cff9aae45 381-389
+  s_d09588fa00adaf::t_6323747fe8ae47 414-423
+utils/multisig_api.ts
+  s_d09588fa00adaf::t_1aed26339470f2 69-72
+  s_d09588fa00adaf::t_9a027fe9d48304 260-261
+pages/multisig/[id].client.vue
+  s_d09588fa00adaf::t_6cd950ca2174ac 568-569
+  s_d09588fa00adaf::t_8f2c78e3a929ea 605,608-621
+  s_d09588fa00adaf::t_ace366cf1e21f9 653-655
+  s_d09588fa00adaf::t_0b8ee58a6dea00 259
+  s_d09588fa00adaf::t_47ccaee68a2c09 599,607
+  s_d09588fa00adaf::t_bbed9142b5a12d 863-865
+pages/multisig/queue.client.vue
+  s_d09588fa00adaf::t_20011d90a0621c 725-729
+  s_d09588fa00adaf::t_91b23ca32a6690 610-611
+  s_d09588fa00adaf::t_9c1eb5022a63cd 648,651-664
+  s_d09588fa00adaf::t_8c9c211d98ddcd 642,650
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "473580579e23b6a68ca336e18c5f325779f0c428",
+  "prompts": {},
+  "sessions": {
+    "s_d09588fa00adaf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
