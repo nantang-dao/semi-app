@@ -11,7 +11,8 @@
       >
         {{ i18n.text["Back"] }}
       </UButton>
-      <h1 class="text-lg font-bold text-gray-800">{{ i18n.text['multisig.createTeamWallet'] }}</h1>
+      <h1 class="text-lg font-bold text-gray-800 flex-1">{{ i18n.text['multisig.createTeamWallet'] }}</h1>
+      <NetworkSwitch />
     </div>
 
     <div class="space-y-5 w-[80%] mx-auto">
