@@ -38,6 +38,16 @@
           {{ displayBalance(ethBalance, 6, 18) }}
         </p>
         <p class="text-xs text-gray-400 font-mono mt-2">{{ activeWallet?.safe_address }}</p>
+        <div class="mt-4">
+          <UButton
+            icon="i-heroicons-paper-airplane"
+            size="sm"
+            class="w-full justify-center"
+            @click="router.push('/transfer')"
+          >
+            {{ i18n.text['multisig.proposeSend'] || '发起转账' }}
+          </UButton>
+        </div>
       </div>
 
       <div v-if="tokenBalances.length" class="bg-white rounded-xl border border-gray-100 divide-y divide-gray-100">
