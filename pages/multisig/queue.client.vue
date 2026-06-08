@@ -267,9 +267,9 @@
     </button>
 
     <!-- Incoming transfer detail modal -->
-    <div v-if="showIncomingDetail && selectedIncoming" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @click.self="showIncomingDetail = false">
+    <div v-if="showIncomingDetail && selectedIncoming" class="fixed inset-0 z-50 flex items-center justify-center" @click.self="showIncomingDetail = false">
       <div class="absolute inset-0 bg-black/40" @click="showIncomingDetail = false" />
-      <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 m-0 sm:m-4">
+      <div class="relative w-full max-w-sm mx-4 bg-white rounded-2xl shadow-xl p-5 max-h-[85vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-base font-semibold text-gray-800">
             {{ i18n.text['multisig.incomingTransfer'] || '收款' }}

@@ -100,14 +100,16 @@
     <!-- Add owner: search sheet -->
     <div
       v-if="showAddOwner"
-      class="fixed inset-0 bg-black/40 z-40 flex items-end"
+      class="fixed inset-0 bg-black/40 z-40 flex items-center justify-center"
       @click.self="showAddOwner = false"
     >
-      <div class="w-full bg-white rounded-t-2xl p-5 space-y-4">
+      <div class="w-full max-w-sm mx-4 bg-white rounded-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
         <h3 class="text-base font-semibold">{{ i18n.text['multisig.addSigner'] }}</h3>
         <UInput
           v-model="addOwnerQuery"
           :placeholder="i18n.text['multisig.searchSignerPlaceholder']"
+          size="lg"
+          class="w-full"
           @keydown.enter="searchForNewOwner"
         />
         <div v-if="addOwnerResult" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -130,10 +132,10 @@
     <!-- Add / Remove owner: threshold modal -->
     <div
       v-if="showOwnerChangeModal"
-      class="fixed inset-0 bg-black/40 z-50 flex items-end"
+      class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
       @click.self="closeOwnerChangeModal"
     >
-      <div class="w-full bg-white rounded-t-2xl p-5 space-y-4">
+      <div class="w-full max-w-sm mx-4 bg-white rounded-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
         <h3 class="text-base font-semibold text-gray-800">{{ ownerChangeModalTitle }}</h3>
 
         <div v-if="ownerChangeMode === 'remove' && removeTarget" class="p-3 bg-gray-50 rounded-lg text-sm">
@@ -197,10 +199,10 @@
     <!-- Change threshold only -->
     <div
       v-if="showChangeThreshold"
-      class="fixed inset-0 bg-black/40 z-40 flex items-end"
+      class="fixed inset-0 bg-black/40 z-40 flex items-center justify-center"
       @click.self="showChangeThreshold = false"
     >
-      <div class="w-full bg-white rounded-t-2xl p-5 space-y-4">
+      <div class="w-full max-w-sm mx-4 bg-white rounded-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
         <h3 class="text-base font-semibold">{{ i18n.text['multisig.changeThreshold'] }}</h3>
         <div class="flex items-center gap-4">
           <input
@@ -231,10 +233,10 @@
     <!-- Replace owner: search sheet -->
     <div
       v-if="showReplaceOwner"
-      class="fixed inset-0 bg-black/40 z-40 flex items-end"
+      class="fixed inset-0 bg-black/40 z-40 flex items-center justify-center"
       @click.self="showReplaceOwner = false"
     >
-      <div class="w-full bg-white rounded-t-2xl p-5 space-y-4">
+      <div class="w-full max-w-sm mx-4 bg-white rounded-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
         <h3 class="text-base font-semibold">{{ i18n.text['multisig.replaceSignerTitle'] || '替换签名者' }}</h3>
 
         <div class="p-3 bg-gray-50 rounded-lg text-sm">
@@ -268,10 +270,10 @@
     <!-- Replace owner: confirm modal -->
     <div
       v-if="showReplaceModal"
-      class="fixed inset-0 bg-black/40 z-50 flex items-end"
+      class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
       @click.self="closeReplaceModal"
     >
-      <div class="w-full bg-white rounded-t-2xl p-5 space-y-4">
+      <div class="w-full max-w-sm mx-4 bg-white rounded-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
         <h3 class="text-base font-semibold text-gray-800">{{ i18n.text['multisig.replaceSignerTitle'] || '替换签名者' }}</h3>
 
         <div class="p-3 bg-gray-50 rounded-lg text-sm space-y-2">
@@ -475,8 +477,11 @@ async function searchForNewOwner() {
   searchingOwner.value = true
   try {
     const u = await getUserByHandle(q)
-    if (u?.evm_chain_active_key) {
-      addOwnerResult.value = u
+    const ownerAddress = u?.evm_chain_active_key || u?.evm_chain_address
+    if (u?.id && ownerAddress) {
+      addOwnerResult.value = { ...u, evm_chain_active_key: ownerAddress }
+    } else if (u?.id) {
+      addOwnerError.value = i18n.text['multisig.userNoWallet'] || '该用户尚未设置钱包地址'
     } else {
       addOwnerError.value = i18n.text['multisig.userNotFound'] || 'User not found'
     }

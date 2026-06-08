@@ -243,8 +243,11 @@ async function searchUser() {
   try {
     // Search by handle or address
     const u = await getUserByHandle(q)
-    if (u?.evm_chain_active_key) {
-      searchResults.value = [u]
+    const ownerAddress = u?.evm_chain_active_key || u?.evm_chain_address
+    if (u?.id && ownerAddress) {
+      searchResults.value = [{ ...u, evm_chain_active_key: ownerAddress }]
+    } else if (u?.id) {
+      searchError.value = i18n.text['multisig.userNoWallet'] || '该用户尚未设置钱包地址'
     } else {
       searchError.value = i18n.text['multisig.userNotFound'] || 'User not found'
     }
