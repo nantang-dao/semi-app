@@ -1,0 +1,30 @@
+.env.example
+  d09588fa00adafee 33-34
+server/api/oauth/authorize.get.ts
+  d09588fa00adafee 1-2,4,7-9,12-20,22
+nuxt.config.ts
+  d09588fa00adafee 8-9,15
+server/api/oauth/authorize.post.ts
+  d09588fa00adafee 1-5,7-27
+package.json
+  d09588fa00adafee 16,24,26,29,33,36,38-39,46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "a46cedb1c6741bf752d5d447a7439169cce78b3a",
+  "prompts": {
+    "d09588fa00adafee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": "jiangplus",
+      "total_additions": 20,
+      "total_deletions": 16,
+      "accepted_lines": 7,
+      "overriden_lines": 0
+    }
+  }
+}

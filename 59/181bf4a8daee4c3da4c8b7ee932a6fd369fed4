@@ -1,0 +1,36 @@
+server/api/oauth/authorize.get.ts
+  d09588fa00adafee 1-2,4,7-9,12-20,22
+pages/verifyphone.client.vue
+  d09588fa00adafee 155
+server/api/oauth/authorize.post.ts
+  d09588fa00adafee 1-5,7-27
+pages/verify.client.vue
+  d09588fa00adafee 142-143,156-158
+pages/oauth/authorize.client.vue
+  d09588fa00adafee 1-207
+pages/verifyemail.client.vue
+  d09588fa00adafee 129
+pages/login.client.vue
+  d09588fa00adafee 39-42
+utils/oauth.ts
+  d09588fa00adafee 1-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "59181bf4a8daee4c3da4c8b7ee932a6fd369fed4",
+  "prompts": {
+    "d09588fa00adafee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": "jiangplus",
+      "total_additions": 315,
+      "total_deletions": 139,
+      "accepted_lines": 309,
+      "overriden_lines": 0
+    }
+  }
+}
