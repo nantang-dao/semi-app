@@ -1,0 +1,20 @@
+utils/SafeSmartAccount/multisig.ts
+  s_d09588fa00adaf::t_98eddd6a594852 176-194,196,198,200-209,211-234,239-240
+  s_d09588fa00adaf::t_53dac37fb31b31 25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "7eb7e19f10618ca980614947ac3aa637ee447fa5",
+  "prompts": {},
+  "sessions": {
+    "s_d09588fa00adaf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46c3e587-d2bf-4425-b1a3-a4fd9a0bba84",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
