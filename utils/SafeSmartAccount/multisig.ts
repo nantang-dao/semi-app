@@ -426,7 +426,13 @@ export async function executeMultisigUserOp(
 
   const sendData = await sendResp.json();
   if (sendData.error) {
-    throw new Error(`Bundler error: ${sendData.error.message || JSON.stringify(sendData.error)}`);
+    const msg = sendData.error.message || JSON.stringify(sendData.error);
+    const hint = msg.includes("AA33")
+      ? " (AA33: paymaster validatePaymasterUserOp reverted — paymaster sponsorship expired or policy rejected this operation)"
+      : msg.includes("AA25")
+      ? " (AA25: invalid nonce — a concurrent transaction changed the safe nonce, please re-propose)"
+      : "";
+    throw new Error(`Bundler error: ${msg}${hint}`);
   }
 
   const userOpHash = sendData.result as Hex;
