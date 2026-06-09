@@ -179,6 +179,12 @@ async function fetchSponsorPaymasterData(
   // viem returns a OneOf union (v0.6 `paymasterAndData` vs v0.7 split fields);
   // we target the v0.7 entryPoint so cast to read the split fields directly.
   // `context.validUntil` requests a 7-day validity window from the paymaster (ERC-7677).
+  // ZeroDev's selfFunded paymaster signs a hash that includes paymasterVerificationGasLimit.
+  // We must commit to a fixed non-zero value HERE so the on-chain hash matches the signature.
+  // Passing 0 causes AA33 (EntryPoint allocates 0 gas → validatePaymasterUserOp OOG).
+  const paymasterVerificationGasLimit = 600_000n;
+  const paymasterPostOpGasLimit = 0n;
+
   const res: any = await paymasterClient.getPaymasterData({
     chainId: chain.id,
     entryPointAddress: entryPoint07Address,
@@ -190,25 +196,19 @@ async function fetchSponsorPaymasterData(
     preVerificationGas: userOp.preVerificationGas,
     maxFeePerGas: userOp.maxFeePerGas,
     maxPriorityFeePerGas: userOp.maxPriorityFeePerGas,
+    paymasterVerificationGasLimit,
+    paymasterPostOpGasLimit,
     ...(userOp.factory ? { factory: userOp.factory, factoryData: userOp.factoryData } : {}),
     context: { validUntil },
   });
 
   if (!res.paymaster) return null;
 
-  // Some paymasters (e.g. ZeroDev selfFunded mode) return 0 for these limits,
-  // which causes AA33 because the EntryPoint calls validatePaymasterUserOp with 0 gas.
-  // Use a safe minimum for verificationGasLimit.
-  const paymasterVerificationGasLimit =
-    res.paymasterVerificationGasLimit && res.paymasterVerificationGasLimit > 0n
-      ? res.paymasterVerificationGasLimit
-      : 600_000n;
-
   return {
     paymaster: res.paymaster as Address,
     paymasterData: (res.paymasterData ?? "0x") as Hex,
     paymasterVerificationGasLimit,
-    paymasterPostOpGasLimit: res.paymasterPostOpGasLimit ?? 0n,
+    paymasterPostOpGasLimit,
     validUntil,
   };
 }
