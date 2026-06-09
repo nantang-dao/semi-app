@@ -196,10 +196,18 @@ async function fetchSponsorPaymasterData(
 
   if (!res.paymaster) return null;
 
+  // Some paymasters (e.g. ZeroDev selfFunded mode) return 0 for these limits,
+  // which causes AA33 because the EntryPoint calls validatePaymasterUserOp with 0 gas.
+  // Use a safe minimum for verificationGasLimit.
+  const paymasterVerificationGasLimit =
+    res.paymasterVerificationGasLimit && res.paymasterVerificationGasLimit > 0n
+      ? res.paymasterVerificationGasLimit
+      : 100_000n;
+
   return {
     paymaster: res.paymaster as Address,
     paymasterData: (res.paymasterData ?? "0x") as Hex,
-    paymasterVerificationGasLimit: res.paymasterVerificationGasLimit ?? 0n,
+    paymasterVerificationGasLimit,
     paymasterPostOpGasLimit: res.paymasterPostOpGasLimit ?? 0n,
     validUntil,
   };
