@@ -22,7 +22,7 @@ import {
   http,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { entryPoint07Address, createPaymasterClient } from "viem/account-abstraction";
+import { entryPoint07Address } from "viem/account-abstraction";
 import { EIP712_SAFE_OPERATION_TYPE_V07, getPaymasterAndData } from "./utils/index";
 import { getVirtualSafeAccount } from "./account";
 import { prepareClient } from "./utils/prepareClient";
@@ -172,43 +172,72 @@ async function fetchSponsorPaymasterData(
   const url = PAYMASTER_URL[chain.id];
   if (!url) return null;
 
-  const paymasterClient = createPaymasterClient({ transport: http(url) });
-
   const validUntil = Math.floor(Date.now() / 1000) + PAYMASTER_VALIDITY_SECONDS;
+  const toHex = (n: bigint) => ("0x" + n.toString(16)) as Hex;
 
-  // viem returns a OneOf union (v0.6 `paymasterAndData` vs v0.7 split fields);
-  // we target the v0.7 entryPoint so cast to read the split fields directly.
-  // `context.validUntil` requests a 7-day validity window from the paymaster (ERC-7677).
-  // ZeroDev's selfFunded paymaster signs a hash that includes paymasterVerificationGasLimit.
-  // We must commit to a fixed non-zero value HERE so the on-chain hash matches the signature.
-  // Passing 0 causes AA33 (EntryPoint allocates 0 gas → validatePaymasterUserOp OOG).
-  const paymasterVerificationGasLimit = 600_000n;
-  const paymasterPostOpGasLimit = 0n;
+  // Raw ERC-7677 RPC calls. We deliberately do NOT use viem's typed
+  // `getPaymasterData`, because it strips `paymasterVerificationGasLimit` /
+  // `paymasterPostOpGasLimit` from the request body. ZeroDev's verifying paymaster
+  // SIGNS OVER those two fields, so whatever we submit on-chain must be byte-for-byte
+  // what we sent in the request — otherwise the reconstructed hash differs and the
+  // paymaster signature check fails (AA34), or the EntryPoint allocates too little
+  // paymaster gas (AA33). Controlling the raw request guarantees consistency.
+  const rpc = async (method: string, params: any[]): Promise<any> => {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+    });
+    const j = await r.json();
+    if (j.error) throw new Error(`${method}: ${j.error.message || JSON.stringify(j.error)}`);
+    return j.result;
+  };
 
-  const res: any = await paymasterClient.getPaymasterData({
-    chainId: chain.id,
-    entryPointAddress: entryPoint07Address,
+  const baseUserOp: Record<string, string> = {
     sender: userOp.sender,
-    nonce: userOp.nonce,
+    nonce: toHex(userOp.nonce),
     callData: userOp.callData,
-    callGasLimit: userOp.callGasLimit,
-    verificationGasLimit: userOp.verificationGasLimit,
-    preVerificationGas: userOp.preVerificationGas,
-    maxFeePerGas: userOp.maxFeePerGas,
-    maxPriorityFeePerGas: userOp.maxPriorityFeePerGas,
-    paymasterVerificationGasLimit,
-    paymasterPostOpGasLimit,
-    ...(userOp.factory ? { factory: userOp.factory, factoryData: userOp.factoryData } : {}),
-    context: { validUntil },
-  });
+    callGasLimit: toHex(userOp.callGasLimit),
+    verificationGasLimit: toHex(userOp.verificationGasLimit),
+    preVerificationGas: toHex(userOp.preVerificationGas),
+    maxFeePerGas: toHex(userOp.maxFeePerGas),
+    maxPriorityFeePerGas: toHex(userOp.maxPriorityFeePerGas),
+  };
+  if (userOp.factory && userOp.factoryData) {
+    baseUserOp.factory = userOp.factory;
+    baseUserOp.factoryData = userOp.factoryData;
+  }
 
-  if (!res.paymaster) return null;
+  const epHex = entryPoint07Address;
+  const chainIdHex = toHex(BigInt(chain.id));
+
+  // 1. Stub call tells us the paymaster gas limits ZeroDev wants us to use.
+  const stub: any = await rpc("pm_getPaymasterStubData", [baseUserOp, epHex, chainIdHex, {}]);
+  if (!stub?.paymaster) return null;
+
+  // Use ZeroDev's recommended limits; fall back to safe minimums if absent.
+  const pmVerGas = stub.paymasterVerificationGasLimit
+    ? BigInt(stub.paymasterVerificationGasLimit)
+    : 80_000n;
+  const pmPostOpGas = stub.paymasterPostOpGasLimit
+    ? BigInt(stub.paymasterPostOpGasLimit)
+    : 20_000n;
+
+  // 2. Request the real signed paymasterData, passing the SAME paymaster gas limits
+  //    we will submit on-chain. ZeroDev signs over them.
+  const dataReq: Record<string, string> = {
+    ...baseUserOp,
+    paymasterVerificationGasLimit: toHex(pmVerGas),
+    paymasterPostOpGasLimit: toHex(pmPostOpGas),
+  };
+  const res: any = await rpc("pm_getPaymasterData", [dataReq, epHex, chainIdHex, {}]);
+  if (!res?.paymaster) return null;
 
   return {
     paymaster: res.paymaster as Address,
     paymasterData: (res.paymasterData ?? "0x") as Hex,
-    paymasterVerificationGasLimit,
-    paymasterPostOpGasLimit,
+    paymasterVerificationGasLimit: pmVerGas,
+    paymasterPostOpGasLimit: pmPostOpGas,
     validUntil,
   };
 }
