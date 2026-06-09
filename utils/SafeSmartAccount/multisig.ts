@@ -202,7 +202,7 @@ async function fetchSponsorPaymasterData(
   const paymasterVerificationGasLimit =
     res.paymasterVerificationGasLimit && res.paymasterVerificationGasLimit > 0n
       ? res.paymasterVerificationGasLimit
-      : 100_000n;
+      : 600_000n;
 
   return {
     paymaster: res.paymaster as Address,
