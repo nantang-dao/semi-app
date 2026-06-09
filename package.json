@@ -27,7 +27,7 @@
     "ethers": "^6.16.0",
     "js-cookie": "^3.0.5",
     "nuxt": "3.21.4",
-    "ox": "0.6.7",
+    "ox": "^0.8.0",
     "permissionless": "^0.2.57",
     "pinia": "^3.0.4",
     "qrcode.vue": "3.9.0",
