@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col container-size h-[100vh] rounded-xl bg-[var(--ui-bg)] shadow-lg px-4 py-6 banner">
+  <div class="flex flex-col container-size min-h-[100vh] rounded-xl bg-[var(--ui-bg)] shadow-lg px-4 py-6 banner">
     <!-- Top bar (matches Profile.client.vue) -->
     <div class="w-full flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">

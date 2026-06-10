@@ -864,7 +864,15 @@ function buildCallsFromTx(t: MultisigTx): { to: `0x${string}`; value?: bigint; d
     // 精确字符串转换，避免 parseFloat(...)*1e18 在 >2^53 wei 时丢精度
     const weiValue = parseEther(ethAmount)
     calls = [{ to: t.call_detail.to as `0x${string}`, value: weiValue }]
+  } else if (t.tx_type === 'erc20_transfer' && t.call_detail.token_address && t.evm_call_data) {
+    // ERC-20 代币转账：to 必须是代币合约地址，data 是 transfer(recipient, amount) 编码
+    calls = [{
+      to: t.call_detail.token_address as `0x${string}`,
+      data: t.evm_call_data as `0x${string}`,
+      value: 0n,
+    }]
   } else if (t.evm_call_data) {
+    // 其他类型（如配置变更等）：to 为 Safe 自身地址
     const activeWallet = multisigStore.activeWallet
     calls = [{ to: activeWallet?.safe_address as `0x${string}`, data: t.evm_call_data as `0x${string}`, value: 0n }]
   }
