@@ -1,7 +1,7 @@
 import { getNamehash } from "@/utils/encryption";
 
 export function getBackendUrl(): string {
-  return (process.env.VITE_API_URL || "https://semi.fly.dev").replace(/\/+$/, "");
+  return (process.env.VITE_API_URL || "https://api.semi.im").replace(/\/+$/, "");
 }
 
 export function getProfileId(wallet_address: string, chain_id: number) {

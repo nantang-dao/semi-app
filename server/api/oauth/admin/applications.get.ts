@@ -1,6 +1,6 @@
 // Proxy GET /api/oauth/admin/applications → backend GET /oauth/admin/applications
 export default defineEventHandler(async (event) => {
-  const backendUrl = process.env.VITE_API_URL || "https://semi.fly.dev"
+  const backendUrl = process.env.VITE_API_URL || "https://api.semi.im"
 
   try {
     const response = await $fetch(`${backendUrl}/oauth/admin/applications`, {

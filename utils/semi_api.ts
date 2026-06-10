@@ -58,7 +58,7 @@ export function getSemiRestBaseUrl(): string {
   if (typeof v === "string" && v.trim()) {
     return normalizeSemiRestBaseUrl(v);
   }
-  return "https://semi.fly.dev";
+  return "https://api.semi.im";
 }
 
 function requireSemiRestBaseUrl(): string {
@@ -66,7 +66,7 @@ function requireSemiRestBaseUrl(): string {
 }
 
 // Legacy alias kept for any direct references outside the file
-export const API_BASE_URL = "https://semi.fly.dev";
+export const API_BASE_URL = "https://api.semi.im";
 export const AUTH_TOKEN_KEY = "semi_auth_token";
 
 const MOCK_RESPONSE = false;
