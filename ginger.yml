@@ -12,7 +12,7 @@ registry:
   password: KAMAL_REGISTRY_PASSWORD
 
 proxy:
-  hosts: [semi.im, www.semi.im]
+  hosts: [semi.im, www.semi.im, app.ntdao.xyz, semi.ntdao.xyz]
   app_port: 3000
   ssl: true
   health_check_path: /
