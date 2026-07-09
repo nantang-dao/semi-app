@@ -19,6 +19,9 @@ export interface UserInfo {
   remaining_gas_credits?: number;
   total_used_gas_credits?: number;
   encrypted_keys?: string | null;
+  handle_changed_at?: string | null;
+  next_rename_at?: string | null;
+  renamed_from?: string | null;
 }
 
 // 登录响应接口
