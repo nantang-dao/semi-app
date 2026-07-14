@@ -362,7 +362,7 @@ export interface TransactionRecordResponse extends BaseResponse {
 
 export async function getTransactions(txhashes?: string): Promise<TransactionRecordResponse> {
   const response = await fetch(
-    `${requireSemiRestBaseUrl()}/get_transactions${txhashes ? `?tx_hashes=${txhashes}` : ""}`,
+    `${requireSemiRestBaseUrl()}/get_transactions${txhashes ? `?txhashes=${txhashes}` : ""}`,
     {
       headers: getAuthHeaders(),
     }
