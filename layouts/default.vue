@@ -70,8 +70,16 @@ onMounted(async () => {
     <div
       class="min-h-[100svh] w-full flex p-4 flex-col justify-center items-center relative layout-bg bg-elevated bg-center"
     >
-      <slot v-if="showContent" />
-      <Welcome v-else :loading="showLoading" />
+    <main class="flex-1 w-full flex flex-col justify-center items-center">
+        <slot v-if="showContent" />
+        <Welcome v-else :loading="showLoading" />
+      </main>
+
+      <footer class="w-full text-center py-2 text-xs text-gray-400 flex justify-center items-center gap-3">
+        <span>联系我们：nantangdao@outlook.com</span>
+        <span>|</span>
+        <a href="https://github.com/nantang-dao" target="_blank" rel="noopener noreferrer" class="hover:underline">GitHub</a>
+      </footer>
     </div>
   </UApp>
 </template>
