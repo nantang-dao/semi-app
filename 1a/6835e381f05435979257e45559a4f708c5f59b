@@ -1,0 +1,31 @@
+pages/oauth/authorize.client.vue
+  s_881e33c21d9e1f::t_996c82da5d9bd0 11,18-24,31-33,43-44,50,62,71,88,94,99,108-109,112-118,165-168,196-199,231-232
+  s_881e33c21d9e1f::t_b1592582e400af 96-98,100,110-111
+  s_881e33c21d9e1f::t_23a3f6353f62d7 95
+pages/multisig/create.client.vue
+  s_881e33c21d9e1f::t_7d82af2fa7a816 18
+pages/multisig/[id].client.vue
+  s_881e33c21d9e1f::t_7d82af2fa7a816 18,30
+pages/multisig/owners.client.vue
+  s_881e33c21d9e1f::t_7d82af2fa7a816 18,23
+assets/i18n/zh.json
+  s_881e33c21d9e1f::t_4c85207f8328fd 394-413
+assets/i18n/en.json
+  s_881e33c21d9e1f::t_4c85207f8328fd 388-407
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "1a6835e381f05435979257e45559a4f708c5f59b",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
