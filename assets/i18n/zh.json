@@ -275,7 +275,6 @@
   "Loading": "加载中...",
   "No transfers": "暂无转账记录",
   "No holders": "暂无持有者",
-
   "multisig.myWallets": "我的钱包",
   "multisig.personalWallet": "个人钱包",
   "multisig.createTeamWallet": "创建团队钱包",
@@ -392,5 +391,24 @@
   "multisig.filterIncoming": "收款",
   "Actual Fee": "手续费（实际）",
   "gas.estimatedFee": "手续费（预估）",
-  "gas.estimatedTooltip": "实际费用以链上结算为准"
+  "gas.estimatedTooltip": "实际费用以链上结算为准",
+  "oauth.authError": "授权失败",
+  "oauth.signInTitle": "请先登录",
+  "oauth.signInDesc": "需要登录后才能授权此应用。",
+  "oauth.signIn": "登录",
+  "oauth.wantsAccess": "申请访问你的 Semi 账户",
+  "oauth.disclaimer": "授权后，以上信息将共享给 {app}。你可以随时在个人设置中撤销授权。",
+  "oauth.deny": "拒绝",
+  "oauth.authorize": "授权",
+  "oauth.scope.openid.title": "验证身份",
+  "oauth.scope.openid.desc": "确认你是 Semi 用户",
+  "oauth.scope.profile.title": "个人资料",
+  "oauth.scope.profile.desc": "你的用户名及手机/邮箱验证状态",
+  "oauth.scope.wallet.title": "钱包地址",
+  "oauth.scope.wallet.desc": "你的主 EVM 钱包地址",
+  "oauth.scope.token:read.title": "代币余额",
+  "oauth.scope.token:read.desc": "查看你的代币与积分余额",
+  "oauth.missingParams": "缺少 OAuth 参数，请重新发起授权。",
+  "oauth.invalidRequest": "无效的授权请求。",
+  "oauth.authFailed": "授权失败。"
 }

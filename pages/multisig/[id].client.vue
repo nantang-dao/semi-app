@@ -15,7 +15,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="space-y-4 w-[80%] mx-auto">
+    <div v-if="loading" class="space-y-4 w-[80%] mx-auto flex-1 min-h-0 overflow-y-auto">
       <div class="h-20 rounded-xl loading-bg" />
       <div class="h-40 rounded-xl loading-bg" />
       <div class="h-32 rounded-xl loading-bg" />
@@ -27,7 +27,7 @@
         {{ i18n.text['multisig.status.' + tx.status] || tx.status }}
       </div>
 
-      <div class="space-y-4 w-[80%] mx-auto pb-32">
+      <div class="space-y-4 w-[80%] mx-auto pb-32 flex-1 min-h-0 overflow-y-auto">
         <!-- Transaction summary -->
         <div class="bg-white rounded-xl p-4 space-y-3">
           <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">{{ i18n.text['multisig.txSummary'] }}</h2>

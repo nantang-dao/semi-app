@@ -15,12 +15,12 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="p-4 space-y-3">
+    <div v-if="loading" class="p-4 space-y-3 flex-1 min-h-0 overflow-y-auto">
       <div class="h-16 rounded-xl loading-bg" />
       <div class="h-48 rounded-xl loading-bg" />
     </div>
 
-    <div v-else class="space-y-4 w-[80%] mx-auto">
+    <div v-else class="space-y-4 w-[80%] mx-auto flex-1 min-h-0 overflow-y-auto">
       <!-- Header: threshold + count -->
       <div class="bg-white rounded-xl p-4">
         <div class="flex items-center justify-between">

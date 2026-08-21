@@ -269,7 +269,6 @@
   "To": "To",
   "Block Number": "Block Number",
   "Quantity": "Quantity",
-
   "multisig.myWallets": "My Wallets",
   "multisig.personalWallet": "Personal Wallet",
   "multisig.createTeamWallet": "Create Team Wallet",
@@ -386,5 +385,24 @@
   "multisig.filterIncoming": "Incoming",
   "Actual Fee": "Fee (Actual)",
   "gas.estimatedFee": "Fee (Estimated)",
-  "gas.estimatedTooltip": "Actual fee is subject to on-chain settlement"
+  "gas.estimatedTooltip": "Actual fee is subject to on-chain settlement",
+  "oauth.authError": "Authorization Error",
+  "oauth.signInTitle": "Sign in to continue",
+  "oauth.signInDesc": "You must be signed in to authorize this application.",
+  "oauth.signIn": "Sign In",
+  "oauth.wantsAccess": "wants permission to access your Semi account",
+  "oauth.disclaimer": "By authorizing, you agree to share the listed information with {app}. You can revoke access at any time from your profile settings.",
+  "oauth.deny": "Deny",
+  "oauth.authorize": "Authorize",
+  "oauth.scope.openid.title": "Verify your identity",
+  "oauth.scope.openid.desc": "Confirm you are a Semi user",
+  "oauth.scope.profile.title": "Profile information",
+  "oauth.scope.profile.desc": "Your handle and phone/email verification status",
+  "oauth.scope.wallet.title": "Wallet address",
+  "oauth.scope.wallet.desc": "Your primary EVM wallet address",
+  "oauth.scope.token:read.title": "Token balances",
+  "oauth.scope.token:read.desc": "View your token and points balances",
+  "oauth.missingParams": "Missing OAuth parameters. Please restart the authorization flow.",
+  "oauth.invalidRequest": "Invalid authorization request.",
+  "oauth.authFailed": "Authorization failed."
 }

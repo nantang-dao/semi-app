@@ -8,23 +8,29 @@
     <!-- Error -->
     <div v-else-if="status === 'error'" class="flex flex-col items-center justify-center h-full gap-4 py-8 w-[80%] mx-auto">
       <UIcon name="i-heroicons-exclamation-triangle" class="text-5xl text-red-500" />
-      <h1 class="text-xl font-bold text-center">Authorization Error</h1>
+      <h1 class="text-xl font-bold text-center">{{ t('oauth.authError', 'Authorization Error') }}</h1>
       <p class="text-center text-gray-500">{{ errorMessage }}</p>
     </div>
 
     <!-- Needs login -->
     <div v-else-if="status === 'needs_login'" class="flex flex-col items-center justify-center h-full gap-4 py-8 w-[80%] mx-auto">
       <UIcon name="i-heroicons-lock-closed" class="text-5xl text-primary" />
-      <h1 class="text-2xl font-bold text-center">Sign in to continue</h1>
-      <p class="text-center text-gray-500">You must be signed in to authorize this application.</p>
-      <UButton color="primary" size="xl" class="w-full" @click="redirectToLogin">Sign In</UButton>
+      <h1 class="text-2xl font-bold text-center">{{ t('oauth.signInTitle', 'Sign in to continue') }}</h1>
+      <p class="text-center text-gray-500">
+        {{ t('oauth.signInDesc', 'You must be signed in to authorize this application.') }}
+      </p>
+      <UButton color="primary" size="xl" class="w-full" @click="redirectToLogin">
+        {{ t('oauth.signIn', 'Sign In') }}
+      </UButton>
     </div>
 
     <!-- Consent -->
     <div v-else-if="status === 'consent' && appInfo" class="flex flex-col items-center gap-4 py-8 w-[80%] mx-auto">
       <UIcon name="i-heroicons-shield-check" class="text-5xl text-primary" />
       <h1 class="text-2xl font-bold text-center">{{ appInfo.app_name }}</h1>
-      <p class="text-gray-500 text-center text-sm">wants permission to access your Semi account</p>
+      <p class="text-gray-500 text-center text-sm">
+        {{ t('oauth.wantsAccess', 'wants permission to access your Semi account') }}
+      </p>
 
       <div class="w-full border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-200 dark:divide-gray-700 my-2">
         <div
@@ -34,15 +40,14 @@
         >
           <UIcon name="i-heroicons-check-circle" class="text-green-500 flex-shrink-0 text-xl" />
           <div>
-            <p class="font-medium text-sm">{{ SCOPE_LABELS[scope]?.title ?? scope }}</p>
-            <p class="text-xs text-gray-500">{{ SCOPE_LABELS[scope]?.desc ?? '' }}</p>
+            <p class="font-medium text-sm">{{ scopeTitle(scope) }}</p>
+            <p class="text-xs text-gray-500">{{ scopeDesc(scope) }}</p>
           </div>
         </div>
       </div>
 
       <p class="text-xs text-gray-400 text-center">
-        By authorizing, you agree to share the listed information with {{ appInfo.app_name }}.
-        You can revoke access at any time from your profile settings.
+        {{ disclaimer }}
       </p>
 
       <div class="flex gap-3 w-full mt-2">
@@ -54,7 +59,7 @@
           :disabled="loading"
           @click="onDeny"
         >
-          Deny
+          {{ t('oauth.deny', 'Deny') }}
         </UButton>
         <UButton
           color="primary"
@@ -63,7 +68,7 @@
           :loading="loading"
           @click="onAccept"
         >
-          Authorize
+          {{ t('oauth.authorize', 'Authorize') }}
         </UButton>
       </div>
     </div>
@@ -80,11 +85,19 @@ import {
   type OAuthPendingParams,
 } from "~/utils/oauth"
 import { getCookie } from "~/utils/semi_api"
+import { useI18n } from "~/stores/i18n"
 
 definePageMeta({ layout: "unauth" })
 
 const route = useRoute()
 const router = useRouter()
+const i18n = useI18n()
+
+// i18n.text is typed from the en.json import, so dynamic keys need a widened view.
+const text = computed(() => i18n.text as Record<string, string | undefined>)
+
+// Falls back to the English literal when a key is missing from the active locale.
+const t = (key: string, fallback: string) => text.value[key] ?? fallback
 
 const status = ref<"loading" | "needs_login" | "consent" | "error">("loading")
 const errorMessage = ref("")
@@ -92,12 +105,17 @@ const appInfo = ref<{ app_name: string; scopes: string[]; client_id: string } | 
 const oauthParams = ref<OAuthPendingParams | null>(null)
 const loading = ref(false)
 
-const SCOPE_LABELS: Record<string, { title: string; desc: string }> = {
-  openid: { title: "Verify your identity", desc: "Confirm you are a Semi user" },
-  profile: { title: "Profile information", desc: "Your handle and phone/email verification status" },
-  wallet: { title: "Wallet address", desc: "Your primary EVM wallet address" },
-  "token:read": { title: "Token balances", desc: "View your token and points balances" },
-}
+// Scope copy lives in assets/i18n/*.json under `oauth.scope.<scope>.{title,desc}`;
+// an unknown scope falls back to showing the raw scope string.
+const scopeTitle = (scope: string) => text.value[`oauth.scope.${scope}.title`] ?? scope
+const scopeDesc = (scope: string) => text.value[`oauth.scope.${scope}.desc`] ?? ""
+
+const disclaimer = computed(() =>
+  t(
+    "oauth.disclaimer",
+    "By authorizing, you agree to share the listed information with {app}. You can revoke access at any time from your profile settings."
+  ).replace("{app}", appInfo.value?.app_name ?? "")
+)
 
 onMounted(async () => {
   const fromUrl = {
@@ -144,7 +162,10 @@ onMounted(async () => {
 
   if (!pending) {
     status.value = "error"
-    errorMessage.value = "Missing OAuth parameters. Please restart the authorization flow."
+    errorMessage.value = t(
+      "oauth.missingParams",
+      "Missing OAuth parameters. Please restart the authorization flow."
+    )
     return
   }
 
@@ -172,7 +193,10 @@ onMounted(async () => {
     status.value = "consent"
   } catch (err: any) {
     status.value = "error"
-    errorMessage.value = err?.data?.statusMessage || err?.statusMessage || "Invalid authorization request."
+    errorMessage.value =
+      err?.data?.statusMessage ||
+      err?.statusMessage ||
+      t("oauth.invalidRequest", "Invalid authorization request.")
   }
 })
 
@@ -204,7 +228,8 @@ const onAccept = async () => {
     if (result.state) uri.searchParams.set("state", result.state)
     window.location.href = uri.toString()
   } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.statusMessage || "Authorization failed."
+    errorMessage.value =
+      err?.data?.statusMessage || err?.statusMessage || t("oauth.authFailed", "Authorization failed.")
     status.value = "error"
   } finally {
     loading.value = false

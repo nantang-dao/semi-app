@@ -15,7 +15,7 @@
       <NetworkSwitch />
     </div>
 
-    <div class="space-y-5 w-[80%] mx-auto">
+    <div class="space-y-5 w-[80%] mx-auto flex-1 min-h-0 overflow-y-auto">
       <!-- Wallet name -->
       <div class="bg-white rounded-xl p-4 space-y-2">
         <label class="text-sm font-medium text-gray-700">{{ i18n.text['multisig.walletName'] }}</label>
