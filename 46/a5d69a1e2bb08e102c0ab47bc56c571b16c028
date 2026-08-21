@@ -1,0 +1,25 @@
+server/api/badge/summary.get.ts
+  s_881e33c21d9e1f::t_6b100eb24bfeff 1-67
+server/api/token/balances.get.ts
+  s_881e33c21d9e1f::t_4098ab4559d2cf 17-21,23-26,33-35,71-76,83
+pages/badges/index.client.vue
+  s_881e33c21d9e1f::t_9c10ad03a9ee7a 235,238-254,256
+utils/balance/index.ts
+  s_881e33c21d9e1f::t_3cce4eaab578aa 40-41,47-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "46a5d69a1e2bb08e102c0ab47bc56c571b16c028",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
