@@ -2,9 +2,13 @@
   "name": "nuxt-app",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "scripts": {
     "build": "nuxt build",
-    "db-schema-push": "bunx instant-cli@latest push schema && bunx instant-cli@latest push perms",
+    "db-schema-push": "pnpm dlx instant-cli@latest push schema && pnpm dlx instant-cli@latest push perms",
     "dev": "nuxt dev --host 0.0.0.0 --port 3001",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -44,5 +48,11 @@
   "devDependencies": {
     "@iconify-json/ci": "^1.2.2",
     "prettier": "3.8.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "vue-demi"
+    ]
   }
 }
