@@ -404,5 +404,6 @@
   "oauth.scope.token:read.desc": "View your token and points balances",
   "oauth.missingParams": "Missing OAuth parameters. Please restart the authorization flow.",
   "oauth.invalidRequest": "Invalid authorization request.",
-  "oauth.authFailed": "Authorization failed."
+  "oauth.authFailed": "Authorization failed.",
+  "multisig.userNoWallet": "This user has not set up a digital identity address yet"
 }

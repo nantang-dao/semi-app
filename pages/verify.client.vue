@@ -118,7 +118,7 @@ const createManagerWallet = async (pin: string, userId: string) => {
       throw new Error("设置失败");
     }
   } catch (error) {
-    console.error("创建钱包失败:", error);
+    console.error("创建数字身份失败:", error);
     throw error;
   }
 };

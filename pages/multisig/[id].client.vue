@@ -162,7 +162,7 @@
         <!-- Not a current signer (e.g. removed owner): cannot sign -->
         <template v-if="!isTerminal && !isCurrentOwner">
           <p class="text-center text-sm text-amber-600">
-            {{ i18n.text['multisig.notCurrentOwner'] || '你已不是该钱包当前签名者，无法签名此交易' }}
+            {{ i18n.text['multisig.notCurrentOwner'] || '你已不是该数字身份当前签名者，无法签名此交易' }}
           </p>
         </template>
 

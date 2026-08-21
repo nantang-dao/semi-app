@@ -481,7 +481,7 @@ async function searchForNewOwner() {
     if (u?.id && ownerAddress) {
       addOwnerResult.value = { ...u, evm_chain_active_key: ownerAddress }
     } else if (u?.id) {
-      addOwnerError.value = i18n.text['multisig.userNoWallet'] || '该用户尚未设置钱包地址'
+      addOwnerError.value = i18n.text['multisig.userNoWallet'] || '该用户尚未设置数字身份地址'
     } else {
       addOwnerError.value = i18n.text['multisig.userNotFound'] || 'User not found'
     }

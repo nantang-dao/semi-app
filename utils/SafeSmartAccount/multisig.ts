@@ -670,7 +670,7 @@ export async function getSafeOwners(
   const bytecode = await publicClient.getBytecode({ address: safeAddress });
   if (!bytecode || bytecode === "0x") {
     throw new Error(
-      "该多签钱包合约尚未部署到链上（当前地址无合约代码）。请先发起一笔交易并完成执行后，再进行“链上同步/移除签名者”等链上读取操作。"
+      "该多签数字身份合约尚未部署到链上（当前地址无合约代码）。请先发起一笔交易并完成执行后，再进行“链上同步/移除签名者”等链上读取操作。"
     );
   }
 
