@@ -1,35 +1,45 @@
+# semi-app —— 2026-08-02 从 sg.sola.day 迁到 homepod。
+# 镜像仓库从 ghcr.io 换成自建的 yatch（home-registry.sola.day）。
+
 service: semi-app
-image: ghcr.io/nantang-dao/semi-app
+image: home-registry.sola.day/sola/semi-app
+
+runner: nomad
+egress: traefik
 
 servers:
   web:
-    hosts: [sg.sola.day]
+    hosts: [homepod.sola.day]
     primary: true
 
+# 自建 registry（yatch）。2026-08-02 起不再经 ghcr。
 registry:
-  server: ghcr.io
-  username: nantang-dao
-  password: KAMAL_REGISTRY_PASSWORD
+  server: home-registry.sola.day
+  username: sola
+  password: YATCH_TOKEN
 
 proxy:
-  hosts: [semi.im, www.semi.im, app.ntdao.xyz, semi.ntdao.xyz]
+  # 去掉了 app.ntdao.xyz —— 该域名已完全不解析（NXDOMAIN）。
+  # Traefik 对一条路由的多个域名只签一张 SAN 证书，任何一个 HTTP-01 挑战失败
+  # 整张证书都签不下来，留着它会连累 semi.im。
+  # semi.ntdao.xyz 保留：它 CNAME 到 www.semi.im，会自动跟着迁过来。
+  hosts: [semi.im, www.semi.im, semi.ntdao.xyz]
   app_port: 3000
   ssl: true
   health_check_path: /
-  deploy_timeout: 60
-  drain_timeout: 30
+  deploy_timeout: 90
 
 ssh:
-  user: root
+  user: ubuntu                # homepod 上 ubuntu 在 docker 组，且能直接调 Nomad
 
 builder:
   arch: amd64
-  remote: ssh://ubuntu@wamo.city
+  remote: ssh://ubuntu@homepod
 
 secrets:
   load: [.env.production]
   inject:
-    - KAMAL_REGISTRY_PASSWORD
+    - YATCH_TOKEN
     - INSTANT_APP_ID
     - INSTANT_APP_ADMIN_TOKEN
     - OAUTH_VALID_CLIENT_IDS
