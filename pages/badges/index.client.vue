@@ -50,7 +50,7 @@
       </button>
     </div>
 
-    <div v-if="isLoading" class="flex flex-col gap-4">
+    <div v-if="currentTabLoading" class="flex flex-col gap-4">
       <div class="w-full h-10 rounded-lg loading-bg"></div>
       <div class="w-80 h-10 rounded-lg loading-bg"></div>
       <div class="w-full h-10 rounded-lg loading-bg"></div>
@@ -86,7 +86,7 @@
           <NoBadge v-if="pendingBadges.length === 0" />
           <div class="grid grid-cols-3 gap-3 py-4" v-else>
             <BadgeItem
-              @update="fetchData"
+              @update="fetchBadges"
               :badge="badge"
               v-for="(badge, index) in pendingBadges"
               :key="index"
@@ -121,7 +121,12 @@ const badgeClasses = ref<BadgeClass[]>([]);
 const pendingBadges = ref<Badge[]>([]);
 const ownedBadges = ref<Badge[]>([]);
 const nfts = ref<NFT[]>([]);
-const isLoading = ref(true);
+
+// Badges and NFTs load independently: the NFT call hits Alchemy and is an order
+// of magnitude slower, so it must never gate the badge tabs.
+const badgesLoading = ref(true);
+const nftsLoading = ref(false);
+const nftsLoaded = ref(false);
 
 const badgeTabs = computed<TabsItem[]>(() => [
   {
@@ -161,6 +166,10 @@ const parseSubTab = (v: unknown): BadgeSubTab => {
 
 const activeMainTab = ref<MainTab>(parseMainTab(route.query.tab));
 const activeSubTab = ref<BadgeSubTab>(parseSubTab(route.query.subtab));
+
+const currentTabLoading = computed(() =>
+  activeMainTab.value === "nfts" ? nftsLoading.value : badgesLoading.value
+);
 
 const updateMainTab = (tab: "badges" | "nfts") => {
   activeMainTab.value = tab;
@@ -236,35 +245,57 @@ const fetchOwnedBadges = async () => {
   }
 };
 
+// $fetch rather than useFetch: this runs on demand (tab switch), outside setup.
 const fetchNFTs = async () => {
   const url = `/api/nft/owned?chain_id=${useChain.chain.id}&wallet_address=${user.user?.evm_chain_address}`;
-  const { data, error } = await useFetch<{
-    success: boolean;
-    message: string;
-    data: { nfts: NFT[] };
-  }>(url);
-  if (error.value) {
-    console.error("获取NFT失败：", error.value);
-  } else if (!!data.value && data.value.success) {
-    nfts.value = data.value.data.nfts as NFT[];
-  } else {
-    console.error("获取NFT失败：", data.value?.message || "未知错误");
+  try {
+    const res = await $fetch<{
+      success: boolean;
+      message: string;
+      data: { nfts: NFT[] };
+    }>(url);
+    if (res?.success) {
+      nfts.value = res.data.nfts as NFT[];
+    } else {
+      console.error("获取NFT失败：", res?.message || "未知错误");
+    }
+  } catch (error) {
+    console.error("获取NFT失败：", error);
   }
 };
 
-const fetchData = async () => {
+const fetchBadges = async () => {
+  badgesLoading.value = true;
   await Promise.allSettled([
     fetchBadgeClasses(),
     fetchPendingBadges(),
     fetchOwnedBadges(),
-    fetchNFTs(),
   ]).finally(() => {
-    console.log("数据获取完成");
-    isLoading.value = false;
+    badgesLoading.value = false;
   });
 };
 
-fetchData();
+// Loaded lazily the first time the NFTs tab is opened.
+const loadNFTs = async () => {
+  if (nftsLoaded.value || nftsLoading.value) return;
+  nftsLoading.value = true;
+  try {
+    await fetchNFTs();
+    nftsLoaded.value = true;
+  } finally {
+    nftsLoading.value = false;
+  }
+};
+
+watch(
+  activeMainTab,
+  (tab) => {
+    if (tab === "nfts") loadNFTs();
+  },
+  { immediate: true }
+);
+
+fetchBadges();
 </script>
 
 <style scoped></style>

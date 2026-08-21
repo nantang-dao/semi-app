@@ -8,8 +8,7 @@ export interface NFT {
   image?: string;
   tokenType: "ERC721" | "ERC1155";
   collectionName?: string;
-  attributes?: Record<string,any>;
-  rawMetadata?:any;
+  attributes?: Record<string, any>;
 }
 
 const CHAIN_TO_NETWORK: Record<number, string> = {
@@ -18,16 +17,39 @@ const CHAIN_TO_NETWORK: Record<number, string> = {
   11155111: "eth-sepolia",
 };
 
+// Safety valve: 100 NFTs per page, so this caps a single request at 2000 NFTs.
+// Without it a whale wallet would hold the Nitro handler open indefinitely.
+const MAX_PAGES = 20;
+
+/**
+ * Alchemy returns attributes as either an array of {trait_type, value} or an
+ * object map, depending on how the collection wrote its metadata. NFTItem
+ * renders a flat key/value map, so normalize both shapes into one.
+ */
+function normalizeAttributes(metadata: any): Record<string, any> | undefined {
+  const attributes = metadata?.attributes;
+  if (!attributes) return undefined;
+
+  if (Array.isArray(attributes)) {
+    const map: Record<string, any> = {};
+    for (const attr of attributes) {
+      if (attr?.trait_type && attr.value !== undefined) {
+        map[attr.trait_type] = attr.value;
+      }
+    }
+    return Object.keys(map).length > 0 ? map : undefined;
+  }
+
+  return typeof attributes === "object" ? attributes : undefined;
+}
+
 /**
  * 获取用户拥有的NFT
  * @param walletAddress 钱包地址
  * @param chain 链配置
  * @returns NFT列表
  */
-export async function getOwnedNFTs(
-  walletAddress: string,
-  chain: Chain
-): Promise<NFT[]> {
+export async function getOwnedNFTs(walletAddress: string, chain: Chain): Promise<NFT[]> {
   const network = CHAIN_TO_NETWORK[chain.id];
   if (!network) {
     throw new Error(`Unsupported chain ID: ${chain.id}`);
@@ -35,7 +57,7 @@ export async function getOwnedNFTs(
 
   // Dynamic import so alchemy-sdk is not loaded at Lambda cold start
   const { Alchemy, Network } = await import("alchemy-sdk");
-  const networkMap: Record<string, typeof Network[keyof typeof Network]> = {
+  const networkMap: Record<string, (typeof Network)[keyof typeof Network]> = {
     "eth-mainnet": Network.ETH_MAINNET,
     "opt-mainnet": Network.OPT_MAINNET,
     "eth-sepolia": Network.ETH_SEPOLIA,
@@ -49,6 +71,7 @@ export async function getOwnedNFTs(
   try {
     const allNFTs: NFT[] = [];
     let pageKey: string | undefined = undefined;
+    let pages = 0;
 
     do {
       const response = await alchemy.nft.getNftsForOwner(walletAddress, {
@@ -57,35 +80,8 @@ export async function getOwnedNFTs(
       });
 
       for (const nft of response.ownedNfts) {
-        let fullMetadata = null;
-        let attributes: Record<string,any> | undefined = undefined;
-
-        try {
-          const metadataResponse = await alchemy.nft.getNftMetadata(
-            nft.contract.address,
-            nft.tokenId
-          );
-          fullMetadata = metadataResponse.raw;
-
-          if (metadataResponse.raw?.metadata) {
-            const metadata = metadataResponse.raw.metadata;
-            if (metadata.attributes) {
-              if (Array.isArray(metadata.attributes)) {
-                attributes = {};
-                metadata.attributes.forEach((attr: any) => {
-                  if (attr.trait_type && attr.value !== undefined) {
-                    attributes![attr.trait_type] = attr.value;
-                  }
-                });
-              } else if (typeof metadata.attributes === "object") {
-                attributes = metadata.attributes;
-              }
-            }
-          }
-        } catch (error) {
-          console.warn(`Failed to fetch full metadata for ${nft.contract.address}/${nft.tokenId}:`, error);
-        }
-
+        // getNftsForOwner already returns metadata (omitMetadata defaults to
+        // false), so `raw.metadata` is here — no per-NFT getNftMetadata needed.
         allNFTs.push({
           contractAddress: nft.contract.address,
           tokenId: nft.tokenId,
@@ -94,12 +90,19 @@ export async function getOwnedNFTs(
           image: nft.image?.originalUrl || nft.image?.pngUrl || nft.image?.cachedUrl,
           tokenType: nft.tokenType === "ERC1155" ? "ERC1155" : "ERC721",
           collectionName: nft.contract.name,
-          attributes,
-          rawMetadata: fullMetadata,
+          attributes: normalizeAttributes(nft.raw?.metadata),
         });
       }
 
       pageKey = response.pageKey;
+      pages++;
+
+      if (pageKey && pages >= MAX_PAGES) {
+        console.warn(
+          `getOwnedNFTs: stopped at ${MAX_PAGES} pages (${allNFTs.length} NFTs) for ${walletAddress} on chain ${chain.id}`
+        );
+        break;
+      }
     } while (pageKey);
 
     return allNFTs;
