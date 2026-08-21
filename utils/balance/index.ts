@@ -64,9 +64,7 @@ export async function getPopularERC20Balance(
     }
     return {
       token,
-      // BigInt(0) rather than 0n: the esbuild target is es2019, where bigint
-      // literals are a syntax error.
-      balance: result.status === "success" ? (result.result as bigint) : BigInt(0),
+      balance: result.status === "success" ? (result.result as bigint) : 0n,
     };
   });
 }

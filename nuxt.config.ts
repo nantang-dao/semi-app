@@ -30,6 +30,15 @@ export default defineNuxtConfig({
       );
     },
   },
+  nitro: {
+    esbuild: {
+      // Nitro's esbuild pass defaults to es2019, where bigint literals are a
+      // syntax error — the wallet code in utils/ uses them throughout, and the
+      // server bundle pulls those in via server/api. es2020 is the first target
+      // with BigInt.
+      options: { target: "es2020" },
+    },
+  },
   modules: ["@nuxt/icon", "@nuxt/ui", "@pinia/nuxt"],
   css: ["~/assets/css/main.css"],
   routeRules: {
