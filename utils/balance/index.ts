@@ -37,25 +37,34 @@ export async function getPopularERC20Balance(
   address: Address,
   chain: Chain
 ): Promise<ERC20Balance[]> {
+  if (tokenClasses.length === 0) return [];
+
   const client = createPublicClient({
     chain,
     transport: http(RPC_URL[chain.id]),
   });
 
-  const balances = await Promise.all(
-    tokenClasses.map(async (token) => {
-      const balance = await client.readContract({
-        address: token.address as `0x${string}`,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [address],
-      });
-      return {
-        token,
-        balance,
-      };
-    })
-  );
+  // One multicall3 round trip instead of one eth_call per token. allowFailure
+  // keeps a single bad token (self-destructed, non-standard) from taking down
+  // the whole balance list — it just reads as 0.
+  const results = await client.multicall({
+    allowFailure: true,
+    contracts: tokenClasses.map((token) => ({
+      address: token.address as `0x${string}`,
+      abi: erc20Abi,
+      functionName: "balanceOf" as const,
+      args: [address] as const,
+    })),
+  });
 
-  return balances;
+  return tokenClasses.map((token, i) => {
+    const result = results[i];
+    if (result.status === "failure") {
+      console.warn(`balanceOf failed for ${token.symbol} (${token.address}):`, result.error);
+    }
+    return {
+      token,
+      balance: result.status === "success" ? (result.result as bigint) : 0n,
+    };
+  });
 }

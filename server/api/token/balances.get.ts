@@ -14,14 +14,25 @@ interface TokenClassResponse {
   token_classes: TokenClass[];
 }
 
+// The token whitelist is global and changes rarely, but every balance request
+// paid for a fresh round trip to Rails. Cache it briefly in the worker.
+const TOKEN_CLASSES_TTL_MS = 60_000;
+let tokenClassesCache: { expires: number; value: TokenClassResponse } | null = null;
+
 async function getTokenClasses(apiBaseUrl: string): Promise<TokenClassResponse> {
+  if (tokenClassesCache && tokenClassesCache.expires > Date.now()) {
+    return tokenClassesCache.value;
+  }
+
   const response = await fetch(`${apiBaseUrl}/get_token_classes`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch token classes: ${response.statusText}`);
   }
 
-  return response.json();
+  const value = (await response.json()) as TokenClassResponse;
+  tokenClassesCache = { expires: Date.now() + TOKEN_CLASSES_TTL_MS, value };
+  return value;
 }
 
 export default defineEventHandler(async (event) => {
@@ -57,21 +68,19 @@ export default defineEventHandler(async (event) => {
       };
     }
 
-    // Fetch whitelisted token classes
-    const { token_classes } = await getTokenClasses(apiBaseUrl);
+    // The native balance does not depend on the token whitelist, so both go out
+    // at once rather than one after the other.
+    const [{ token_classes }, nativeBalance] = await Promise.all([
+      getTokenClasses(apiBaseUrl),
+      getBalance(wallet_address as `0x${string}`, chain),
+    ]);
 
     // Filter tokens by chain_id
     const currentTokenClasses = token_classes.filter(
       (token) => token.chain_id === chain.id
     );
 
-    // Fetch native balance
-    const nativeBalance = await getBalance(
-      wallet_address as `0x${string}`,
-      chain
-    );
-
-    // Fetch ERC20 token balances
+    // Fetch ERC20 token balances (single multicall)
     const tokenBalances = await getPopularERC20Balance(
       currentTokenClasses,
       wallet_address as `0x${string}`,

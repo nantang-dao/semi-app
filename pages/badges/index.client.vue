@@ -213,38 +213,6 @@ onMounted(() => {
   }
 });
 
-const fetchBadgeClasses = async () => {
-  const url = `/api/badge/classes/list?chain_id=${useChain.chain.id}&wallet_address=${user.user?.evm_chain_address}`;
-  const { data, error } = await useFetch<{
-    data: { badge_classes: BadgeClass[] };
-  }>(url);
-  if (error.value) {
-    console.error(error.value);
-  } else if (!!data.value) {
-    badgeClasses.value = data.value.data.badge_classes as BadgeClass[];
-  }
-};
-
-const fetchPendingBadges = async () => {
-  const url = `/api/badge/pending?chain_id=${useChain.chain.id}&wallet_address=${user.user?.evm_chain_address}`;
-  const { data, error } = await useFetch<{ data: { badges: Badge[] } }>(url);
-  if (error.value) {
-    console.error(error.value);
-  } else if (!!data.value) {
-    pendingBadges.value = data.value.data.badges as Badge[];
-  }
-};
-
-const fetchOwnedBadges = async () => {
-  const url = `/api/badge/owned?chain_id=${useChain.chain.id}&wallet_address=${user.user?.evm_chain_address}`;
-  const { data, error } = await useFetch<{ data: { badges: Badge[] } }>(url);
-  if (error.value) {
-    console.error(error.value);
-  } else if (!!data.value) {
-    ownedBadges.value = data.value.data.badges as Badge[];
-  }
-};
-
 // $fetch rather than useFetch: this runs on demand (tab switch), outside setup.
 const fetchNFTs = async () => {
   const url = `/api/nft/owned?chain_id=${useChain.chain.id}&wallet_address=${user.user?.evm_chain_address}`;
@@ -264,15 +232,28 @@ const fetchNFTs = async () => {
   }
 };
 
+// One request for all three badge tabs — see server/api/badge/summary.get.ts.
 const fetchBadges = async () => {
   badgesLoading.value = true;
-  await Promise.allSettled([
-    fetchBadgeClasses(),
-    fetchPendingBadges(),
-    fetchOwnedBadges(),
-  ]).finally(() => {
+  const url = `/api/badge/summary?chain_id=${useChain.chain.id}&wallet_address=${user.user?.evm_chain_address}`;
+  try {
+    const res = await $fetch<{
+      success: boolean;
+      message: string;
+      data: { owned: Badge[]; pending: Badge[]; badge_classes: BadgeClass[] } | null;
+    }>(url);
+    if (res?.success && res.data) {
+      ownedBadges.value = res.data.owned;
+      pendingBadges.value = res.data.pending;
+      badgeClasses.value = res.data.badge_classes;
+    } else {
+      console.error("获取徽章失败：", res?.message || "未知错误");
+    }
+  } catch (error) {
+    console.error("获取徽章失败：", error);
+  } finally {
     badgesLoading.value = false;
-  });
+  }
 };
 
 // Loaded lazily the first time the NFTs tab is opened.
