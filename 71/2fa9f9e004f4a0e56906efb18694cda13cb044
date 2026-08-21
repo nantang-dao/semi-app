@@ -1,0 +1,23 @@
+pages/badges/index.client.vue
+  s_881e33c21d9e1f::t_2956c896b6e638 53,89,124-129,248,251-263,267-268,274,278-298
+  s_881e33c21d9e1f::t_824d03a1705d38 170-172
+  s_881e33c21d9e1f::t_bc46c014a977b4 173
+server/utils/nft.ts
+  s_881e33c21d9e1f::t_aa8f215a18015f 11,20-45,52,60,74,83-84,93,98-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "712fa9f9e004f4a0e56906efb18694cda13cb044",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
