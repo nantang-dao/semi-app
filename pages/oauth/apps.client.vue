@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col container-size rounded-xl bg-[var(--ui-bg)] shadow-lg p-4">
-    <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" class="self-start mb-4"
+    <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" class="self-start mb-4 shrink-0"
       @click="router.push('/')">
       返回
     </UButton>
 
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-6 shrink-0">
       <h1 class="text-2xl font-bold">OAuth 应用</h1>
       <UButton icon="i-heroicons-plus" color="primary" size="sm" @click="openCreateModal">
         注册应用
@@ -13,22 +13,22 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="flex flex-col gap-3">
-      <div v-for="i in 2" :key="i" class="w-full h-24 rounded-xl loading-bg" />
+    <div v-if="loading" class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">
+      <div v-for="i in 2" :key="i" class="w-full h-24 rounded-xl loading-bg shrink-0" />
     </div>
 
     <!-- Empty -->
     <div v-else-if="apps.length === 0"
-      class="flex flex-col items-center justify-center gap-3 py-16 text-gray-400">
+      class="flex flex-col items-center justify-center gap-3 py-16 text-gray-400 flex-1 min-h-0 overflow-y-auto">
       <UIcon name="i-heroicons-code-bracket-square" class="text-5xl" />
       <p class="text-sm">还没有 OAuth 应用</p>
       <UButton color="primary" variant="outline" size="sm" @click="openCreateModal">注册第一个应用</UButton>
     </div>
 
     <!-- App list -->
-    <div v-else class="flex flex-col gap-3">
+    <div v-else class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto pb-1">
       <div v-for="app in apps" :key="app.id"
-        class="border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3">
+        class="border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 shrink-0">
         <div class="flex items-start justify-between gap-2">
           <div class="flex flex-col gap-1 min-w-0">
             <div class="flex items-center gap-2">
