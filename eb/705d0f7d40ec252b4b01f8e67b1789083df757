@@ -1,0 +1,21 @@
+nuxt.config.ts
+  s_881e33c21d9e1f::t_61f94fdcbe5eb8 33-41
+utils/balance/index.ts
+  s_881e33c21d9e1f::t_61f94fdcbe5eb8 67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "eb705d0f7d40ec252b4b01f8e67b1789083df757",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
