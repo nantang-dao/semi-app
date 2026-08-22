@@ -2,7 +2,7 @@
 # 镜像仓库从 ghcr.io 换成自建的 yatch（home-registry.sola.day）。
 
 service: semi-app
-image: home-registry.sola.day/sola/semi-app
+image: registry.sola.day/sola/semi-app
 
 runner: nomad
 egress: traefik
@@ -14,7 +14,7 @@ servers:
 
 # 自建 registry（yatch）。2026-08-02 起不再经 ghcr。
 registry:
-  server: home-registry.sola.day
+  server: registry.sola.day
   username: sola
   password: YATCH_TOKEN
 

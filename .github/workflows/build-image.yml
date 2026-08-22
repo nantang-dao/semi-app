@@ -1,0 +1,61 @@
+# 打 git tag 时构建 docker image 并 push 到自建 registry（yatch）。
+# 部署仍然在本地手动触发：ginger deploy -P --tag <short-sha>
+# homepod 上的 Nomad 不对公网开放，runner 够不着，所以 CI 只管出镜像。
+name: build image
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      push:
+        description: "push 到 registry（关掉就只验证构建）"
+        type: boolean
+        default: true
+
+env:
+  IMAGE: registry.sola.day/sola/semi-app
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ginger 用 git short sha 作为镜像 tag，这里必须对齐，
+      # 否则本地 `ginger deploy -P --tag` 找不到镜像。
+      - id: meta
+        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      # Dockerfile 里 `COPY .env.production .env`：Nuxt 构建期只需要 VITE_*
+      # 和 NUXT_PUBLIC_API_URL —— 这些本来就会被打进公开的客户端 bundle。
+      # 服务端密钥（InstantDB admin token、badge admin 私钥）是 Nitro 运行时
+      # 读的，由 ginger 注入，不进 CI。
+      - name: write build env
+        env:
+          BUILD_ENV: ${{ secrets.BUILD_ENV_PRODUCTION }}
+        run: printf '%s\n' "$BUILD_ENV" > .env.production
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        if: inputs.push != false
+        with:
+          registry: registry.sola.day
+          username: semi-ci
+          password: ${{ secrets.YATCH_CI_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ inputs.push != false }}
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.meta.outputs.sha }}
+            ${{ startsWith(github.ref, 'refs/tags/') && format('{0}:{1}', env.IMAGE, github.ref_name) || '' }}
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
+          cache-to: ${{ inputs.push != false && format('type=registry,ref={0}:buildcache,mode=max', env.IMAGE) || '' }}
+
+      - name: summary
+        run: |
+          echo "镜像 tag: \`${{ steps.meta.outputs.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo '部署：`cd semi-app && ginger deploy -P --tag ${{ steps.meta.outputs.sha }}`' >> "$GITHUB_STEP_SUMMARY"
