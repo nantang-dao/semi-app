@@ -1,4 +1,4 @@
-FROM node:22-alpine AS build
+FROM node:24.19-alpine AS build
 WORKDIR /app
 
 # pnpm comes from the packageManager field in package.json via corepack.
@@ -14,7 +14,7 @@ COPY . .
 COPY .env.production .env
 RUN pnpm build
 
-FROM node:22-alpine
+FROM node:24.19-alpine
 WORKDIR /app
 COPY --from=build /app/.output /app/.output
 ENV PORT=3000
