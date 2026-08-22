@@ -87,6 +87,16 @@
         <!-- Divider -->
         <div class="border-t border-gray-100 mx-3" />
 
+        <!-- Rename username -->
+        <button
+          v-if="userStore.user?.handle"
+          class="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-gray-50 transition-colors"
+          @click="goRenameHandle"
+        >
+          <UIcon name="ci:user" size="16" class="text-gray-500" />
+          <span class="text-sm text-gray-700">{{ i18n.text['Rename Username'] }}</span>
+        </button>
+
         <!-- Export -->
         <button
           class="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-gray-50 transition-colors"
@@ -187,6 +197,11 @@ async function switchToMultisigWallet(wallet: any) {
 function goCreateMultisig() {
   menuOpen.value = false
   router.push('/multisig/create')
+}
+
+function goRenameHandle() {
+  menuOpen.value = false
+  router.push('/rename-handle')
 }
 
 const handleExportKeyStore = () => {

@@ -83,6 +83,9 @@
               <span>👤</span>
               <div class="text-left">
                 <p class="text-sm font-medium">{{ result.handle || result.name }}</p>
+                <p v-if="result.renamed_from" class="text-xs text-amber-600">
+                  {{ (i18n.text['User renamed notice'] || '').replace('{handle}', result.handle || '') }}
+                </p>
                 <CopyableAddress :address="result.evm_chain_active_key" text-class="text-xs text-gray-400" />
               </div>
             </div>

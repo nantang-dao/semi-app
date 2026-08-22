@@ -19,6 +19,9 @@ export interface UserInfo {
   remaining_gas_credits?: number;
   total_used_gas_credits?: number;
   encrypted_keys?: string | null;
+  handle_changed_at?: string | null;
+  next_rename_at?: string | null;
+  renamed_from?: string | null;
 }
 
 // 登录响应接口
@@ -359,7 +362,7 @@ export interface TransactionRecordResponse extends BaseResponse {
 
 export async function getTransactions(txhashes?: string): Promise<TransactionRecordResponse> {
   const response = await fetch(
-    `${requireSemiRestBaseUrl()}/get_transactions${txhashes ? `?tx_hashes=${txhashes}` : ""}`,
+    `${requireSemiRestBaseUrl()}/get_transactions${txhashes ? `?txhashes=${txhashes}` : ""}`,
     {
       headers: getAuthHeaders(),
     }

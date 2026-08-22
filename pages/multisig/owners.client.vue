@@ -115,6 +115,9 @@
         <div v-if="addOwnerResult" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
           <div>
             <p class="text-sm font-medium">{{ addOwnerResult.handle || addOwnerResult.name }}</p>
+            <p v-if="addOwnerResult.renamed_from" class="text-xs text-amber-600">
+              {{ (i18n.text['User renamed notice'] || '').replace('{handle}', addOwnerResult.handle || '') }}
+            </p>
             <CopyableAddress :address="addOwnerResult.evm_chain_active_key" text-class="text-xs text-gray-400" />
           </div>
           <template v-if="isAlreadyOwner(addOwnerResult.evm_chain_active_key)">
@@ -253,6 +256,9 @@
         <div v-if="replaceOwnerResult" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
           <div>
             <p class="text-sm font-medium">{{ replaceOwnerResult.handle || replaceOwnerResult.name }}</p>
+            <p v-if="replaceOwnerResult.renamed_from" class="text-xs text-amber-600">
+              {{ (i18n.text['User renamed notice'] || '').replace('{handle}', replaceOwnerResult.handle || '') }}
+            </p>
             <CopyableAddress :address="replaceOwnerResult.evm_chain_active_key" text-class="text-xs text-gray-400" />
           </div>
           <template v-if="isAlreadyOwner(replaceOwnerResult.evm_chain_active_key)">

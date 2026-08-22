@@ -517,7 +517,7 @@ async function fetchIncomingTxs() {
     const chain = chainStore.chain
     const { token_classes } = await getTokenClass()
     const currentTokenClasses = token_classes.filter((t) => t.chain_id === chain.id)
-    const actions = await getReceiveActions(activeWallet.value.safe_address, chain, currentTokenClasses)
+    const { actions } = await getReceiveActions(activeWallet.value.safe_address, chain, currentTokenClasses)
     incomingTxs.value = actions.map((a: any) => ({
       id: `incoming-${a.txHex || Math.random().toString(36).slice(2)}`,
       _type: 'incoming' as const,
