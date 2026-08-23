@@ -1,0 +1,109 @@
+packages/semi-core/src/keys/hex.ts
+  s_881e33c21d9e1f::t_061cda18a80947 1-31
+server/api/badge/create-class.post.ts
+  s_881e33c21d9e1f::t_2a231b941d6e2b 2,48
+utils/SafeSmartAccount/multisig.ts
+  s_881e33c21d9e1f::t_76d9257bc4b1c4 32
+pages/multisig/queue.client.vue
+  s_881e33c21d9e1f::t_2a231b941d6e2b 347
+packages/semi-core/src/keys/keystore.ts
+  s_881e33c21d9e1f::t_a2e76cba7ec2dd 1-73,78-111
+  s_881e33c21d9e1f::t_39e21526ac5a58 74-77
+pages/deploy-factory.client.vue
+  s_881e33c21d9e1f::t_2a231b941d6e2b 200
+utils/index.ts
+  s_881e33c21d9e1f::t_24fabf3e1dc78e 1
+packages/semi-core/tsconfig.json
+  s_881e33c21d9e1f::t_c869a06d59ee98 1-15
+packages/semi-core/src/chains/index.ts
+  s_881e33c21d9e1f::t_39e21526ac5a58 1-2
+packages/semi-core/test/namehash-parity.test.ts
+  s_881e33c21d9e1f::t_ca2cb9af6c8e7b 1-32,34-35,37-49
+  s_881e33c21d9e1f::t_39e21526ac5a58 33,36
+packages/semi-core/src/keys/random.ts
+  s_881e33c21d9e1f::t_061cda18a80947 1-21
+packages/semi-core/src/keys/index.ts
+  s_881e33c21d9e1f::t_5f4a7967651f42 2-11
+  s_881e33c21d9e1f::t_39e21526ac5a58 1
+server/routes/data/[token_id].get.ts
+  s_881e33c21d9e1f::t_99978972db7b82 12
+packages/semi-core/src/keys/unlock.ts
+  s_881e33c21d9e1f::t_5f4a7967651f42 1-10,12-14
+  s_881e33c21d9e1f::t_39e21526ac5a58 11
+packages/semi-core/src/chains/constants.ts
+  s_881e33c21d9e1f::t_447b70ea75a770 1-10
+pnpm-workspace.yaml
+  s_881e33c21d9e1f::t_c869a06d59ee98 1-6
+pages/export.client.vue
+  s_881e33c21d9e1f::t_2a231b941d6e2b 105
+pages/paymentcode.client.vue
+  s_881e33c21d9e1f::t_2a231b941d6e2b 62-64,99,108
+server/api/badge/create-badges.post.ts
+  s_881e33c21d9e1f::t_2a231b941d6e2b 2,57
+pages/import.client.vue
+  s_881e33c21d9e1f::t_24fabf3e1dc78e 162
+  s_881e33c21d9e1f::t_2a231b941d6e2b 211,258
+packages/semi-core/src/chains/deployments.ts
+  s_881e33c21d9e1f::t_447b70ea75a770 1-60
+server/api/badge/reject-badge.post.ts
+  s_881e33c21d9e1f::t_2a231b941d6e2b 2,35
+server/utils/index.ts
+  s_881e33c21d9e1f::t_2a231b941d6e2b 1,8,12,22
+components/SetAllowSolarRegistry.client.vue
+  s_881e33c21d9e1f::t_2a231b941d6e2b 63
+utils/config.ts
+  s_881e33c21d9e1f::t_502ad7b76e4d32 1-3
+packages/semi-core/src/index.ts
+  s_881e33c21d9e1f::t_5f4a7967651f42 1-3
+packages/semi-core/package.json
+  s_881e33c21d9e1f::t_c869a06d59ee98 1-25
+packages/semi-core/src/errors.ts
+  s_881e33c21d9e1f::t_061cda18a80947 1-21
+packages/semi-core/test/keys.test.ts
+  s_881e33c21d9e1f::t_8b36fd77076922 1-21,24-110,112-145
+  s_881e33c21d9e1f::t_39e21526ac5a58 22-23,111
+pages/deploy.client.vue
+  s_881e33c21d9e1f::t_2a231b941d6e2b 276
+utils/SafeSmartAccount/account.ts
+  s_881e33c21d9e1f::t_502ad7b76e4d32 6,22,61,111
+packages/semi-core/src/keys/namehash.ts
+  s_881e33c21d9e1f::t_c6388c570524dd 1-4,8,10-13,15-25
+  s_881e33c21d9e1f::t_5f4a7967651f42 5-7,9,14
+pages/multisig/create.client.vue
+  s_881e33c21d9e1f::t_2a231b941d6e2b 159
+pages/transfer.client.vue
+  s_881e33c21d9e1f::t_2a231b941d6e2b 140
+pages/verify.client.vue
+  s_881e33c21d9e1f::t_2a231b941d6e2b 57-59,89,98
+packages/semi-core/src/keys/mnemonic.ts
+  s_881e33c21d9e1f::t_5f4a7967651f42 1-37
+pages/multisig/[id].client.vue
+  s_881e33c21d9e1f::t_2a231b941d6e2b 256
+server/api/badge/accept-badge.post.ts
+  s_881e33c21d9e1f::t_2a231b941d6e2b 2,37
+package.json
+  s_881e33c21d9e1f::t_228ad78a7a3da6 38
+  s_881e33c21d9e1f::t_094d3c156d9fc5 13-14,17-18
+server/api/profile/create.post.ts
+  s_881e33c21d9e1f::t_2a231b941d6e2b 2,40
+Dockerfile
+  s_881e33c21d9e1f::t_3ea43aeeeed7de 9-13
+pnpm-lock.yaml
+  s_881e33c21d9e1f::t_8d2fe4567f26a7 49,62-64,100-111,1474-1476,1480-1482,1588-1616,1903-1906,2088-2091,2106-2109,2114-2117,2339-2342,2521-2523,2619-2622,3192-3194,3517-3520,3956-3958,4015-4017,4169-4171,4176-4178,4187-4198,4528-4532,4585-4624,4668-4695,4793-4797,5126,5128,5745,5747,6058,6077,6252,6270,6709-6713,6718-6719,6837-6878,7241-7242,7426-7427,7442-7449,7452-7453,7647-7648,7792-7793,7947-7948,8491-8492,8760,8763,8766,8769,8948,9003-9004,9462-9463,9516-9517,9680-9681,9684-9685,9693-9698,9998-10018,10078-10093,10109-10149,10263-10267
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "84b2b749ecb9faad5d384cf3b826377131a63392",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
