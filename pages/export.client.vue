@@ -102,7 +102,7 @@
 <script setup lang="ts">
 import { useUserStore } from "~/stores/user";
 import { useI18n } from "~/stores/i18n";
-import { keystoreToPrivateKey } from "~/utils/encryption";
+import { keystoreToPrivateKey } from "semi-core/keys";
 
 const router = useRouter();
 const userStore = useUserStore();

@@ -1,5 +1,5 @@
 import db from "@/server/utils/db";
-import { keystoreToPrivateKey, privateKeyToSafeAccount } from "@/utils/encryption";
+import { keystoreToPrivateKey, privateKeyToAddress } from "semi-core/keys";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
 import { id } from "@instantdb/admin";
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
   let eoa_address = "0x0000000000000000000000000000000000000000";
   try {
     const private_key = await keystoreToPrivateKey(JSON.parse(keystore_json), pin_code);
-    eoa_address = privateKeyToSafeAccount(private_key as `0x${string}`);
+    eoa_address = privateKeyToAddress(private_key as `0x${string}`);
   } catch (error) {
     console.error(error);
     return {

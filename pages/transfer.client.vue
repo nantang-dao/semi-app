@@ -137,7 +137,7 @@ import { getBalance, getErc20Balance } from "~/utils/balance";
 import { predictSafeAccountAddress, transfer, transferErc20 } from "~/utils/SafeSmartAccount";
 import { displayBalance } from "~/utils/display";
 import { hexToBigInt, isAddress, keccak256, toBytes, zeroAddress } from "viem";
-import { keystoreToPrivateKey } from "~/utils/encryption";
+import { keystoreToPrivateKey } from "semi-core/keys";
 import {
   getUserByHandleOrPhone,
   getRemainingGasCredits,

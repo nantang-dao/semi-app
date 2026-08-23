@@ -3,7 +3,7 @@ import { predictSafeSmartAccountAddress } from "./utils";
 import { privateKeyToAccount } from "viem/accounts";
 import { type Chain } from "viem/chains";
 import { http, createPublicClient, type Address } from "viem";
-import { V1_4_1_DEPLOYMENTS } from "../config";
+import { getSafeDeployment } from "semi-core/chains";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { RPC_URL } from "../config";
 
@@ -19,8 +19,7 @@ export const getSafeAccount = async (
   chain: Chain,
   options?: { owners?: Address[]; threshold?: number }
 ) => {
-  const deployment = V1_4_1_DEPLOYMENTS[chain.id];
-  if (!deployment) throw new Error(`Deployment for chain ${chain.name} not found`);
+  getSafeDeployment(chain.id); // 未支持的链在此抛错
 
   const signer = privateKeyToAccount(privateKey);
 
@@ -59,8 +58,7 @@ export const getVirtualSafeAccount = async (
   chain: Chain,
   options?: { threshold?: number; owners?: Address[]; ownerCount?: number }
 ) => {
-  const deployment = V1_4_1_DEPLOYMENTS[chain.id];
-  if (!deployment) throw new Error(`Deployment for chain ${chain.name} not found`);
+  getSafeDeployment(chain.id); // 未支持的链在此抛错
 
   const threshold = options?.threshold ?? 1;
 
@@ -110,8 +108,7 @@ export const predictSafeAccountAddress = async ({
   owners?: Address[];
   threshold?: number;
 }): Promise<Address> => {
-  const deployment = V1_4_1_DEPLOYMENTS[chain.id];
-  if (!deployment) throw new Error(`Deployment for chain ${chain.name} not found`);
+  getSafeDeployment(chain.id); // 未支持的链在此抛错
 
   const client = createPublicClient({
     chain,

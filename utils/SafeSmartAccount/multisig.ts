@@ -29,11 +29,10 @@ import { prepareClient } from "./utils/prepareClient";
 import { estimateMultisigGas } from "./operation";
 import { BUNDLER_URL, RPC_URL, PAYMASTER_URL } from "../config";
 import { isGasSponsorshipChain } from "../gas_sponsorship";
+import { SAFE_4337_MODULE_ADDRESS, SENTINEL_OWNERS } from "semi-core/chains";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SAFE_4337_MODULE_ADDRESS: Address = "0x75cf11467937ce3F2f357CE24ffc3DBF8fD5c226";
-const SENTINEL_OWNERS: Address = "0x0000000000000000000000000000000000000001";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

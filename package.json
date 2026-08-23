@@ -10,11 +10,12 @@
     "build": "nuxt build",
     "db-schema-push": "pnpm dlx instant-cli@latest push schema && pnpm dlx instant-cli@latest push perms",
     "dev": "nuxt dev --host 0.0.0.0 --port 3001",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "generate": "nuxt generate",
+    "postinstall": "nuxt prepare",
+    "preview": "nuxt preview",
+    "test": "pnpm --filter semi-core test"
   },
   "dependencies": {
     "@instantdb/admin": "0.22.185",
@@ -34,6 +35,7 @@
     "permissionless": "^0.2.57",
     "pinia": "^3.0.4",
     "qrcode.vue": "3.9.0",
+    "semi-core": "workspace:*",
     "serialize-error": "^12.0.0",
     "solar-contract-sdk": "^0.0.3",
     "tailwindcss": "4.2.4",

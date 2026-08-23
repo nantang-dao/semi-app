@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     token_id = token_id.slice(0, -1);
   }
 
-  // 将十六进制字符串填充到64个字符（32字节），以匹配 getNamehash 的固定长度格式
+  // 将十六进制字符串填充到64个字符（32字节），以匹配 namehash 的固定长度格式
   const token_id_hash = "0x" + BigInt(token_id).toString(16).padStart(64, "0");
 
   console.log(

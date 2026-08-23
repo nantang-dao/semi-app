@@ -54,9 +54,9 @@ import { useUserStore } from "~/stores/user";
 import { useChainStore } from "~/stores/chain";
 import {
   generateMnemonicPhrase,
-  getAddressFromMnemonic,
-  encryptMnemonicToKeystore,
-} from "~/utils/encryption";
+  mnemonicToAddress,
+  encryptToKeystore,
+} from "semi-core/keys";
 import { predictSafeAccountAddress } from "~/utils/SafeSmartAccount";
 import { setEncryptedKeys, signinWithPassword, getMe } from "~/utils/semi_api";
 
@@ -86,7 +86,7 @@ const createManagerWallet = async (pin: string, userId: string) => {
   try {
     // 第一步：生成助记词和钱包地址
     const mnemonic = generateMnemonicPhrase();
-    const evm_chain_active_key = getAddressFromMnemonic(mnemonic);
+    const evm_chain_active_key = mnemonicToAddress(mnemonic);
 
     // 第二步：生成EVM链地址
     const evm_chain_address = await predictSafeAccountAddress({
@@ -95,7 +95,7 @@ const createManagerWallet = async (pin: string, userId: string) => {
     });
 
     // 第二步：使用pin加密助记词
-    const encrypted_keys = await encryptMnemonicToKeystore(mnemonic, pin);
+    const encrypted_keys = await encryptToKeystore(mnemonic, pin);
 
     // 第三步：上传加密后的密钥
     const response = await setEncryptedKeys({

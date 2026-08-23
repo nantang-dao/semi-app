@@ -197,7 +197,7 @@ import { useChainStore } from "@/stores/chain";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { encodeDeployData } from "viem";
-import { keystoreToPrivateKey } from "~/utils/encryption";
+import { keystoreToPrivateKey } from "semi-core/keys";
 import { abi, bytecode } from "~/utils/deploy/MinimalFactory.json";
 import { deploy } from "~/utils/SafeSmartAccount/operation";
 

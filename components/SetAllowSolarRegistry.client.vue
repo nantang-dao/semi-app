@@ -60,7 +60,7 @@
 import { registry, createClientConfig, chains } from "solar-contract-sdk";
 import { useChainStore, chainMap } from "@/stores/chain";
 import { useUserStore } from "@/stores/user";
-import { keystoreToPrivateKey } from "@/utils/encryption";
+import { keystoreToPrivateKey } from "semi-core/keys";
 import { privateKeyToAccount, type Account } from "viem/accounts";
 
 const CODE_LENGTH = 6;
