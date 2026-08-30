@@ -1,0 +1,21 @@
+package.json
+  s_881e33c21d9e1f::t_642c211228b233 21
+pnpm-lock.yaml
+  s_881e33c21d9e1f::t_b89ebe01882411 15-16,601-602,604-605,607-615,5166,5168-5171,5175,5177,5181-5189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "1b892e2ead1f42fb21fe19048cbe2af38d1917c0",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
