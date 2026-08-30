@@ -1,0 +1,49 @@
+packages/semi-core/src/token/index.ts
+  s_881e33c21d9e1f::t_6ff197c8a0b361 6
+utils/SafeSmartAccount/operation.ts
+  s_881e33c21d9e1f::t_ad3b581180d4cc 1-11,13,17-21,24,31,41-43,45-47,58-59,61-63,65-73,84,90-101,115-116,127-141
+packages/semi-core/test/amount-precision.test.ts
+  s_881e33c21d9e1f::t_fc4b16e2db2d82 54
+  s_881e33c21d9e1f::t_ced88d4c8e2453 57-64
+  s_881e33c21d9e1f::t_263111512e4337 1-53,55-56,65-66
+packages/semi-core/package.json
+  s_881e33c21d9e1f::t_6ff197c8a0b361 13-14
+packages/semi-core/src/ops/index.ts
+  s_881e33c21d9e1f::t_aad1985bc1058e 1-11,13-16,18
+  s_881e33c21d9e1f::t_6ff197c8a0b361 12,17
+packages/semi-core/src/ops/userOp.ts
+  s_881e33c21d9e1f::t_fc4b16e2db2d82 1,104
+  s_881e33c21d9e1f::t_6253eff1f02a79 30-46,63,69,73,75,77-79,82,140-141,144
+  s_881e33c21d9e1f::t_aad1985bc1058e 2-29,47-62,64-68,70-72,74,76,80-81,83-103,105-139,142-143,145-199
+packages/semi-core/src/index.ts
+  s_881e33c21d9e1f::t_6ff197c8a0b361 5
+utils/SafeSmartAccount/multisig.ts
+  s_881e33c21d9e1f::t_cb70b213188be9 27,33-52
+  s_881e33c21d9e1f::t_173241c425603e 53-54
+  s_881e33c21d9e1f::t_16f388901b783e 56
+packages/semi-core/src/errors.ts
+  s_881e33c21d9e1f::t_67dce8803eeb23 53-82
+packages/semi-core/src/token/balances.ts
+  s_881e33c21d9e1f::t_6ff197c8a0b361 70-78
+packages/semi-core/src/ops/gas.ts
+  s_881e33c21d9e1f::t_6253eff1f02a79 33,35,63-67
+  s_881e33c21d9e1f::t_fc4b16e2db2d82 55-56
+  s_881e33c21d9e1f::t_67dce8803eeb23 1-32,34,36-54,57-62,68
+  s_881e33c21d9e1f::t_6ff197c8a0b361 69-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "5e6e04d5deb6570cccf6ae18af1dac4cac17f958",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
