@@ -1,0 +1,21 @@
+pages/transfer.client.vue
+  s_881e33c21d9e1f::t_03b288c51244f6 348-360
+utils/format.ts
+  s_881e33c21d9e1f::t_03b288c51244f6 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "13aad0f85e15df12251853c4c7a0c372a0edaeaa",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
