@@ -18,7 +18,7 @@
     "test": "pnpm --filter semi-core test"
   },
   "dependencies": {
-    "@instantdb/admin": "0.22.185",
+    "@instantdb/admin": "1.0.66",
     "@nuxt/icon": "2.5.1",
     "@nuxt/ui": "^4.11.0",
     "@pinia/nuxt": "^1.0.2",
