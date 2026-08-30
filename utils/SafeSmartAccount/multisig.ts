@@ -18,7 +18,6 @@ import {
   concatHex,
   encodeFunctionData,
   encodePacked,
-  createPublicClient,
   http,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -26,7 +25,7 @@ import { entryPoint07Address } from "viem/account-abstraction";
 import { getVirtualSafeAccount } from "./account";
 import { prepareClient } from "./prepareClient";
 import { estimateMultisigGas } from "./operation";
-import { BUNDLER_URL, RPC_URL, PAYMASTER_URL } from "../config";
+import { chainContext } from "~/utils/semi_core";
 import { isGasSponsorshipChain } from "../gas_sponsorship";
 import { SAFE_4337_MODULE_ADDRESS, SENTINEL_OWNERS } from "semi-core/chains";
 import { EIP712_SAFE_OPERATION_TYPE_V07, packPaymasterAndData } from "semi-core/safe";
@@ -168,7 +167,7 @@ async function fetchSponsorPaymasterData(
     factoryData?: Hex;
   }
 ): Promise<SponsorPaymasterFields | null> {
-  const url = PAYMASTER_URL[chain.id];
+  const url = chainContext(chain.id).paymasterUrl;
   if (!url) return null;
 
   const validUntil = Math.floor(Date.now() / 1000) + PAYMASTER_VALIDITY_SECONDS;
@@ -398,7 +397,7 @@ export async function executeMultisigUserOp(
   threshold: number,
   chain: Chain
 ): Promise<{ userOpHash: Hex; txHash: Hex; actualGasCost: string }> {
-  const bundlerUrl = BUNDLER_URL[chain.id];
+  const bundlerUrl = chainContext(chain.id).bundlerUrl;
   if (!bundlerUrl) throw new Error(`No bundler URL for chain ${chain.id}`);
 
   // Fail early with a clear message rather than getting a cryptic bundler rejection.
@@ -660,10 +659,7 @@ export async function getSafeOwners(
   owners: Address[];
   getPrevOwner: (owner: Address) => Address;
 }> {
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(RPC_URL[chain.id]),
-  });
+  const publicClient = chainContext(chain.id).publicClient;
 
   // Safe may not be deployed yet (counterfactual address). In that case, contract calls return "0x".
   const bytecode = await publicClient.getBytecode({ address: safeAddress });
@@ -698,10 +694,7 @@ export async function getSafeOwnersAndThreshold(
   chain: Chain
 ): Promise<{ owners: Address[]; threshold: number }> {
   const { owners } = await getSafeOwners(safeAddress, chain);
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(RPC_URL[chain.id]),
-  });
+  const publicClient = chainContext(chain.id).publicClient;
   const threshold = (await publicClient.readContract({
     address: safeAddress,
     abi: [
@@ -723,10 +716,7 @@ export async function getActualGasFee(
   chain: Chain
 ): Promise<string | null> {
   try {
-    const publicClient = createPublicClient({
-      chain,
-      transport: http(RPC_URL[chain.id]),
-    });
+    const publicClient = chainContext(chain.id).publicClient;
     const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
     if (!receipt || receipt.status === null) return null;
     const gasUsed = receipt.gasUsed;

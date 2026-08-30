@@ -668,9 +668,8 @@ async function handleSync() {
     if (!chain) throw new Error('Unsupported chain')
 
     const { owners: chainOwners } = await getSafeOwners(activeWallet.value.safe_address, chain)
-    const { createPublicClient, http } = await import('viem')
-    const { RPC_URL } = await import('~/utils/config')
-    const publicClient = createPublicClient({ chain, transport: http(RPC_URL[chain.id]) })
+    const { chainContext } = await import('~/utils/semi_core')
+    const publicClient = chainContext(chain.id).publicClient
     const chainThreshold = await publicClient.readContract({
       address: activeWallet.value.safe_address,
       abi: [{ name: 'getThreshold', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] }],

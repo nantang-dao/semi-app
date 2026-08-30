@@ -99,6 +99,9 @@ importers:
 
   packages/semi-core:
     devDependencies:
+      permissionless:
+        specifier: 0.2.57
+        version: 0.2.57(ox@0.8.9(typescript@5.9.3))(viem@2.48.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

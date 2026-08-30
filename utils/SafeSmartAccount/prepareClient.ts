@@ -1,44 +1,31 @@
-import { createPublicClient, http, type Chain } from "viem";
+import { type Chain } from "viem";
+import { http } from "viem";
 import { createBundlerClient, createPaymasterClient } from "viem/account-abstraction";
-import { BUNDLER_URL, RPC_URL, PAYMASTER_URL } from "../config";
+import { PaymasterNotConfiguredError } from "semi-core";
+import { chainContext } from "~/utils/semi_core";
 
 export const prepareClient = async (chain: Chain, sponsorFee: boolean) => {
-  const bundlerUrl = BUNDLER_URL[chain.id];
-  if (!bundlerUrl) {
-    console.log("Unsupported chain: ", chain);
-    throw new Error(`Unsupported chain: ${chain.name}`);
+  const ctx = chainContext(chain.id);
+
+  if (!ctx.bundlerUrl) {
+    throw new Error(`No bundler configured for chain ${chain.id} (${chain.name})`);
   }
 
-  console.log("[Sponsor Fee]:", sponsorFee);
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(RPC_URL[chain.id]),
-  });
-
-  let paymasterClient = undefined;
-
-  if (sponsorFee && (!PAYMASTER_URL[chain.id] || PAYMASTER_URL[chain.id] === "")) {
-    // Fail fast — otherwise UI may think it's sponsored but the userOp is not.
-    throw new Error(
-      `Gas sponsorship requested but PAYMASTER_URL is not configured for chain ${chain.id} (${chain.name})`
-    );
+  // 快速失败：否则 UI 以为走了代付，实际发出去的 userOp 却是自付的
+  if (sponsorFee && !ctx.canSponsorGas) {
+    throw new PaymasterNotConfiguredError(chain.id);
   }
 
-  if (PAYMASTER_URL[chain.id] && sponsorFee) {
-    paymasterClient = createPaymasterClient({
-      transport: http(PAYMASTER_URL[chain.id]),
-    });
-  }
+  const paymasterClient =
+    sponsorFee && ctx.paymasterUrl
+      ? createPaymasterClient({ transport: http(ctx.paymasterUrl) })
+      : undefined;
 
   const bundlerClient = createBundlerClient({
     chain,
-    transport: http(bundlerUrl),
+    transport: http(ctx.bundlerUrl),
     paymaster: paymasterClient,
   });
 
-  return {
-    publicClient,
-    bundlerClient,
-    paymasterClient,
-  };
+  return { publicClient: ctx.publicClient, bundlerClient, paymasterClient };
 };

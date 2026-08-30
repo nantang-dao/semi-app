@@ -8,7 +8,9 @@
     ".": "./src/index.ts",
     "./keys": "./src/keys/index.ts",
     "./chains": "./src/chains/index.ts",
-    "./safe": "./src/safe/index.ts"
+    "./safe": "./src/safe/index.ts",
+    "./account": "./src/account/index.ts",
+    "./token": "./src/token/index.ts"
   },
   "scripts": {
     "test": "vitest run",
@@ -16,11 +18,18 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "viem": "^2.48.0"
+    "viem": "^2.48.0",
+    "permissionless": "^0.2.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
     "viem": "2.48.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "permissionless": "0.2.57"
+  },
+  "peerDependenciesMeta": {
+    "permissionless": {
+      "optional": true
+    }
   }
 }
