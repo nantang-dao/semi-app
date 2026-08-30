@@ -1,0 +1,53 @@
+packages/semi-core/test/fixtures/proxy-creation-code.ts
+  s_881e33c21d9e1f::t_f95a36cb66d0e2 1-9
+packages/semi-core/src/safe/abis.ts
+  s_881e33c21d9e1f::t_851e63eaaa6fa3 1-53
+packages/semi-core/package.json
+  s_881e33c21d9e1f::t_5a98529ef073d3 6,10-11
+packages/semi-core/src/chains/constants.ts
+  s_881e33c21d9e1f::t_feb8fe10d49ef2 11-19
+packages/semi-core/src/safe/predict.ts
+  s_881e33c21d9e1f::t_feb8fe10d49ef2 1-84,86-93
+  s_881e33c21d9e1f::t_3cf6a35f917aea 85
+packages/semi-core/src/safe/eip712.ts
+  s_881e33c21d9e1f::t_5a98529ef073d3 1-28
+packages/semi-core/src/safe/index.ts
+  s_881e33c21d9e1f::t_5a98529ef073d3 1-4
+utils/SafeSmartAccount/account.ts
+  s_881e33c21d9e1f::t_b5323dafcdc886 6,124,126
+  s_881e33c21d9e1f::t_db4812447e7c6b 10-21,55,99
+packages/semi-core/src/chains/index.ts
+  s_881e33c21d9e1f::t_5a98529ef073d3 2-7
+packages/semi-core/test/predict-address.test.ts
+  s_881e33c21d9e1f::t_f3ea2a972ed4fd 1-39,88-138
+  s_881e33c21d9e1f::t_3cf6a35f917aea 40-87
+packages/semi-core/src/safe/initializer.ts
+  s_881e33c21d9e1f::t_851e63eaaa6fa3 1-75
+utils/SafeSmartAccount/operation.ts
+  s_881e33c21d9e1f::t_14b5de6109ae0b 3
+utils/SafeSmartAccount/multisig.ts
+  s_881e33c21d9e1f::t_14b5de6109ae0b 27
+  s_881e33c21d9e1f::t_b5323dafcdc886 32,326,331
+packages/semi-core/src/index.ts
+  s_881e33c21d9e1f::t_5a98529ef073d3 3
+packages/semi-core/src/safe/paymaster.ts
+  s_881e33c21d9e1f::t_5a98529ef073d3 1-26
+utils/SafeSmartAccount/prepareClient.ts
+  s_881e33c21d9e1f::t_14b5de6109ae0b 1-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "6d97a2bd83809512094240590a55371d5be2f5d7",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
