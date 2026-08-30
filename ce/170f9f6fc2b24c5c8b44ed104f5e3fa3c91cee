@@ -1,0 +1,30 @@
+server/api/nft/[contractAddress]/[tokenId]/holders.get.ts
+  s_881e33c21d9e1f::t_4fb273b7c5f8d5 2,23,42
+server/utils/nft.ts
+  s_881e33c21d9e1f::t_584986f937fa71 2,48
+  s_881e33c21d9e1f::t_4fb273b7c5f8d5 58
+utils/alchemy.ts
+  s_881e33c21d9e1f::t_584986f937fa71 20-22
+  s_881e33c21d9e1f::t_8ad9b731cdfe12 1-19,23-92,111-122,124-158
+  s_881e33c21d9e1f::t_8dfd6eff1e986d 93-110,123
+utils/actions.ts
+  s_881e33c21d9e1f::t_c25514bd1b7e7c 3,30,33,44,48
+pnpm-lock.yaml
+  s_881e33c21d9e1f::t_675f783ae12471 6098,6516,6582-6583,6612,6708,6739,6795,6799-6800,6959-6960,7005,7075-7076,7087,7095,7245-7246,7285,7322,7330,7371-7372,7392-7393,7398,7424,7738-7739,7754-7755,7762,8426-8427,8777-8778,8920-8921
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "ce170f9f6fc2b24c5c8b44ed104f5e3fa3c91cee",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
