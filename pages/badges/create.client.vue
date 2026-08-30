@@ -134,8 +134,7 @@
 import { reactive, computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import type { Profile } from "@/server/api/badge/types";
-import { waitForTransactionReceipt } from "@wagmi/core";
-import { client } from "@/utils/wagmi_config_client";
+import { chainContext } from "@/utils/semi_core";
 
 const router = useRouter();
 const i18n = useI18n();
@@ -367,9 +366,8 @@ const handleCreate = async () => {
         return;
       } else {
         console.log("create profile tx hash", createProfileData.data.tx_hash);
-        await waitForTransactionReceipt(client, {
+        await chainContext(useChain.chain.id).publicClient.waitForTransactionReceipt({
           hash: createProfileData.data.tx_hash as `0x${string}`,
-          chainId: useChain.chain.id as any,
         });
       }
     } catch (error) {
@@ -414,9 +412,8 @@ const handleCreate = async () => {
       return;
     } else {
       console.log("create class tx hash", createClassData.data.tx_hash);
-      await waitForTransactionReceipt(client, {
+      await chainContext(useChain.chain.id).publicClient.waitForTransactionReceipt({
         hash: createClassData.data.tx_hash as `0x${string}`,
-        chainId: useChain.chain.id as any,
       });
       toast.add({
         title: t("Create successful", "Create successful"),

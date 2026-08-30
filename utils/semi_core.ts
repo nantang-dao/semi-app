@@ -102,11 +102,10 @@ export function semiCore() {
 export const chainContext = (chainId: number) => semiCore().chain(chainId);
 
 /**
- * 给需要自建 viem/wagmi transport 的地方用（badge 的 wagmi client）。
+ * 给需要自建 viem transport 的地方用（server/utils/badge_wallet.ts）。
  *
- * 那两处 wagmi client 是在模块加载时构造的，所以这里抛错会让整个模块导入
- * 失败。这是有意的：缺 key 时 semiCore() 一样起不来，与其让 badge 静默
- * 退回公共节点，不如当场说清楚缺什么。
+ * 缺 key 时这里抛错，而不是静默退回 viem 内置的公共节点——公共节点有速率
+ * 限制，而调用方是管理员签名的 badge 铸造。
  */
 export const rpcUrlFor = (chainId: number): string => {
   const apiKey = env("VITE_ALCHEMY_API_KEY");

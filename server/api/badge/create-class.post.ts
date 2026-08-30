@@ -4,8 +4,8 @@ import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
 import { id } from "@instantdb/admin";
 import { getProfileId, getBadgeClassId } from "@/server/utils";
-import { wagmi_config } from "@/server/utils/wagmi_config";
-import { writeProfileRegistryRegisterClass } from "@/server/utils/solar_badge";
+import { badgeWalletClient } from "@/server/utils/badge_wallet";
+import { profileRegistryAbi } from "@/server/utils/solar_badge";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
 
 const chains = {
@@ -87,11 +87,11 @@ export default defineEventHandler(async (event) => {
   try {
     const new_class_id = id();
     const class_id = getBadgeClassId(new_class_id, safe_account_address, chain.id);
-    const create_class_hash = await writeProfileRegistryRegisterClass(wagmi_config.client, {
+    const create_class_hash = await badgeWalletClient(chain.id).writeContract({
       address: contract_addresses.profile_registry,
+      abi: profileRegistryAbi,
+      functionName: "registerClass",
       args: [BigInt(profile_id), BigInt(class_id), contract_addresses.badgeUnbounded],
-      chainId: chain.id,
-      account: wagmi_config.admin_account(chain.id),
     });
     console.log("create class tx hash", create_class_hash);
 

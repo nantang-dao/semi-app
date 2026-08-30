@@ -2,8 +2,8 @@ import db from "@/server/utils/db";
 import { keystoreToPrivateKey, privateKeyToAddress } from "semi-core/keys";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
-import { wagmi_config } from "@/server/utils/wagmi_config";
-import { writeBadgeUnboundedMint } from "@/server/utils/solar_badge";
+import { badgeWalletClient } from "@/server/utils/badge_wallet";
+import { badgeUnboundedAbi } from "@/server/utils/solar_badge";
 
 const chains = {
   "11155111": sepolia,
@@ -100,11 +100,11 @@ export default defineEventHandler(async (event) => {
   const badgeclass = badgeclassQuery.badge_classes[0];
 
   try {
-    const tx = await writeBadgeUnboundedMint(wagmi_config.client, {
+    const tx = await badgeWalletClient(chain.id).writeContract({
       address: badgeclass.badge_contract_address as `0x${string}`,
+      abi: badgeUnboundedAbi,
+      functionName: "mint",
       args: [badge.wallet_address, BigInt(badge.badge_id), BigInt(badge.class_id)],
-      account: wagmi_config.admin_account(chain.id),
-      chainId: chain.id,
     });
 
     console.log("mint badge tx hash =>", tx);

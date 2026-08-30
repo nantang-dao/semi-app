@@ -4,8 +4,8 @@ import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
 import { id } from "@instantdb/admin";
 import { getProfileId, getBadgeClassId } from "@/server/utils";
-import { wagmi_config } from "@/server/utils/wagmi_config";
-import { writeProfileRegistryCreateProfile } from "@/server/utils/solar_badge";
+import { badgeWalletClient } from "@/server/utils/badge_wallet";
+import { profileRegistryAbi } from "@/server/utils/solar_badge";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
 
 const chains = {
@@ -70,11 +70,11 @@ export default defineEventHandler(async (event) => {
   if (queryProfile.profiles.length === 0) {
     // create new profile
     try {
-      const create_profile_hash = await writeProfileRegistryCreateProfile(wagmi_config.client, {
+      const create_profile_hash = await badgeWalletClient(chain.id).writeContract({
         address: contract_addresses.profile_registry as `0x${string}`,
+        abi: profileRegistryAbi,
+        functionName: "createProfile",
         args: [safe_account_address as `0x${string}`, BigInt(profile_id), true],
-        chainId: chain.id,
-        account: wagmi_config.admin_account(chain.id),
       });
       console.log("create profile tx hash", create_profile_hash);
 
