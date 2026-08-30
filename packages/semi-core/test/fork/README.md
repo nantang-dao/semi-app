@@ -6,7 +6,7 @@ EntryPoint 0.7 都是链上真实合约，不是替身。
 普通的 `pnpm test` **不会**跑它们——需要网络和 anvil。要跑：
 
 ```bash
-anvil --fork-url "$VITE_OP_RPC_URL/$VITE_INFURA_API_KEY" --port 8545 --silent &
+anvil --fork-url "https://opt-mainnet.g.alchemy.com/v2/$VITE_ALCHEMY_API_KEY" --port 8545 --silent &
 ANVIL_RPC=http://127.0.0.1:8545 pnpm vitest run test/fork
 ```
 
