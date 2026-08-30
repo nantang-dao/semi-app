@@ -29,7 +29,6 @@
     "dayjs": "1.11.20",
     "js-cookie": "^3.0.5",
     "nuxt": "4.5.2",
-    "ox": "^0.11.3",
     "permissionless": "^0.4.0",
     "pinia": "^3.0.4",
     "qrcode.vue": "3.9.0",
@@ -51,6 +50,10 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "vue-demi"
-    ]
+    ],
+    "_overrides_note": "ox 统一到 viem 依赖的 0.14.20。permissionless 的 peer 写的是 ^0.11.3，不加这条会同时装进两份 ox，服务端产物因此多 1.6MB。放宽 peer 的安全网是 semi-core 的 account-address-agreement 测试——它断言 permissionless 的 toSafeSmartAccount 与我们的地址推导一致；升级任一方后若它失败，说明这条 override 不能再用。",
+    "overrides": {
+      "ox": "0.14.20"
+    }
   }
 }
