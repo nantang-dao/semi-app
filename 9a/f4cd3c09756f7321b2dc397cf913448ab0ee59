@@ -1,0 +1,27 @@
+packages/semi-core/src/config.ts
+  s_881e33c21d9e1f::t_e11d2ff50b8357 24-27,29-36,77,133-134
+utils/semi_core.ts
+  s_881e33c21d9e1f::t_66ffd467be9949 62-63
+packages/semi-core/test/gas-price.test.ts
+  s_881e33c21d9e1f::t_b3c71129655efa 16-21,90-97,107-113,119-125
+  s_881e33c21d9e1f::t_32e0d5603d617a 1-15,22-89,98-106,114-118,126-140
+packages/semi-core/src/ops/gas.ts
+  s_881e33c21d9e1f::t_ccf67135f6454d 31-35,39-45,56-77
+  s_881e33c21d9e1f::t_ecce520ee4bc0f 78-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "9af4cd3c09756f7321b2dc397cf913448ab0ee59",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
