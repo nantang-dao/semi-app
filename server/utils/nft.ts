@@ -1,4 +1,5 @@
 import type { Chain } from "viem";
+import { getNftsForOwner, isAlchemySupportedChain } from "@/utils/alchemy";
 
 export interface NFT {
   contractAddress: string;
@@ -10,12 +11,6 @@ export interface NFT {
   collectionName?: string;
   attributes?: Record<string, any>;
 }
-
-const CHAIN_TO_NETWORK: Record<number, string> = {
-  1: "eth-mainnet",
-  10: "opt-mainnet",
-  11155111: "eth-sepolia",
-};
 
 // Safety valve: 100 NFTs per page, so this caps a single request at 2000 NFTs.
 // Without it a whale wallet would hold the Nitro handler open indefinitely.
@@ -50,23 +45,9 @@ function normalizeAttributes(metadata: any): Record<string, any> | undefined {
  * @returns NFT列表
  */
 export async function getOwnedNFTs(walletAddress: string, chain: Chain): Promise<NFT[]> {
-  const network = CHAIN_TO_NETWORK[chain.id];
-  if (!network) {
+  if (!isAlchemySupportedChain(chain.id)) {
     throw new Error(`Unsupported chain ID: ${chain.id}`);
   }
-
-  // Dynamic import so alchemy-sdk is not loaded at Lambda cold start
-  const { Alchemy, Network } = await import("alchemy-sdk");
-  const networkMap: Record<string, (typeof Network)[keyof typeof Network]> = {
-    "eth-mainnet": Network.ETH_MAINNET,
-    "opt-mainnet": Network.OPT_MAINNET,
-    "eth-sepolia": Network.ETH_SEPOLIA,
-  };
-
-  const alchemy = new Alchemy({
-    apiKey: process.env.VITE_ALCHEMY_API_KEY || process.env.ALCHEMY_API_KEY,
-    network: networkMap[network],
-  });
 
   try {
     const allNFTs: NFT[] = [];
@@ -74,7 +55,7 @@ export async function getOwnedNFTs(walletAddress: string, chain: Chain): Promise
     let pages = 0;
 
     do {
-      const response = await alchemy.nft.getNftsForOwner(walletAddress, {
+      const response = await getNftsForOwner(chain.id, walletAddress, {
         pageSize: 100,
         pageKey,
       });
