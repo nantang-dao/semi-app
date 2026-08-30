@@ -1,0 +1,29 @@
+utils/wagmi_config_client.ts
+  s_881e33c21d9e1f::t_ca2d8a9e182cbb 4,6-11,15-17
+packages/semi-core/test/fork/README.md
+  s_881e33c21d9e1f::t_da3539fcfb6137 9
+utils/semi_core.ts
+  s_881e33c21d9e1f::t_f8615328453cd1 1,32-40,43-56,59-60,62-69,79,81,89,97-98,107-109
+  s_881e33c21d9e1f::t_a1e397684b5c38 5,7-10,12-26
+  s_881e33c21d9e1f::t_7d1884be179235 90-96,99-106
+server/utils/wagmi_config.ts
+  s_881e33c21d9e1f::t_ca2d8a9e182cbb 5,7-14,18-20
+.env.example
+  s_881e33c21d9e1f::t_da3539fcfb6137 10-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "1634555edfec22d394618d2e9f6f2654643dcd6e",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
