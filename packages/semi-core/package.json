@@ -27,7 +27,7 @@
   "devDependencies": {
     "permissionless": "0.4.0",
     "typescript": "^5.9.3",
-    "viem": "2.48.4",
+    "viem": "2.56.0",
     "vitest": "^3.2.4"
   },
   "peerDependenciesMeta": {

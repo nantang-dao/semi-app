@@ -30,7 +30,7 @@
     "qrcode.vue": "3.10.0",
     "semi-core": "workspace:*",
     "tailwindcss": "4.3.3",
-    "viem": "2.48.4",
+    "viem": "2.56.0",
     "vue": "3.5.42",
     "vue-boring-avatars": "^1.4.0",
     "vue-qrcode-reader": "^5.7.3",
@@ -46,9 +46,9 @@
       "esbuild",
       "vue-demi"
     ],
-    "_overrides_note": "ox 统一到 viem 依赖的 0.14.20。permissionless 的 peer 写的是 ^0.11.3，不加这条会同时装进两份 ox，服务端产物因此多 1.6MB。放宽 peer 的安全网是 semi-core 的 account-address-agreement 测试——它断言 permissionless 的 toSafeSmartAccount 与我们的地址推导一致；升级任一方后若它失败，说明这条 override 不能再用。",
+    "_overrides_note": "ox 统一到 viem 依赖的 0.14.20。permissionless 的 peer 写的是 ^0.11.3，不加这条会同时装进两份 ox，服务端产物因此多 1.6MB。这个版本号必须跟着 viem 的 ox 依赖走——viem 2.56 起用到了 ox/tempo 的新导出，锁在旧版会在 import 期直接报错。放宽 peer 的安全网是 semi-core 的 account-address-agreement 测试——它断言 permissionless 的 toSafeSmartAccount 与我们的地址推导一致；升级任一方后若它失败，说明这条 override 不能再用。",
     "overrides": {
-      "ox": "0.14.20"
+      "ox": "0.14.34"
     }
   }
 }
