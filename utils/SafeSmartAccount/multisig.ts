@@ -24,14 +24,36 @@ import { privateKeyToAccount } from "viem/accounts";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { getVirtualSafeAccount } from "./account";
 import { prepareClient } from "./prepareClient";
-import { estimateMultisigGas } from "./operation";
+import { estimateMultisigGas as coreEstimateMultisigGas } from "semi-core/ops";
 import { chainContext } from "~/utils/semi_core";
 import { isGasSponsorshipChain } from "../gas_sponsorship";
 import { SAFE_4337_MODULE_ADDRESS, SENTINEL_OWNERS } from "semi-core/chains";
 import { EIP712_SAFE_OPERATION_TYPE_V07, packPaymasterAndData } from "semi-core/safe";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+/**
+ * 多签 gas 估算的适配层：把 chain + safeAddress 换算成 semi-core 需要的
+ * ChainContext 和只读账户。（multisig 整体搬进 semi-core 后这层会消失。）
+ */
+async function estimateMultisigGas({
+  safeAddress,
+  owners,
+  threshold,
+  chain,
+  calls,
+}: {
+  safeAddress: Address;
+  owners: Address[];
+  threshold: number;
+  chain: Chain;
+  calls: any[];
+}) {
+  const ctx = chainContext(chain.id);
+  const account = await getVirtualSafeAccount(safeAddress, chain, { threshold, owners });
+  const { bundlerClient } = await prepareClient(chain, false);
+  return coreEstimateMultisigGas(ctx, bundlerClient as any, { account, calls, threshold });
+}
 
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

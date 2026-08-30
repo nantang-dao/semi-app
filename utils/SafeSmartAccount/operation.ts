@@ -1,220 +1,35 @@
-import type { Address, Chain } from "viem";
-
-import { prepareClient } from "./prepareClient";
-import { getSafeAccount, getVirtualSafeAccount } from "./account";
-import { erc20Abi, formatEther, parseEther, toBytes, bytesToHex, zeroAddress } from "viem";
-import { CREATE_CALL_CONTRACT, TOKEN_FACTORY_CONTRACT } from "../config";
+import { parseEther, parseUnits, type Address, type Chain } from "viem";
+import type { UserOperationReceipt } from "viem/account-abstraction";
+import { bytesToHex, toBytes } from "viem";
+import {
+  sendUserOperation,
+  sendNativeTransfer,
+  sendErc20Transfer,
+  multisigVerificationGasLimit,
+  type Call,
+} from "semi-core/ops";
+import { getErc20Decimals } from "semi-core/token";
 import { chainContext } from "~/utils/semi_core";
+import { CREATE_CALL_CONTRACT, TOKEN_FACTORY_CONTRACT } from "../config";
 import CreateCallAbi from "../deploy/CreateCall.abi.json";
 import { abi as tokenFactoryAbi } from "../deploy/MinimalFactory.json";
 
+/** 交易回执。UI 读的是 receipt.receipt.transactionHash / actualGasCost / success。 */
+export type TransactionReceipt = UserOperationReceipt;
+
+export { multisigVerificationGasLimit };
+
 export interface TransferOptions {
   to: Address;
+  /** 用户输入的十进制字符串，如 "1.5" */
   amount: string;
   erc20TokenAddress?: Address;
   privateKey: `0x${string}`;
   chain: Chain;
   sponsorFee: boolean;
   /** 同一笔 UserOp 的额外 call（如 saveRemark） */
-  optionalCalls?: any[];
+  optionalCalls?: Call[];
 }
-
-interface GasPrice {
-  maxFeePerGas: bigint;
-  maxPriorityFeePerGas: bigint;
-}
-
-export interface TransactionReceipt {
-  actualGasCost: bigint;
-  actualGasUsed: bigint;
-  entryPoint: string;
-  logs: any[];
-  nonce: string;
-  receipt: {
-    blockHash: string;
-    blockNumber: bigint;
-    contractAddress: string | null;
-    cumulativeGasUsed: bigint;
-    effectiveGasPrice: bigint;
-    from: string;
-    gasUsed: string;
-    logs: any[];
-    logsBloom: string;
-    status: string;
-    to: string;
-    transactionHash: string;
-    transactionIndex: number;
-  };
-  sender: string;
-  success: boolean;
-  userOpHash: string;
-}
-
-export interface GetGasParametersOptionsBase {
-  chain: Chain;
-  smartAccount: any;
-  bundlerClient: any;
-}
-
-export type GetGasParametersOptions = GetGasParametersOptionsBase &
-  (
-    | { callData: `0x${string}`; tx?: never; calls?: never }
-    | { tx: any; callData?: never; calls?: never }
-    | { calls: any[]; tx?: never; callData?: never }
-  );
-
-const getGasParameters = async ({
-  chain,
-  smartAccount,
-  tx,
-  callData,
-  calls,
-  bundlerClient,
-}: GetGasParametersOptions) => {
-  const gasPrice = await pimlicoGetUserOperationGasPrice(chain);
-  console.log("[Gas Price]:", {
-    maxFeePerGas: gasPrice.maxFeePerGas.toString(),
-    maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas.toString(),
-  });
-
-  let gas: any;
-  try {
-    if (calls !== undefined && calls.length > 0) {
-      gas = await bundlerClient.estimateUserOperationGas({
-        account: smartAccount,
-        calls,
-        maxFeePerGas: gasPrice.maxFeePerGas,
-        maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
-      });
-    } else if (!!tx) {
-      gas = await bundlerClient.estimateUserOperationGas({
-        account: smartAccount,
-        calls: [tx],
-        maxFeePerGas: gasPrice.maxFeePerGas,
-        maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
-      });
-    } else {
-      gas = await bundlerClient.estimateUserOperationGas({
-        account: smartAccount,
-        callData,
-        maxFeePerGas: gasPrice.maxFeePerGas,
-        maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
-      });
-    }
-  } catch (error: unknown) {
-    console.error("[Gas Estimate Error]:", error);
-    throw new Error(
-      `Failed to estimate user operation gas: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
-  }
-
-  // If bundler simulation already failed, these can come back as 0 and will lead to AA23 later.
-  // if (
-  //   typeof gas.verificationGasLimit === "bigint" &&
-  //   gas.verificationGasLimit === BigInt(0)
-  // ) {
-  //   // throw new Error(
-  //   //   `Bundler gas estimate returned verificationGasLimit=0. This usually means validateUserOp reverted (bad signature/nonce) or the account cannot prefund gas (no paymaster + insufficient ETH). ${JSON.stringify(detail)}`
-  //   // );
-
-  //   gas.verificationGasLimit = BigInt(600000)
-  // }
-
-  const result = {
-    ...gasPrice,
-    ...gas,
-    verificationGasLimit: BigInt(600000)
-  }
-  
-  console.log("[gas result]:", result);
-  try {
-    fetch("/api/log-error", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        error: 'verificationGasLimit is 0',
-        href: window.location.href,
-        info: result,
-        wallet_address: smartAccount.address,
-      }),
-    });
-  } catch (error) {
-    console.warn("Failed to log error to server", error);
-  }
-  
-  return result
-};
-
-const executeUserOperation = async (params: any, bundlerClient: any) => {
-  try {
-    const hash = await bundlerClient.sendUserOperation(params);
-    console.log("[UserOperation Hash]:", hash);
-
-    const receipt = await bundlerClient.waitForUserOperationReceipt({ hash });
-    console.log("[UserOperation Receipt]:", receipt);
-
-    return receipt as TransactionReceipt;
-  } catch (error: unknown) {
-    console.error("[UserOperation Error]:", error);
-    const msg = error instanceof Error ? error.message : String(error);
-    const hint =
-      msg.includes("AA23") || msg.includes("validateUserOp")
-        ? " (AA23: account validateUserOp reverted. Common causes: wrong owner/key, wrong chain/account address, nonce mismatch, or no paymaster + insufficient ETH to prefund.)"
-        : "";
-    throw new Error(`Failed to execute user operation: ${msg}${hint}`);
-  }
-};
-
-const assertAccountHasCode = async (publicClient: any, address: Address, sponsorFee: boolean) => {
-  // if sponsorFee, we don't need to assert account has code, because the bundler will create AA for new account automatically
-  if (sponsorFee) return;
-
-  const bytecode = await publicClient.getBytecode({ address });
-  if (!bytecode || bytecode === "0x") {
-    throw new Error(
-      `Smart account ${address} has no bytecode on this chain. Either it's not deployed on this chain, or you're signing for a different address/chain.`
-    );
-  }
-};
-
-const assertCanPrefund = async (
-  publicClient: any,
-  address: Address,
-  gasParams: any,
-  sponsorFee: boolean
-) => {
-  // If using paymaster sponsorship, prefund can be covered externally.
-  if (sponsorFee) return;
-
-  const balance: bigint = await publicClient.getBalance({ address });
-  // Rough upper bound for prefund. Not perfect, but good enough for a clear UX error.
-  const maxFeePerGas: bigint | undefined = gasParams?.maxFeePerGas;
-  const callGasLimit: bigint = gasParams?.callGasLimit ?? BigInt(0);
-  const verificationGasLimit: bigint = gasParams?.verificationGasLimit ?? BigInt(0);
-  const preVerificationGas: bigint = gasParams?.preVerificationGas ?? BigInt(0);
-
-  if (typeof maxFeePerGas === "bigint" && maxFeePerGas > 0n) {
-    const estimatedGas =
-      callGasLimit + verificationGasLimit + preVerificationGas + 50_000n; // small cushion
-    const estimatedCost = estimatedGas * maxFeePerGas;
-
-    if (balance < estimatedCost) {
-      throw new Error(
-        `Insufficient ETH to prefund gas for this UserOperation. Balance=${formatEther(
-          balance
-        )} ETH, estimatedNeeded≈${formatEther(estimatedCost)} ETH. Top up the smart account or enable gas sponsorship.`
-      );
-    }
-  } else if (balance === 0n) {
-    throw new Error(
-      `Smart account has 0 ETH and gas sponsorship is off. Top up the smart account or enable gas sponsorship.`
-    );
-  }
-};
 
 export const transfer = async ({
   to,
@@ -223,40 +38,14 @@ export const transfer = async ({
   chain,
   sponsorFee,
   optionalCalls,
-}: TransferOptions) => {
-  const smartAccount = await getSafeAccount(privateKey, chain);
-  const { publicClient, bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
-
-  const tx = {
+}: TransferOptions): Promise<TransactionReceipt> =>
+  sendNativeTransfer(chainContext(chain.id), {
+    privateKey,
     to,
-    value: parseEther(amount),
-  } as const;
-
-  const calls = [tx, ...(optionalCalls ?? [])];
-
-  const params = {
-    account: smartAccount,
-    calls,
-  };
-
-  const gasParams = await getGasParameters({
-    chain,
-    smartAccount,
-    calls,
-    bundlerClient,
+    amount: parseEther(amount),
+    sponsorFee,
+    extraCalls: optionalCalls,
   });
-  if (gasParams) {
-    Object.assign(params, gasParams);
-  }
-  if (paymasterClient) {
-    params.paymaster = paymasterClient;
-  }
-
-  await assertAccountHasCode(publicClient, smartAccount.address, sponsorFee);
-  await assertCanPrefund(publicClient, smartAccount.address, gasParams, sponsorFee);
-
-  return executeUserOperation({ ...params, verificationGasLimit: BigInt(600000) }, bundlerClient);
-};
 
 export const transferErc20 = async ({
   to,
@@ -266,142 +55,23 @@ export const transferErc20 = async ({
   erc20TokenAddress,
   sponsorFee,
   optionalCalls,
-}: TransferOptions) => {
-  if (!erc20TokenAddress) {
-    throw new Error("ERC20 token address is required");
-  }
+}: TransferOptions): Promise<TransactionReceipt> => {
+  if (!erc20TokenAddress) throw new Error("ERC20 token address is required");
 
-  const smartAccount = await getSafeAccount(privateKey, chain);
-  const { publicClient, bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
+  const ctx = chainContext(chain.id);
+  // decimals 以合约为准，不用后端元数据——两者不一致时转错的是真金白银
+  const decimals = await getErc20Decimals(ctx, erc20TokenAddress);
 
-  const decimals = await publicClient.readContract({
-    address: erc20TokenAddress,
-    abi: erc20Abi,
-    functionName: "decimals",
+  return sendErc20Transfer(ctx, {
+    privateKey,
+    to,
+    token: erc20TokenAddress,
+    // parseUnits 走字符串解析。原来是 BigInt(Number(amount) * 10 ** decimals)，
+    // 经过 float64，18 位小数的大额会静默丢精度。
+    amount: parseUnits(amount, decimals),
+    sponsorFee,
+    extraCalls: optionalCalls,
   });
-
-  const amountWithDecimals = BigInt(Number(amount) * 10 ** decimals);
-
-  const tx = {
-    abi: erc20Abi,
-    functionName: "transfer",
-    args: [to, amountWithDecimals],
-    to: erc20TokenAddress,
-  } as const;
-
-  const calls = [tx, ...(optionalCalls ?? [])];
-
-  const params = {
-    account: smartAccount,
-    calls,
-  };
-
-  const gasParams = await getGasParameters({
-    chain,
-    smartAccount,
-    calls,
-    bundlerClient,
-  });
-  if (gasParams) {
-    Object.assign(params, gasParams);
-  }
-  if (paymasterClient) {
-    params.paymaster = paymasterClient;
-  }
-
-  await assertAccountHasCode(publicClient, smartAccount.address, sponsorFee);
-  await assertCanPrefund(publicClient, smartAccount.address, gasParams, sponsorFee);
-
-  return executeUserOperation({ ...params, verificationGasLimit: BigInt(600000) }, bundlerClient);
-};
-
-export const pimlicoGetUserOperationGasPrice = async (chain: Chain): Promise<GasPrice> => {
-  try {
-    // Pimlico-specific gas-price endpoint, built from chain.id with the key from env
-    // (was hardcoded to Optimism + a leaked key — every chain got OP gas prices).
-    const gasPriceUrl = chainContext(chain.id).gasPriceUrl;
-    if (!gasPriceUrl) {
-      throw new Error(`No gas price endpoint configured for chain ${chain.id}`);
-    }
-    const response = await fetch(gasPriceUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "pimlico_getUserOperationGasPrice",
-        params: [],
-        id: 1,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(`RPC error: ${data.error.message}`);
-    }
-
-    return {
-      maxFeePerGas: BigInt(data.result.standard.maxFeePerGas),
-      maxPriorityFeePerGas: BigInt(data.result.standard.maxPriorityFeePerGas),
-    };
-  } catch (error: unknown) {
-    console.error("[Gas Price Error]:", error);
-    throw new Error(
-      `Failed to get gas price: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-};
-
-export interface EstimateGasOptions extends Omit<TransferOptions, "privateKey"> {
-  safeAccountAddress: Address;
-}
-
-export const estimateGas = async ({
-  to,
-  amount,
-  safeAccountAddress,
-  chain,
-  erc20TokenAddress,
-  sponsorFee,
-}: EstimateGasOptions) => {
-  const smartAccount = await getVirtualSafeAccount(safeAccountAddress, chain);
-  const { publicClient, bundlerClient } = await prepareClient(chain, sponsorFee);
-
-  console.log("[Smart Account]:", erc20TokenAddress);
-
-  let tx: any;
-  if (!!erc20TokenAddress && erc20TokenAddress !== zeroAddress) {
-    const decimals = await publicClient.readContract({
-      address: erc20TokenAddress,
-      abi: erc20Abi,
-      functionName: "decimals",
-    });
-    const amountWithDecimals = BigInt(Number(amount) * 10 ** decimals);
-    tx = {
-      abi: erc20Abi,
-      functionName: "transfer",
-      args: [to, amountWithDecimals],
-      to: erc20TokenAddress,
-    } as const;
-  } else {
-    tx = {
-      to,
-      value: parseEther(amount),
-    } as const;
-  }
-
-  const params = {
-    account: smartAccount,
-    calls: [tx],
-  };
-
-  return await getGasParameters({ chain, smartAccount, tx, bundlerClient });
 };
 
 export interface DeployOptions {
@@ -411,94 +81,25 @@ export interface DeployOptions {
   sponsorFee?: boolean;
 }
 
+/** 通过 Semi 自己部署的 CreateCall 合约做 CREATE2 部署 */
 export const deploy = async ({
   privateKey,
   chain,
   callData,
   sponsorFee = false,
-}: DeployOptions) => {
-  const smartAccount = await getSafeAccount(privateKey, chain);
-  const { bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
-
-  const tx = {
-    abi: CreateCallAbi,
-    functionName: "performCreate2",
-    args: ["0", callData, bytesToHex(toBytes(new Date().getTime().toString()), { size: 32 })],
-    to: CREATE_CALL_CONTRACT[chain.id],
-  } as const;
-
-  const params = {
-    account: smartAccount,
-    calls: [tx],
-  };
-
-  const gasParams = await getGasParameters({
-    chain,
-    smartAccount,
-    tx,
-    bundlerClient,
+}: DeployOptions): Promise<TransactionReceipt> =>
+  sendUserOperation(chainContext(chain.id), {
+    privateKey,
+    sponsorFee,
+    calls: [
+      {
+        abi: CreateCallAbi,
+        functionName: "performCreate2",
+        args: ["0", callData, bytesToHex(toBytes(Date.now().toString()), { size: 32 })],
+        to: CREATE_CALL_CONTRACT[chain.id],
+      },
+    ],
   });
-  if (gasParams) {
-    Object.assign(params, gasParams);
-  }
-  if (paymasterClient) {
-    params.paymaster = paymasterClient;
-  }
-
-  return executeUserOperation(params, bundlerClient);
-};
-
-/** Multisig verificationGasLimit: 600k base + 60k per additional signer */
-export const multisigVerificationGasLimit = (threshold: number): bigint =>
-  BigInt(600_000 + Math.max(0, threshold - 1) * 60_000);
-
-export interface EstimateMultisigGasOptions {
-  safeAddress: Address;
-  owners: Address[];
-  threshold: number;
-  chain: Chain;
-  calls: any[];
-}
-
-/** Estimate gas for a multisig UserOp (no paymaster — self-pay) */
-export const estimateMultisigGas = async ({
-  safeAddress,
-  owners,
-  threshold,
-  chain,
-  calls,
-}: EstimateMultisigGasOptions) => {
-  const smartAccount = await getVirtualSafeAccount(safeAddress, chain, {
-    threshold,
-    owners,
-  });
-  const { bundlerClient } = await prepareClient(chain, false);
-
-  const gasPrice = await pimlicoGetUserOperationGasPrice(chain);
-
-  let gas: any;
-  try {
-    gas = await bundlerClient.estimateUserOperationGas({
-      account: smartAccount,
-      calls,
-      maxFeePerGas: gasPrice.maxFeePerGas,
-      maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
-    });
-  } catch (error) {
-    console.warn("[Multisig Gas Estimate failed, using defaults]:", error);
-    gas = {
-      callGasLimit: BigInt(200_000),
-      preVerificationGas: BigInt(80_000),
-      verificationGasLimit: multisigVerificationGasLimit(threshold),
-    };
-  }
-
-  return {
-    ...gasPrice,
-    ...gas,
-    verificationGasLimit: multisigVerificationGasLimit(threshold),
-  };
-};
 
 export interface DeployTokenOptions {
   name: string;
@@ -511,6 +112,8 @@ export interface DeployTokenOptions {
   sponsorFee?: boolean;
   chain: Chain;
 }
+
+/** 通过 Semi 的 MinimalFactory 部署一个 ERC20 */
 export const deployToken = async ({
   privateKey,
   chain,
@@ -521,38 +124,20 @@ export const deployToken = async ({
   initMint,
   maxSupply,
   sponsorFee = false,
-}: DeployTokenOptions) => {
-  if (!TOKEN_FACTORY_CONTRACT[chain.id]) {
-    throw new Error("Token factory contract not found");
-  }
+}: DeployTokenOptions): Promise<TransactionReceipt> => {
+  const factory = TOKEN_FACTORY_CONTRACT[chain.id];
+  if (!factory) throw new Error(`No token factory deployed on chain ${chain.id}`);
 
-  const smartAccount = await getSafeAccount(privateKey, chain);
-  const { bundlerClient, paymasterClient } = await prepareClient(chain, sponsorFee);
-
-  const tx = {
-    abi: tokenFactoryAbi,
-    functionName: "createMinimal",
-    args: [name, symbol, owner, minter, initMint, maxSupply],
-    to: TOKEN_FACTORY_CONTRACT[chain.id],
-  } as const;
-
-  const params = {
-    account: smartAccount,
-    calls: [tx],
-  };
-
-  const gasParams = await getGasParameters({
-    chain,
-    smartAccount,
-    tx,
-    bundlerClient,
+  return sendUserOperation(chainContext(chain.id), {
+    privateKey,
+    sponsorFee,
+    calls: [
+      {
+        abi: tokenFactoryAbi,
+        functionName: "createMinimal",
+        args: [name, symbol, owner, minter, initMint, maxSupply],
+        to: factory,
+      },
+    ],
   });
-  if (gasParams) {
-    Object.assign(params, gasParams);
-  }
-  if (paymasterClient) {
-    params.paymaster = paymasterClient;
-  }
-
-  return executeUserOperation(params, bundlerClient);
 };

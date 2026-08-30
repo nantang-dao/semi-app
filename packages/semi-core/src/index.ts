@@ -2,6 +2,7 @@ export * from "./keys";
 export * from "./chains";
 export * from "./safe";
 export * from "./token";
+export * from "./ops";
 export * from "./config";
 export {
   SemiCoreError,

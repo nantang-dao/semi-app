@@ -67,3 +67,12 @@ export async function isDeployed(ctx: ChainContext, address: Address): Promise<b
   const code = await ctx.publicClient.getCode({ address });
   return Boolean(code && code !== "0x");
 }
+
+/** 读 ERC20 的 decimals。金额换算需要它，且应以合约为准而非后端元数据。 */
+export function getErc20Decimals(ctx: ChainContext, token: Address): Promise<number> {
+  return ctx.publicClient.readContract({
+    address: token,
+    abi: erc20Abi,
+    functionName: "decimals",
+  });
+}

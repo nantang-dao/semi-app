@@ -50,3 +50,33 @@ export class PaymasterNotConfiguredError extends SemiCoreError {
     );
   }
 }
+
+/** bundler 的 gas 估算失败 */
+export class GasEstimationError extends SemiCoreError {
+  constructor(message: string, options?: ErrorOptions) {
+    super("GAS_ESTIMATION_FAILED", message, options);
+  }
+}
+
+/** 自付 gas 但账户余额不够预付 */
+export class InsufficientFundsError extends SemiCoreError {
+  readonly balance: bigint;
+  readonly required: bigint;
+  constructor(balance: bigint, required: bigint) {
+    super(
+      "INSUFFICIENT_FUNDS",
+      `Smart account cannot prefund this UserOperation: balance ${balance} wei, needs about ${required} wei. Top up the account or enable gas sponsorship.`
+    );
+    this.balance = balance;
+    this.required = required;
+  }
+}
+
+/** UserOp 提交后失败。aaCode 是 ERC-4337 的错误码（如 AA23）。 */
+export class UserOpFailedError extends SemiCoreError {
+  readonly aaCode: string | undefined;
+  constructor(message: string, aaCode?: string, options?: ErrorOptions) {
+    super("USER_OP_FAILED", message, options);
+    this.aaCode = aaCode;
+  }
+}

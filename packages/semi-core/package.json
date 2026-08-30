@@ -10,7 +10,8 @@
     "./chains": "./src/chains/index.ts",
     "./safe": "./src/safe/index.ts",
     "./account": "./src/account/index.ts",
-    "./token": "./src/token/index.ts"
+    "./token": "./src/token/index.ts",
+    "./ops": "./src/ops/index.ts"
   },
   "scripts": {
     "test": "vitest run",
