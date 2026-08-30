@@ -1,0 +1,21 @@
+ginger.yml
+  s_881e33c21d9e1f::t_1c94a4511f4b17 50
+utils/semi_core.ts
+  s_881e33c21d9e1f::t_a0fa2b7831632a 14,43-52,55-56,60-62,68,70-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "09465b18834df54dc79d3b43ddbb5f68c8d2e309",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
