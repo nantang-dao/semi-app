@@ -236,7 +236,6 @@ import {
 } from "~/utils/semi_api";
 import { isGasSponsorshipChain } from "~/utils/gas_sponsorship";
 import { isPhoneNumber } from "~/utils";
-import { serializeError } from "~/utils/format";
 import { REMARK_PROXY_ADDRESS } from "~/utils/config";
 import { remarkProxyAbi, REMARK_MAX_CHARS } from "~/utils/remarkContract";
 // 类型定义
@@ -346,21 +345,19 @@ const formState = reactive<FormState>({
 });
 
 // 计算属性
-const nativeToken = computed(
-  (): TokenClass => ({
-    address: zeroAddress,
-    name: useChain.chain.nativeCurrency.name,
-    symbol: useChain.chain.nativeCurrency.symbol,
-    decimals: useChain.chain.nativeCurrency.decimals,
-    image_url: "/images/eth_logo.png",
-    chain_id: useChain.chain.id,
-    chain: useChain.chain.name.toLowerCase(),
-    token_type: "NATIVE_COIN",
-    publisher_address: zeroAddress,
-    position: 0,
-    description: "",
-  })
-);
+const nativeToken = computed((): TokenClass => ({
+  address: zeroAddress,
+  name: useChain.chain.nativeCurrency.name,
+  symbol: useChain.chain.nativeCurrency.symbol,
+  decimals: useChain.chain.nativeCurrency.decimals,
+  image_url: "/images/eth_logo.png",
+  chain_id: useChain.chain.id,
+  chain: useChain.chain.name.toLowerCase(),
+  token_type: "NATIVE_COIN",
+  publisher_address: zeroAddress,
+  position: 0,
+  description: "",
+}));
 
 const tokenList = ref<TokenClass[]>([nativeToken.value]);
 
@@ -389,19 +386,6 @@ const getErrorMessage = (error: unknown): string => {
 
 const handleError = (error: unknown, title: string, description?: string) => {
   console.error(error);
-  try {
-    $fetch("/api/log-error", {
-      method: "POST",
-      body: {
-        error: serializeError(error),
-        href: window.location.href,
-        info: formState,
-        wallet_address: user.user?.evm_chain_address,
-      },
-    });
-  } catch (error) {
-    console.warn("Failed to log error to server", error);
-  }
 
   toast.add({
     title,

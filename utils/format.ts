@@ -2,7 +2,7 @@
  * 三个替换掉小依赖的格式化函数。
  *
  * 原来分别用 bignumber.js（一处调用）、dayjs + relativeTime 插件（三处）和
- * serialize-error（三处）。都是纯函数，几十行就能覆盖，没必要为此各带一个库。
+ * serialize-error（已随 /api/log-error 一并移除）。都是纯函数，几十行就能覆盖。
  * 行为与被替换的实现逐例对拍过：金额、日期、错误序列化完全相同，相对时间的
  * 中文文案也与 dayjs zh-cn 逐字一致。
  */
@@ -78,32 +78,4 @@ export function formatDateTime(date: string | Date, withSeconds = false): string
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
     `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   return withSeconds ? `${base}:${pad(d.getSeconds())}` : base;
-}
-
-/**
- * 把 Error 变成可 JSON 序列化的对象，对应 serialize-error 的 `serializeError`。
- *
- * 我们只把它喂给 /api/log-error，用到的就是 name / message / stack 和自定义
- * 字段。循环引用用 seen 集合挡住——那正是当初需要这个库的原因。
- */
-export function serializeError(value: unknown, seen = new WeakSet<object>()): unknown {
-  if (value === null || typeof value !== "object") {
-    return typeof value === "bigint" ? value.toString() : value;
-  }
-  if (seen.has(value)) return "[Circular]";
-  seen.add(value);
-
-  if (Array.isArray(value)) return value.map((v) => serializeError(v, seen));
-
-  const out: Record<string, unknown> = {};
-  if (value instanceof Error) {
-    out.name = value.name;
-    out.message = value.message;
-    if (value.stack) out.stack = value.stack;
-    if (value.cause !== undefined) out.cause = serializeError(value.cause, seen);
-  }
-  for (const key of Object.keys(value)) {
-    out[key] = serializeError((value as Record<string, unknown>)[key], seen);
-  }
-  return out;
 }

@@ -62,7 +62,6 @@
 import { onMounted } from "vue";
 import { signInWithEmail, sendEmailCode } from "~/utils/semi_api";
 import { useUserStore } from "~/stores/user";
-import { serializeError } from "~/utils/format";
 
 definePageMeta({
   layout: "unauth",
@@ -164,22 +163,6 @@ const onSubmit = async () => {
     }
   } catch (error) {
     console.error("验证失败:", error);
-    try {
-      $fetch("/api/log-error", {
-        method: "POST",
-        body: {
-          error: serializeError(error),
-          href: window.location.href,
-          info: {
-            ...formState,
-            email: email.value,
-          },
-          wallet_address: "",
-        },
-      });
-    } catch (error) {
-      console.warn("log error failed:", error);
-    }
     toast.add({
       title: i18n.text["Verification failed"],
       description: i18n.text["Please check if the verification code is correct"],
