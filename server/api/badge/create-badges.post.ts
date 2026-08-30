@@ -1,5 +1,5 @@
 import db from "@/server/utils/db";
-import { keystoreToPrivateKey, privateKeyToAddress } from "semi-core/keys";
+import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
 import { id } from "@instantdb/admin";
@@ -15,23 +15,13 @@ const chains = {
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  const {
-    class_id,
-    receiver_addresses,
-    pin_code,
-    keystore_json,
-    chain_id,
-    badge_name,
-    badge_description,
-    badge_image_url,
-  } = body;
+  const { class_id, receiver_addresses, chain_id, badge_name, badge_description, badge_image_url } =
+    body;
 
   if (
     !class_id ||
     !receiver_addresses ||
     receiver_addresses.length === 0 ||
-    !pin_code ||
-    !keystore_json ||
     !chain_id ||
     !badge_name ||
     !badge_description ||
@@ -51,15 +41,19 @@ export default defineEventHandler(async (event) => {
   }
   const chain = chains[chain_id as keyof typeof chains];
 
-  let eoa_address = "0x0000000000000000000000000000000000000000";
+  let eoa_address: `0x${string}`;
   try {
-    const private_key = await keystoreToPrivateKey(JSON.parse(keystore_json), pin_code);
-    eoa_address = privateKeyToAddress(private_key as `0x${string}`);
+    eoa_address = await verifyBadgeAuth({
+      body,
+      action: "create-badges",
+      chainId: chain.id,
+      params: { class_id, receiver_addresses, badge_name, badge_description, badge_image_url },
+    });
   } catch (error) {
     console.error(error);
     return {
       success: false,
-      message: "Invalid passcode",
+      message: error instanceof BadgeAuthError ? error.message : "Unauthorized",
     };
   }
 

@@ -1,5 +1,5 @@
 import db from "@/server/utils/db";
-import { keystoreToPrivateKey, privateKeyToAddress } from "semi-core/keys";
+import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
 
@@ -12,9 +12,9 @@ const chains = {
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  const { badge_id, pin_code, keystore_json, chain_id } = body;
+  const { badge_id, chain_id } = body;
 
-  if (!pin_code || !keystore_json || !badge_id || !chain_id) {
+  if (!badge_id || !chain_id) {
     return {
       success: false,
       message: "Invalid parameters",
@@ -29,15 +29,19 @@ export default defineEventHandler(async (event) => {
   }
   const chain = chains[chain_id as keyof typeof chains];
 
-  let eoa_address = "0x0000000000000000000000000000000000000000";
+  let eoa_address: `0x${string}`;
   try {
-    const private_key = await keystoreToPrivateKey(JSON.parse(keystore_json), pin_code);
-    eoa_address = privateKeyToAddress(private_key as `0x${string}`);
+    eoa_address = await verifyBadgeAuth({
+      body,
+      action: "reject-badge",
+      chainId: chain.id,
+      params: { badge_id },
+    });
   } catch (error) {
     console.error(error);
     return {
       success: false,
-      message: "Invalid passcode",
+      message: error instanceof BadgeAuthError ? error.message : "Unauthorized",
     };
   }
 

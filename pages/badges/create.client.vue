@@ -135,6 +135,7 @@ import { reactive, computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import type { Profile } from "@/server/api/badge/types";
 import { chainContext } from "@/utils/semi_core";
+import { signBadgeAuth } from "@/utils/badge_auth_client";
 
 const router = useRouter();
 const i18n = useI18n();
@@ -349,8 +350,13 @@ const handleCreate = async () => {
       }>("/api/profile/create", {
         method: "POST",
         body: {
-          pin_code: pinCode.value.join(""),
-          keystore_json: user.user!.encrypted_keys,
+          ...(await signBadgeAuth({
+            keystoreJson: user.user!.encrypted_keys,
+            pinCode: pinCode.value.join(""),
+            action: "create-profile",
+            chainId: useChain.chain.id,
+            params: {},
+          })),
           chain_id: useChain.chain.id,
         },
       });
@@ -393,8 +399,17 @@ const handleCreate = async () => {
     }>("/api/badge/create-class", {
       method: "POST",
       body: {
-        pin_code: pinCode.value.join(""),
-        keystore_json: user.user!.encrypted_keys,
+        ...(await signBadgeAuth({
+          keystoreJson: user.user!.encrypted_keys,
+          pinCode: pinCode.value.join(""),
+          action: "create-class",
+          chainId: useChain.chain.id,
+          params: {
+            class_name: formState.name,
+            class_description: formState.description,
+            class_image_url: formState.image_url,
+          },
+        })),
         chain_id: useChain.chain.id,
         class_name: formState.name,
         class_description: formState.description,

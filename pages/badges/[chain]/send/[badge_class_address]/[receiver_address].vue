@@ -254,6 +254,7 @@ import type { BadgeClass } from "@/server/api/badge/types";
 import { isAddress } from "viem";
 import { getUserByHandleOrPhone, uploadFile } from "~/utils/semi_api";
 import { isPhoneNumber } from "~/utils";
+import { signBadgeAuth } from "@/utils/badge_auth_client";
 
 const route = useRoute();
 const useChain = useChainStore();
@@ -472,11 +473,38 @@ const handleNext = () => {
 
 const handleCreate = async () => {
   isSubmitting.value = true;
+
+  // 本地解密 + 签名。PIN 错在这里就抛，不再由服务端判断。
+  let auth;
+  try {
+    auth = await signBadgeAuth({
+      keystoreJson: user.user!.encrypted_keys,
+      pinCode: pinCode.value.join(""),
+      action: "create-badges",
+      chainId: chainId,
+      params: {
+        class_id: classId,
+        receiver_addresses: formState.receivers.map((r) => r.wallet),
+        badge_name: formState.name,
+        badge_description: formState.description,
+        badge_image_url: formState.image_url,
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    isSubmitting.value = false;
+    toast.add({
+      title: t("Invalid passcode", "Invalid passcode"),
+      description: t("Invalid passcode", "Invalid passcode"),
+      color: "error",
+    });
+    return;
+  }
+
   const { data, error } = await useFetch("/api/badge/create-badges", {
     method: "POST",
     body: {
-      pin_code: pinCode.value.join(""),
-      keystore_json: user.user!.encrypted_keys,
+      ...auth,
       chain_id: chainId,
       badge_name: formState.name,
       badge_description: formState.description,

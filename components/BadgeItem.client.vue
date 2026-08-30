@@ -188,6 +188,7 @@
 <script setup lang="ts">
 import type { Badge } from "@/server/api/badge/types";
 import dayjs from "dayjs";
+import { signBadgeAuth, isKeystoreError } from "@/utils/badge_auth_client";
 
 const props = defineProps<{
   badge: Badge;
@@ -244,8 +245,13 @@ const handleAcceptBadge = async () => {
         method: "POST",
         body: {
           badge_id: props.badge.badge_id,
-          pin_code: pinCode.value.join(""),
-          keystore_json: user.user?.encrypted_keys,
+          ...(await signBadgeAuth({
+            keystoreJson: user.user!.encrypted_keys,
+            pinCode: pinCode.value.join(""),
+            action: "accept-badge",
+            chainId: chainStore.chain.id,
+            params: { badge_id: props.badge.badge_id },
+          })),
           chain_id: chainStore.chain.id,
         },
       }
@@ -267,7 +273,8 @@ const handleAcceptBadge = async () => {
   } catch (error) {
     console.error(error);
     toast.add({
-      title: "Failed to accept badge",
+      // 解密失败说明 PIN 错——现在在客户端就能判断，不必发到服务端
+      title: isKeystoreError(error) ? "Invalid passcode" : "Failed to accept badge",
       color: "error",
     });
   } finally {
@@ -294,8 +301,13 @@ const handleRejectBadge = async () => {
         method: "POST",
         body: {
           badge_id: props.badge.badge_id,
-          pin_code: pinCode.value.join(""),
-          keystore_json: user.user?.encrypted_keys,
+          ...(await signBadgeAuth({
+            keystoreJson: user.user!.encrypted_keys,
+            pinCode: pinCode.value.join(""),
+            action: "reject-badge",
+            chainId: chainStore.chain.id,
+            params: { badge_id: props.badge.badge_id },
+          })),
           chain_id: chainStore.chain.id,
         },
       }
@@ -317,7 +329,8 @@ const handleRejectBadge = async () => {
   } catch (error) {
     console.error(error);
     toast.add({
-      title: "Failed to reject badge",
+      // 解密失败说明 PIN 错——现在在客户端就能判断，不必发到服务端
+      title: isKeystoreError(error) ? "Invalid passcode" : "Failed to reject badge",
       color: "error",
     });
   } finally {
