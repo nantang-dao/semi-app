@@ -1,0 +1,40 @@
+pages/transfer.client.vue
+  s_881e33c21d9e1f::t_9c8e26d011e5a2 239
+  s_881e33c21d9e1f::t_5cabad4cb2bd15 3-9,20-29,31-38,48-61,66-78,82-90,93-107,113-115,130-142,157-166,174-179,192-199,202-209,290-291,293-304,437-440,525-526,734,743,745,749-753,758,761,767-768,785-787,791
+utils/format.ts
+  s_881e33c21d9e1f::t_07046bde4bdb70 1-4,8-32,34,38,53-56,58-59,65-66,69-109
+  s_881e33c21d9e1f::t_19cfd0bd7f0b1d 5-7
+  s_881e33c21d9e1f::t_ed4e5c5aa5a5a6 33,35-37,39-52,57,60-64,67-68
+pages/rename-handle.client.vue
+  s_881e33c21d9e1f::t_9c8e26d011e5a2 69,86
+  s_881e33c21d9e1f::t_5cabad4cb2bd15 17-20,120-124
+package.json
+  s_881e33c21d9e1f::t_19cfd0bd7f0b1d 41
+pages/verifyemail.client.vue
+  s_881e33c21d9e1f::t_5cabad4cb2bd15 3-9,20-29,32-38,46-53
+  s_881e33c21d9e1f::t_9c8e26d011e5a2 65
+utils/display.ts
+  s_881e33c21d9e1f::t_9c8e26d011e5a2 2,11,95
+components/BadgeItem.client.vue
+  s_881e33c21d9e1f::t_9c8e26d011e5a2 67,190
+pages/verifyphone.client.vue
+  s_881e33c21d9e1f::t_9c8e26d011e5a2 67
+pnpm-lock.yaml
+  s_881e33c21d9e1f::t_1e3d0d179090bf 69-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "7aea0f923b505d9cf162debfbc89baae55b3515e",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
