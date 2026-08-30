@@ -11,10 +11,7 @@ import { createSemiCore, type ChainConfig } from "semi-core";
  */
 const VITE_ENV: Record<string, string | undefined> = {
   VITE_ALCHEMY_API_KEY: import.meta.env.VITE_ALCHEMY_API_KEY,
-  VITE_MAINNET_BUNDLER_URL: import.meta.env.VITE_MAINNET_BUNDLER_URL,
-  VITE_OP_BUNDLER_URL: import.meta.env.VITE_OP_BUNDLER_URL,
-  VITE_SEPOLIA_BUNDLER_URL: import.meta.env.VITE_SEPOLIA_BUNDLER_URL,
-  VITE_OP_PAYMASTER: import.meta.env.VITE_OP_PAYMASTER,
+  VITE_ZERODEV_PROJECT_ID: import.meta.env.VITE_ZERODEV_PROJECT_ID,
 };
 
 /**
@@ -43,30 +40,47 @@ const ALCHEMY_NETWORK: Record<number, string> = {
 const alchemyRpcUrl = (chainId: number, apiKey: string): string =>
   `https://${ALCHEMY_NETWORK[chainId]}.g.alchemy.com/v2/${apiKey}`;
 
+/**
+ * ZeroDev 的 bundler / paymaster 是同一个 endpoint，同一个 project id 在所有
+ * 链上通用，链由 URL 里的 chain id 决定 —— 所以一个变量就够，不必每条链配一
+ * 个 URL。（此前 mainnet 走 Pimlico、另两条走 ZeroDev，是迁移做了一半留下的。）
+ *
+ * `selfFunded=true`：不走 ZeroDev 的余额，由我们自己的 paymaster 存款付。
+ */
+const zeroDevUrl = (chainId: number, projectId: string): string =>
+  `https://rpc.zerodev.app/api/v3/${projectId}/chain/${chainId}?selfFunded=true`;
+
 interface ChainCandidate {
   chain: Chain;
-  bundlerEnv: string;
-  paymasterEnv?: string;
+  /** 是否为这条链代付 gas。只有 Optimism 充了 paymaster 存款。 */
+  sponsored: boolean;
 }
 
 const CANDIDATES: ChainCandidate[] = [
-  { chain: mainnet, bundlerEnv: "VITE_MAINNET_BUNDLER_URL" },
-  { chain: optimism, bundlerEnv: "VITE_OP_BUNDLER_URL", paymasterEnv: "VITE_OP_PAYMASTER" },
-  { chain: sepolia, bundlerEnv: "VITE_SEPOLIA_BUNDLER_URL" },
+  { chain: mainnet, sponsored: false },
+  { chain: optimism, sponsored: true },
+  { chain: sepolia, sponsored: false },
 ];
 
 function buildChains(): ChainConfig[] {
   const apiKey = env("VITE_ALCHEMY_API_KEY");
   if (!apiKey) return [];
+  const projectId = env("VITE_ZERODEV_PROJECT_ID");
 
-  return CANDIDATES.filter((c) => ALCHEMY_NETWORK[c.chain.id]).map((c) => ({
-    chain: c.chain,
-    rpcUrl: alchemyRpcUrl(c.chain.id, apiKey),
-    bundlerUrl: env(c.bundlerEnv),
-    paymasterUrl: c.paymasterEnv ? env(c.paymasterEnv) || undefined : undefined,
-    // gasPriceUrl 留空：semi-core 会去问 bundler，那才是决定这笔 UserOp
-    // 收不收的一方。
-  }));
+  return CANDIDATES.filter((c) => ALCHEMY_NETWORK[c.chain.id]).map((c) => {
+    const bundlerUrl = projectId ? zeroDevUrl(c.chain.id, projectId) : undefined;
+    return {
+      chain: c.chain,
+      rpcUrl: alchemyRpcUrl(c.chain.id, apiKey),
+      bundlerUrl,
+      // 同一个 endpoint 既是 bundler 又是 paymaster；给不代付的链留空，
+      // ctx.canSponsorGas 就是由它决定的。
+      paymasterUrl: c.sponsored ? bundlerUrl : undefined,
+      // gasPriceUrl 留空：semi-core 会去问 bundler，那才是决定这笔 UserOp
+      // 收不收的一方。ZeroDev 对 pimlico_getUserOperationGasPrice 和
+      // zd_getUserOperationGasPrice 返回相同结果，所以沿用默认方法名。
+    };
+  });
 }
 
 let instance: ReturnType<typeof createSemiCore> | undefined;
