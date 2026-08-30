@@ -3,11 +3,6 @@ export * from "./chains";
 export * from "./safe";
 export * from "./token";
 export * from "./ops";
+export * from "./multisig";
 export * from "./config";
-export {
-  SemiCoreError,
-  KeystoreError,
-  ChainNotConfiguredError,
-  ConfigError,
-  PaymasterNotConfiguredError,
-} from "./errors";
+export * from "./errors";

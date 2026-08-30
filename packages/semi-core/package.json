@@ -11,7 +11,8 @@
     "./safe": "./src/safe/index.ts",
     "./account": "./src/account/index.ts",
     "./token": "./src/token/index.ts",
-    "./ops": "./src/ops/index.ts"
+    "./ops": "./src/ops/index.ts",
+    "./multisig": "./src/multisig/index.ts"
   },
   "scripts": {
     "test": "vitest run",

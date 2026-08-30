@@ -80,3 +80,36 @@ export class UserOpFailedError extends SemiCoreError {
     this.aaCode = aaCode;
   }
 }
+
+/** paymaster 的赞助有效期已过。多签收签周期长，这是常见情况。 */
+export class PaymasterExpiredError extends SemiCoreError {
+  readonly expiredAt: number;
+  constructor(expiredAt: number) {
+    super(
+      "PAYMASTER_EXPIRED",
+      `Paymaster sponsorship expired at ${new Date(expiredAt * 1000).toISOString()}. The transaction must be re-proposed to refresh it.`
+    );
+    this.expiredAt = expiredAt;
+  }
+}
+
+/** bundler 拒绝了 UserOp。aaCode 是 ERC-4337 错误码。 */
+export class BundlerError extends SemiCoreError {
+  readonly aaCode: string | undefined;
+  constructor(message: string, aaCode?: string) {
+    super("BUNDLER_REJECTED", message);
+    this.aaCode = aaCode;
+  }
+}
+
+/** Safe 还停留在预测地址上，链上没有代码，读不了 owner */
+export class SafeNotDeployedError extends SemiCoreError {
+  readonly address: string;
+  constructor(address: string, chainId: number) {
+    super(
+      "SAFE_NOT_DEPLOYED",
+      `Safe ${address} has no code on chain ${chainId} — it is still counterfactual. Execute a transaction from it first.`
+    );
+    this.address = address;
+  }
+}
