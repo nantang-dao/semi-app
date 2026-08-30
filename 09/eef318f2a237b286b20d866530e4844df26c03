@@ -1,0 +1,38 @@
+packages/semi-core/package.json
+  s_881e33c21d9e1f::t_a72705e1d7cbbc 24-25,28,31
+  s_881e33c21d9e1f::t_819de7b2d5471c 18,20-21
+packages/semi-core/test/fork/deploy-and-execute.test.ts
+  s_881e33c21d9e1f::t_906fa5c8a74512 18-22,40-67,75-77,105-165,167-185,187-219
+  s_881e33c21d9e1f::t_819de7b2d5471c 1-17,23-39,68-74,78-104,166,186,220-221
+package.json
+  s_881e33c21d9e1f::t_a72705e1d7cbbc 34-35
+packages/semi-core/src/account/safeAccount.ts
+  s_881e33c21d9e1f::t_baae219fb030de 9-19,62,97,128
+packages/semi-core/test/account-address-agreement.test.ts
+  s_881e33c21d9e1f::t_906fa5c8a74512 66,123-127,134-135
+  s_881e33c21d9e1f::t_782096566e4e6a 6,91-122,128-133,136-140
+  s_881e33c21d9e1f::t_58d45dd6067fed 5,7-8
+  s_881e33c21d9e1f::t_94edb059d95fac 1-4,9-65,67-90,141
+packages/semi-core/src/config.ts
+  s_881e33c21d9e1f::t_94edb059d95fac 15-19,111
+packages/semi-core/test/fork/README.md
+  s_881e33c21d9e1f::t_67ca4d5c361ee9 1-25
+pnpm-lock.yaml
+  s_881e33c21d9e1f::t_a0499422829159 51-52,54-55,103-104,3452-3453,3460-3461,3530-3531,3533-3534,8943,8958,8962,9012,9016
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "09eef318f2a237b286b20d866530e4844df26c03",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
