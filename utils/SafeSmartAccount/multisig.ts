@@ -12,6 +12,8 @@ import {
   packMultisigSignatures,
   estimateMultisigGas,
   SafeNotDeployedError,
+  SnapshotExpiredError,
+  PaymasterExpiredError,
   type BuildSnapshotParams,
   type CollectedSignature,
   type UserOpSnapshot,
@@ -51,14 +53,32 @@ export async function signSafeOpSnapshot(
   return { signer: signer_address, signature };
 }
 
+const formatDate = (unixSeconds: number) => new Date(unixSeconds * 1000).toLocaleString("zh-CN");
+
 export async function executeMultisigUserOp(
   snapshot: UserOpSnapshot,
   signatures: CollectedSignature[],
   threshold: number,
   chain: Chain
 ): Promise<{ userOpHash: Hex; txHash: Hex; actualGasCost: string }> {
-  const result = await coreExecute(chainContext(chain.id), snapshot, signatures, threshold);
-  return { ...result, actualGasCost: result.actualGasCost.toString() };
+  try {
+    const result = await coreExecute(chainContext(chain.id), snapshot, signatures, threshold);
+    return { ...result, actualGasCost: result.actualGasCost.toString() };
+  } catch (error) {
+    // 两种过期的原因不同，给用户的说法也该不同。队列页会把 message 直接
+    // 显示在提示条里，所以这里要给中文。
+    if (error instanceof SnapshotExpiredError) {
+      throw new Error(
+        `该提案已于 ${formatDate(error.expiredAt)} 超过 14 天的收签期限，需要重新发起。`
+      );
+    }
+    if (error instanceof PaymasterExpiredError) {
+      throw new Error(
+        `代付 gas 的授权已于 ${formatDate(error.expiredAt)} 到期，需要重新发起该提案以刷新授权。`
+      );
+    }
+    throw error;
+  }
 }
 
 export { packMultisigSignatures };

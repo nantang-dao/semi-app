@@ -22,6 +22,13 @@ export interface UserOpSnapshot {
   initCode: Hex;
   chainId: number;
 
+  /**
+   * 这个提案作废的 unix 秒 —— **Semi 自己的策略限制**，见
+   * SNAPSHOT_VALIDITY_SECONDS。不是 paymaster 给的。
+   * 旧快照里没有这个字段，那时按不过期处理。
+   */
+  expiresAt?: number;
+
   // ── Paymaster 赞助（在建快照时就冻结）──
   // 所有 owner 必须对同一份 paymasterAndData 签名，所以这里锁死。
   // paymasterAndData 是进 EIP-712 SafeOp 哈希的**打包**形式；

@@ -1,7 +1,7 @@
 import type { Hex } from "viem";
 import { ENTRY_POINT_07_ADDRESS } from "../chains";
 import type { ChainContext } from "../config";
-import { BundlerError, PaymasterExpiredError } from "../errors";
+import { BundlerError, PaymasterExpiredError, SnapshotExpiredError } from "../errors";
 import { packMultisigSignatures } from "./sign";
 import { assertValidSnapshot, type CollectedSignature, type UserOpSnapshot } from "./types";
 
@@ -58,11 +58,18 @@ export async function executeMultisigUserOp(
   const bundlerUrl = ctx.bundlerUrl;
   if (!bundlerUrl) throw new BundlerError(`No bundler configured for chain ${ctx.chainId}`);
 
-  // 提前拦住过期的赞助，而不是让 bundler 抛一个难懂的 AA33
-  if (snapshot.paymasterValidUntil && snapshot.paymasterValidUntil > 0) {
-    if (Math.floor(Date.now() / 1000) >= snapshot.paymasterValidUntil) {
-      throw new PaymasterExpiredError(snapshot.paymasterValidUntil);
-    }
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  // 1) Semi 自己的收签窗口（见 SNAPSHOT_VALIDITY_SECONDS）。
+  //    旧快照没有这个字段，按不过期处理。
+  if (snapshot.expiresAt && nowSec >= snapshot.expiresAt) {
+    throw new SnapshotExpiredError(snapshot.expiresAt);
+  }
+
+  // 2) paymaster 自己签的有效期。多数情况是 0（不过期），届时跳过。
+  //    提前拦下来，好过让 bundler 抛一个难懂的 AA33。
+  if (snapshot.paymasterValidUntil && nowSec >= snapshot.paymasterValidUntil) {
+    throw new PaymasterExpiredError(snapshot.paymasterValidUntil);
   }
 
   const userOp: Record<string, string> = {

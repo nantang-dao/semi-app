@@ -46,7 +46,13 @@ describe("parsePaymasterValidity", () => {
 
 // ── 过期预检查的行为 ──────────────────────────────────────────────────────
 
-import { createSemiCore, PaymasterExpiredError, executeMultisigUserOp } from "../src/index";
+import {
+  createSemiCore,
+  PaymasterExpiredError,
+  SnapshotExpiredError,
+  SNAPSHOT_VALIDITY_SECONDS,
+  executeMultisigUserOp,
+} from "../src/index";
 import { optimism } from "viem/chains";
 import type { UserOpSnapshot } from "../src/multisig";
 
@@ -61,7 +67,8 @@ const core = createSemiCore({
   ],
 });
 
-const snapshot = (paymasterValidUntil: number): UserOpSnapshot => ({
+const snapshot = (paymasterValidUntil: number, expiresAt?: number): UserOpSnapshot => ({
+  expiresAt,
   sender: "0x7a3Ed6502F876E4E940Eb34fb33309e8551C5070",
   nonce: "0",
   callData: "0x",
@@ -105,5 +112,47 @@ describe("执行前的赞助过期检查", () => {
     await expect(
       executeMultisigUserOp(core.chain(10), snapshot(future), sigs, 1)
     ).rejects.not.toBeInstanceOf(PaymasterExpiredError);
+  });
+});
+
+describe("Semi 自己的 14 天收签窗口", () => {
+  const now = () => Math.floor(Date.now() / 1000);
+
+  it("常量就是 14 天", () => {
+    expect(SNAPSHOT_VALIDITY_SECONDS).toBe(14 * 24 * 60 * 60);
+  });
+
+  it("窗口内放行", async () => {
+    await expect(
+      executeMultisigUserOp(core.chain(10), snapshot(0, now() + 3600), sigs, 1)
+    ).rejects.not.toBeInstanceOf(SnapshotExpiredError);
+  });
+
+  it("超出窗口就拦，并说明这是我们自己的限制", async () => {
+    const past = now() - 60;
+    await expect(
+      executeMultisigUserOp(core.chain(10), snapshot(0, past), sigs, 1)
+    ).rejects.toMatchObject({ code: "SNAPSHOT_EXPIRED", expiredAt: past });
+    await expect(executeMultisigUserOp(core.chain(10), snapshot(0, past), sigs, 1)).rejects.toThrow(
+      /Semi's own limit, not the paymaster/
+    );
+  });
+
+  it("旧快照没有 expiresAt，按不过期处理，不会因为升级而集体作废", async () => {
+    await expect(
+      executeMultisigUserOp(core.chain(10), snapshot(0, undefined), sigs, 1)
+    ).rejects.not.toBeInstanceOf(SnapshotExpiredError);
+  });
+
+  it("两种过期是不同的错误 —— 排查时不会看错原因", async () => {
+    const past = now() - 60;
+    // 只有 paymaster 过期
+    await expect(
+      executeMultisigUserOp(core.chain(10), snapshot(past, now() + 3600), sigs, 1)
+    ).rejects.toBeInstanceOf(PaymasterExpiredError);
+    // 只有我们的窗口过期
+    await expect(
+      executeMultisigUserOp(core.chain(10), snapshot(0, past), sigs, 1)
+    ).rejects.toBeInstanceOf(SnapshotExpiredError);
   });
 });

@@ -20,6 +20,24 @@ export interface BuildSnapshotParams {
   sponsorFee?: boolean;
 }
 
+/**
+ * 提案的有效期：14 天。
+ *
+ * **这是 Semi 自己加的策略限制，不是 paymaster 的技术限制。**
+ * 实测 ZeroDev 返回的 paymaster validUntil 是 0，赞助本身根本不过期
+ * （见 parsePaymasterValidity）。两道检查在 executeMultisigUserOp 里
+ * 各查各的，报的也是不同的错误。
+ *
+ * 加这道限制的理由和 paymaster 无关：快照把 nonce 和 gas 价格都冻结了。
+ * 放得越久，nonce 越可能已经被别的交易占用（提交时报 AA25），冻结的
+ * gas 价格也越可能低于当时的行情而被 bundler 拒收。与其让它在提交那一刻
+ * 以难懂的方式失败，不如提前说清楚「这个提案太旧了，请重新发起」。
+ *
+ * 改动这个值只影响此后新建的提案。已经存在的快照按写入时记下的 expiresAt
+ * 判定 —— 因为签名承诺的是那一份快照，不能事后改口。
+ */
+export const SNAPSHOT_VALIDITY_SECONDS = 14 * 24 * 60 * 60;
+
 /** 多签的安全余量：验签 1.5 倍，其余 1.2 倍 */
 const VERIFICATION_BUFFER = { num: 3n, den: 2n };
 const OTHER_BUFFER = { num: 6n, den: 5n };
@@ -107,6 +125,7 @@ export async function buildMultisigUserOpSnapshot(
   }
 
   return {
+    expiresAt: Math.floor(Date.now() / 1000) + SNAPSHOT_VALIDITY_SECONDS,
     sender: safeAddress,
     nonce: nonce.toString(),
     callData,

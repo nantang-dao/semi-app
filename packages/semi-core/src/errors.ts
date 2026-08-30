@@ -113,3 +113,20 @@ export class SafeNotDeployedError extends SemiCoreError {
     this.address = address;
   }
 }
+
+/**
+ * 提案超过了 Semi 自己设定的有效期。
+ *
+ * 与 PaymasterExpiredError 是两回事：那个是 paymaster 的签名到期（技术限制），
+ * 这个是我们自己加的收签窗口（策略限制）。分开是为了排查时不会看错原因。
+ */
+export class SnapshotExpiredError extends SemiCoreError {
+  readonly expiredAt: number;
+  constructor(expiredAt: number) {
+    super(
+      "SNAPSHOT_EXPIRED",
+      `This multisig proposal passed its collection window on ${new Date(expiredAt * 1000).toISOString()} and must be re-proposed. This is Semi's own limit, not the paymaster's.`
+    );
+    this.expiredAt = expiredAt;
+  }
+}
