@@ -12,6 +12,11 @@ export interface ChainConfig {
   chain: Chain;
   /** 只读查询用的 JSON-RPC 端点 */
   rpcUrl: string;
+  /**
+   * 覆盖默认的 http(rpcUrl) 传输层。用于 fallback、WebSocket，
+   * 或者测试时注入一个不联网的 transport。留空即用 rpcUrl。
+   */
+  transport?: Transport;
   /** ERC-4337 bundler。不发 UserOp 就不需要。 */
   bundlerUrl?: string;
   /** ERC-7677 paymaster。不配则该链只能自付 gas。 */
@@ -103,7 +108,7 @@ export function createSemiCore(config: SemiCoreConfig): SemiCore {
 
     const publicClient = createPublicClient({
       chain: entry.chain,
-      transport: http(entry.rpcUrl),
+      transport: entry.transport ?? http(entry.rpcUrl),
     }) as PublicClient<Transport, Chain>;
 
     contexts.set(chainId, {

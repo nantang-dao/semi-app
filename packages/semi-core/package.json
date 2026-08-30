@@ -15,19 +15,20 @@
     "./multisig": "./src/multisig/index.ts"
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --exclude 'test/fork/**'",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:fork": "vitest run test/fork"
   },
   "peerDependencies": {
-    "viem": "^2.48.0",
-    "permissionless": "^0.2.0"
+    "permissionless": "^0.4.0",
+    "viem": "^2.48.0"
   },
   "devDependencies": {
+    "permissionless": "0.4.0",
     "typescript": "^5.9.3",
     "viem": "2.48.4",
-    "vitest": "^3.2.4",
-    "permissionless": "0.2.57"
+    "vitest": "^3.2.4"
   },
   "peerDependenciesMeta": {
     "permissionless": {

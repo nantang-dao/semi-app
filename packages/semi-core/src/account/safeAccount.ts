@@ -6,6 +6,17 @@ import type { ChainContext } from "../config";
 import { predictSafeAddress } from "../safe";
 
 const SAFE_VERSION = "1.4.1" as const;
+
+/**
+ * owner 地址升序排列。
+ *
+ * **顺序直接决定 Safe 的地址** —— 它进 initializer，initializer 是 CREATE2
+ * salt 的原像。permissionless 不会替你排（它只排 ERC-7579 的 attesters），
+ * 所以本包里凡是构造账户或预测地址的地方都必须用同一个规则，否则同一批
+ * owner 会算出两个不同的钱包。
+ */
+const sortOwners = (owners: readonly Address[]): Address[] =>
+  [...owners].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 const ENTRY_POINT = { address: ENTRY_POINT_07_ADDRESS, version: "0.7" } as const;
 
 function deploymentAddresses(chainId: number) {
@@ -48,7 +59,7 @@ export async function getSafeAccount(
 
   const allOwners =
     owners && owners.length > 0
-      ? owners.map((addr, i) =>
+      ? sortOwners(owners).map((addr, i) =>
           addr.toLowerCase() === signer.address.toLowerCase() ? signer : placeholderOwner(i, addr)
         )
       : [signer];
@@ -83,9 +94,7 @@ export async function getVirtualSafeAccount(
 ) {
   const allOwners =
     owners && owners.length > 0
-      ? [...owners]
-          .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
-          .map((addr, i) => placeholderOwner(i, addr))
+      ? sortOwners(owners).map((addr, i) => placeholderOwner(i, addr))
       : Array.from({ length: ownerCount ?? threshold }, (_, i) =>
           privateKeyToAccount(`0x${(i + 1).toString(16).padStart(64, "0")}` as Hex)
         );
@@ -116,11 +125,7 @@ export function predictAddress(
   ctx: ChainContext,
   { owner, owners, threshold, saltNonce }: PredictAddressParams
 ): Promise<Address> {
-  const list = owners
-    ? [...owners].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
-    : owner
-      ? [owner]
-      : [];
+  const list = owners ? sortOwners(owners) : owner ? [owner] : [];
 
   return predictSafeAddress({
     client: ctx.publicClient,
