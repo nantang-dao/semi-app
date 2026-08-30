@@ -23,21 +23,9 @@ importers:
       '@pinia/nuxt':
         specifier: ^0.11.3
         version: 0.11.3(magic-string@1.2.2)(magicast@0.5.4)(pinia@3.0.4(typescript@5.9.3)(vue@3.5.33(typescript@5.9.3)))(rolldown@1.2.5)(unplugin@3.3.0(esbuild@0.28.2)(rolldown@1.2.5)(rollup@4.62.5)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(yaml@2.9.0)))
-      '@types/js-cookie':
-        specifier: ^3.0.6
-        version: 3.0.6
-      '@vueuse/shared':
-        specifier: ^13.9.0
-        version: 13.9.0(vue@3.5.33(typescript@5.9.3))
       autoprefixer:
         specifier: 10.5.0
         version: 10.5.0(postcss@8.5.26)
-      bignumber.js:
-        specifier: ^9.3.1
-        version: 9.3.1
-      dayjs:
-        specifier: 1.11.20
-        version: 1.11.20
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.8
@@ -56,15 +44,9 @@ importers:
       semi-core:
         specifier: workspace:*
         version: link:packages/semi-core
-      serialize-error:
-        specifier: ^12.0.0
-        version: 12.0.0
       tailwindcss:
         specifier: 4.2.4
         version: 4.2.4
-      trackjs:
-        specifier: ^3.10.4
-        version: 3.10.4
       viem:
         specifier: 2.48.4
         version: 2.48.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
@@ -84,6 +66,9 @@ importers:
       '@iconify-json/ci':
         specifier: ^1.2.2
         version: 1.2.2
+      '@types/js-cookie':
+        specifier: ^3.0.6
+        version: 3.0.6
       prettier:
         specifier: 3.8.3
         version: 3.8.3
@@ -1841,9 +1826,6 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  bignumber.js@9.3.1:
-    resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
-
   bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
 
@@ -2103,9 +2085,6 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
-
-  dayjs@1.11.20:
-    resolution: {integrity: sha512-YbwwqR/uYpeoP4pu043q+LTDLFBLApUP6VxRihdfNTqu4ubqMlGDLd6ErXhEgsyvY0K6nCs7nggYumAN+9uEuQ==}
 
   db0@0.3.4:
     resolution: {integrity: sha512-RiXXi4WaNzPTHEOu8UPQKMooIbqOEyqA1t7Z6MsdxSCeb8iUC9ko3LcmsLmeUt2SM5bctfArZKkRQggKZz7JNw==}
@@ -3616,10 +3595,6 @@ packages:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
 
-  serialize-error@12.0.0:
-    resolution: {integrity: sha512-ZYkZLAvKTKQXWuh5XpBw7CdbSzagarX39WyZ2H07CDLC5/KfsRGlIXV8d4+tfqX1M7916mRqR1QfNHSij+c9Pw==}
-    engines: {node: '>=18'}
-
   serialize-javascript@7.1.0:
     resolution: {integrity: sha512-RNEqWOyhhUQYN9V1GfHwu9AR/g+NTciH6Z5u3/no6X3/w+04J2lVDL+svFQVXgXrEGBMG2puMVN3gq2SNGuTGw==}
     engines: {node: '>=20.0.0'}
@@ -3893,15 +3868,8 @@ packages:
   tr46@0.0.3:
     resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
 
-  trackjs@3.10.4:
-    resolution: {integrity: sha512-coQkj9d7OjPmrLKj4MeLvf1U5vPD9QfXMpqVghhKnF++BlFOkA9t64ry0Usqt+8dk1tunZ9DQ5IVKLYi+3H8+w==}
-
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
-
-  type-fest@4.41.0:
-    resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
-    engines: {node: '>=16'}
 
   type-fest@5.8.0:
     resolution: {integrity: sha512-YGYEVz3Fm5iy/AybuA0oyNFq7H4CgQNfRp/qfe8nurE1kuCeNm3/vfm9X4Mtl+qLyaKJUh5xrFZwogr41SMjYA==}
@@ -6592,8 +6560,6 @@ snapshots:
 
   baseline-browser-mapping@2.11.16: {}
 
-  bignumber.js@9.3.1: {}
-
   bindings@1.5.0:
     dependencies:
       file-uri-to-path: 1.0.0
@@ -6869,8 +6835,6 @@ snapshots:
       css-tree: 2.2.1
 
   csstype@3.2.3: {}
-
-  dayjs@1.11.20: {}
 
   db0@0.3.4: {}
 
@@ -8536,10 +8500,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  serialize-error@12.0.0:
-    dependencies:
-      type-fest: 4.41.0
-
   serialize-javascript@7.1.0: {}
 
   seroval@1.6.2: {}
@@ -8796,11 +8756,7 @@ snapshots:
 
   tr46@0.0.3: {}
 
-  trackjs@3.10.4: {}
-
   tslib@2.8.1: {}
-
-  type-fest@4.41.0: {}
 
   type-fest@5.8.0:
     dependencies:

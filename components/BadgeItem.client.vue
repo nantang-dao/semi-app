@@ -64,7 +64,7 @@
               {{ i18n.text["Published At"] }}
             </div>
             <div class="text-xs text-right">
-              {{ dayjs(badge.created_at).format("YYYY-MM-DD HH:mm:ss") }}
+              {{ formatDateTime(badge.created_at, true) }}
             </div>
           </div>
           <div class="flex flex-row items-start justify-between gap-2">
@@ -187,7 +187,7 @@
 
 <script setup lang="ts">
 import type { Badge } from "@/server/api/badge/types";
-import dayjs from "dayjs";
+import { formatDateTime } from "~/utils/format";
 import { signBadgeAuth, isKeystoreError } from "@/utils/badge_auth_client";
 
 const props = defineProps<{

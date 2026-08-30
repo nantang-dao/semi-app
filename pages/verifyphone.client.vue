@@ -64,7 +64,7 @@
 import { onMounted } from "vue";
 import { sendSMS, signIn } from "~/utils/semi_api";
 import { useUserStore } from "~/stores/user";
-import { serializeError } from "serialize-error";
+import { serializeError } from "~/utils/format";
 
 definePageMeta({
   layout: "unauth",

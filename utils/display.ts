@@ -1,12 +1,6 @@
 import { formatUnits, type Chain, zeroAddress } from "viem";
-import bignumber from "bignumber.js";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/zh-cn";
+import { formatAmount, formatRelativeTime } from "./format";
 import { entryPoint07Address } from "viem/account-abstraction";
-
-dayjs.locale("zh-cn");
-dayjs.extend(relativeTime);
 
 export function formatAddress(address: string) {
   return address.slice(0, 6) + "..." + address.slice(-4);
@@ -14,7 +8,7 @@ export function formatAddress(address: string) {
 
 export function displayBalance(wei: bigint, fixed = 6, decimals = 18) {
   const value = formatUnits(wei, decimals);
-  const str = new bignumber(value).toFormat(fixed, 1);
+  const str = formatAmount(value, fixed);
   // remove trailing zeros
   return str.replace(/\.?0+$/, "");
 }
@@ -98,5 +92,5 @@ export function parseActionsFromAlchemyApi(
 }
 
 export function displayDate(date: string) {
-  return dayjs(date).fromNow();
+  return formatRelativeTime(date);
 }

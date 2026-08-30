@@ -1,7 +1,12 @@
 <template>
   <div class="flex flex-col container-size rounded-xl bg-[var(--ui-bg)] shadow-lg p-4">
-    <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" class="self-start mb-4"
-      @click="goBack">
+    <UButton
+      icon="i-heroicons-arrow-left"
+      color="neutral"
+      variant="ghost"
+      class="self-start mb-4"
+      @click="goBack"
+    >
       {{ i18n.text.Back }}
     </UButton>
     <div class="flex flex-col items-center justify-center h-full gap-4 py-8 w-[80%] mx-auto">
@@ -12,12 +17,25 @@
       </div>
       <UForm :state="formState" @submit="onSubmit" class="w-full">
         <UFormField name="pin">
-          <UPinInput variant="subtle" type="number" v-model="formState.pin" :length="6" size="xl" class="w-full"
-            :ui="{ base: 'w-full' }" :disabled="loading" />
+          <UPinInput
+            variant="subtle"
+            type="number"
+            v-model="formState.pin"
+            :length="6"
+            size="xl"
+            class="w-full"
+            :ui="{ base: 'w-full' }"
+            :disabled="loading"
+          />
         </UFormField>
         <div class="flex justify-between items-center mt-2">
-          <UButton type="button" color="neutral" variant="ghost" :disabled="countdown > 0 || loading"
-            @click="resendCode">
+          <UButton
+            type="button"
+            color="neutral"
+            variant="ghost"
+            :disabled="countdown > 0 || loading"
+            @click="resendCode"
+          >
             {{
               countdown > 0
                 ? i18n.text["Resend ({countdown})"].replace("{countdown}", countdown.toString())
@@ -25,8 +43,14 @@
             }}
           </UButton>
         </div>
-        <UButton type="submit" color="primary" class="w-full mt-4 flex justify-center items-center" size="xl"
-          :loading="loading" :disabled="loading">
+        <UButton
+          type="submit"
+          color="primary"
+          class="w-full mt-4 flex justify-center items-center"
+          size="xl"
+          :loading="loading"
+          :disabled="loading"
+        >
           {{ i18n.text.Verify }}
         </UButton>
       </UForm>
@@ -38,7 +62,7 @@
 import { onMounted } from "vue";
 import { signInWithEmail, sendEmailCode } from "~/utils/semi_api";
 import { useUserStore } from "~/stores/user";
-import { serializeError } from "serialize-error";
+import { serializeError } from "~/utils/format";
 
 definePageMeta({
   layout: "unauth",

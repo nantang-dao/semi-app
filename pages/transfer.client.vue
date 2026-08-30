@@ -1,7 +1,12 @@
 <template>
   <div class="flex flex-col container-size rounded-xl bg-[var(--ui-bg)] shadow-lg p-4">
-    <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" class="self-start mb-4"
-      @click="handleBack">
+    <UButton
+      icon="i-heroicons-arrow-left"
+      color="neutral"
+      variant="ghost"
+      class="self-start mb-4"
+      @click="handleBack"
+    >
       {{ i18n.text["Back"] }}
     </UButton>
     <div class="flex flex-col items-center justify-center h-full gap-4 pb-8 w-[80%] mx-auto">
@@ -12,12 +17,25 @@
         <UForm :state="formState" @submit="onSubmit" class="w-full">
           <UFormField name="to" :label="i18n.text['Recipient (supports address or phone number)']">
             <div class="flex items-start flex-row gap-2">
-              <UTextarea size="xl" class="w-full" variant="subtle" :rows="5" v-model="formState.to"
-                :placeholder="i18n.text['Please enter recipient address/phone number']" :ui="{ base: 'w-full' }"
-                :disabled="initializing" />
+              <UTextarea
+                size="xl"
+                class="w-full"
+                variant="subtle"
+                :rows="5"
+                v-model="formState.to"
+                :placeholder="i18n.text['Please enter recipient address/phone number']"
+                :ui="{ base: 'w-full' }"
+                :disabled="initializing"
+              />
               <div class="flex flex-col gap-2">
-                <UButton icon="ci:close-md" color="neutral" variant="subtle" size="xl" class="text-2xl cursor-pointer"
-                  @click="formState.to = ''">
+                <UButton
+                  icon="ci:close-md"
+                  color="neutral"
+                  variant="subtle"
+                  size="xl"
+                  class="text-2xl cursor-pointer"
+                  @click="formState.to = ''"
+                >
                 </UButton>
                 <ScanQrcodeBtn @onDetect="handleQrCodeDetect" />
                 <ContactsButton @onSelect="handleContactSelect" />
@@ -27,34 +45,74 @@
 
           <UFormField name="amount" :label="i18n.text['Send Amount']" class="mt-4">
             <div class="flex items-center gap-2">
-              <TokenSwitch :token-list="tokenList" v-model="formState.token" v-if="formState.token" />
-              <UInput variant="subtle" size="xl" class="w-full flex-1" v-model="formState.amount"
-                :placeholder="i18n.text['Please enter send amount']" :ui="{ base: 'w-full' }"
-                :disabled="initializing || !balance" />
+              <TokenSwitch
+                :token-list="tokenList"
+                v-model="formState.token"
+                v-if="formState.token"
+              />
+              <UInput
+                variant="subtle"
+                size="xl"
+                class="w-full flex-1"
+                v-model="formState.amount"
+                :placeholder="i18n.text['Please enter send amount']"
+                :ui="{ base: 'w-full' }"
+                :disabled="initializing || !balance"
+              />
             </div>
           </UFormField>
 
           <UFormField name="memo" :label="i18n.text['Memo(optional)']" class="mt-4">
-            <UInput variant="subtle" size="xl" class="w-full flex-1" v-model="formState.memo"
-              :placeholder="i18n.text['Please enter memo']" :ui="{ base: 'w-full' }" :disabled="initializing"
-              :maxlength="REMARK_MAX_CHARS" />
-            <p class="text-gray-500 text-xs mt-1">已输入 {{ formState.memo.length }} / {{ REMARK_MAX_CHARS }} 字</p>
+            <UInput
+              variant="subtle"
+              size="xl"
+              class="w-full flex-1"
+              v-model="formState.memo"
+              :placeholder="i18n.text['Please enter memo']"
+              :ui="{ base: 'w-full' }"
+              :disabled="initializing"
+              :maxlength="REMARK_MAX_CHARS"
+            />
+            <p class="text-gray-500 text-xs mt-1">
+              已输入 {{ formState.memo.length }} / {{ REMARK_MAX_CHARS }} 字
+            </p>
           </UFormField>
 
           <UFormField name="senderNote" :label="i18n.text['Sender Note']" class="mt-4">
-            <UInput variant="subtle" size="xl" class="w-full flex-1" v-model="formState.senderNote"
-              :placeholder="i18n.text['Please enter sender note']" :ui="{ base: 'w-full' }" :disabled="initializing" />
+            <UInput
+              variant="subtle"
+              size="xl"
+              class="w-full flex-1"
+              v-model="formState.senderNote"
+              :placeholder="i18n.text['Please enter sender note']"
+              :ui="{ base: 'w-full' }"
+              :disabled="initializing"
+            />
           </UFormField>
 
-          <UFormField name="metadata" :label="i18n.text['Metadata']" class="mt-4" v-if="formState.metadata">
-            <UInput variant="subtle" size="xl" class="w-full flex-1" v-model="formState.metadata"
-              :placeholder="i18n.text['Metadata']" :ui="{ base: 'w-full' }" :disabled="true" />
+          <UFormField
+            name="metadata"
+            :label="i18n.text['Metadata']"
+            class="mt-4"
+            v-if="formState.metadata"
+          >
+            <UInput
+              variant="subtle"
+              size="xl"
+              class="w-full flex-1"
+              v-model="formState.metadata"
+              :placeholder="i18n.text['Metadata']"
+              :ui="{ base: 'w-full' }"
+              :disabled="true"
+            />
           </UFormField>
 
           <div class="mt-4">
             <div class="text-gray-400 text-sm">{{ i18n.text["Balance"] }}</div>
             <div class="flex items-center gap-2">
-              <span class="text-3xl font-bold" v-if="initializing">-- {{ formState.token?.symbol }}</span>
+              <span class="text-3xl font-bold" v-if="initializing"
+                >-- {{ formState.token?.symbol }}</span
+              >
               <span class="text-3xl font-bold" v-else>
                 {{ displayBalance(balance, 6, formState.token?.decimals) }}
                 {{ formState.token?.symbol }}
@@ -69,9 +127,19 @@
             </p>
           </div>
 
-          <UButton type="submit" color="primary" class="w-full mt-4 flex justify-center items-center" size="xl"
-            :loading="initializing || loading" :disabled="initializing || loading || !isFormValid || !balance">
-            {{ isMultisigMode ? (i18n.text['multisig.submitProposal'] || 'Submit Multisig Proposal') : i18n.text["Next"] }}
+          <UButton
+            type="submit"
+            color="primary"
+            class="w-full mt-4 flex justify-center items-center"
+            size="xl"
+            :loading="initializing || loading"
+            :disabled="initializing || loading || !isFormValid || !balance"
+          >
+            {{
+              isMultisigMode
+                ? i18n.text["multisig.submitProposal"] || "Submit Multisig Proposal"
+                : i18n.text["Next"]
+            }}
           </UButton>
         </UForm>
       </div>
@@ -86,8 +154,16 @@
 
         <UForm :state="formState" @submit="onSubmit" class="w-full">
           <UFormField name="code">
-            <UPinInput variant="subtle" type="number" v-model="formState.code" :length="6" size="xl" class="w-full"
-              :ui="{ base: 'w-full' }" mask />
+            <UPinInput
+              variant="subtle"
+              type="number"
+              v-model="formState.code"
+              :length="6"
+              size="xl"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              mask
+            />
           </UFormField>
 
           <div class="text-gray-400 text-sm mt-3" v-if="formState.gasEstimate !== '0'">
@@ -95,10 +171,12 @@
               {{ i18n.text["gas.estimatedFee"] || i18n.text["Estimated Fee"] }}
               <FeeTipPopup />
             </span>
-            <span :class="[
-              'font-bold text-base text-foreground',
-              formState.remainingFreeTransactions > 0 ? 'line-through' : '',
-            ]">
+            <span
+              :class="[
+                'font-bold text-base text-foreground',
+                formState.remainingFreeTransactions > 0 ? 'line-through' : '',
+              ]"
+            >
               {{ formState.gasEstimate }} Gwei
             </span>
           </div>
@@ -111,12 +189,24 @@
           </div>
 
           <div class="flex gap-4 mt-4">
-            <UButton type="button" color="neutral" class="flex-1 flex justify-center items-center" size="xl"
-              :disabled="loading" @click="handleReset">
+            <UButton
+              type="button"
+              color="neutral"
+              class="flex-1 flex justify-center items-center"
+              size="xl"
+              :disabled="loading"
+              @click="handleReset"
+            >
               {{ i18n.text["Previous"] }}
             </UButton>
-            <UButton type="submit" color="primary" class="flex-1 flex justify-center items-center" size="xl"
-              :loading="loading" :disabled="loading || !isCodeComplete">
+            <UButton
+              type="submit"
+              color="primary"
+              class="flex-1 flex justify-center items-center"
+              size="xl"
+              :loading="loading"
+              :disabled="loading || !isCodeComplete"
+            >
               {{ i18n.text["Confirm"] }}
             </UButton>
           </div>
@@ -146,23 +236,9 @@ import {
 } from "~/utils/semi_api";
 import { isGasSponsorshipChain } from "~/utils/gas_sponsorship";
 import { isPhoneNumber } from "~/utils";
-import { serializeError } from "serialize-error";
+import { serializeError } from "~/utils/format";
 import { REMARK_PROXY_ADDRESS } from "~/utils/config";
 import { remarkProxyAbi, REMARK_MAX_CHARS } from "~/utils/remarkContract";
-let trackJsTrack: ((error: Error) => void) | null = null;
-
-const initTrackJs = async () => {
-  try {
-    const { TrackJS } = await import("trackjs");
-    TrackJS.install({
-      token: "41669e16206a432f8bb61b64ac3cd43f",
-    });
-    trackJsTrack = (error: Error) => TrackJS.track(error);
-  } catch (error) {
-    console.warn("TrackJS unavailable; continuing without client error tracking.", error);
-  }
-};
-
 // 类型定义
 interface FormState {
   to: string;
@@ -211,17 +287,21 @@ const toast = useToast();
 const i18n = useI18n();
 
 // Multisig mode detection
-const isMultisigMode = computed(() => !!multisigStore.activeWallet)
-const multisigGasEstimateEth = ref('')
+const isMultisigMode = computed(() => !!multisigStore.activeWallet);
+const multisigGasEstimateEth = ref("");
 const multisigHintText = computed(() => {
-  const wallet = multisigStore.activeWallet
-  if (!wallet) return ''
-  const t = wallet.threshold
-  const n = 0 // owner count unknown here; use threshold as base
-  const gas = multisigGasEstimateEth.value ? `~${multisigGasEstimateEth.value} ETH` : '...'
-  return (i18n.text['multisig.proposalHint'] || `This transaction will be submitted as a multisig proposal and requires ${t} signature(s) to execute. Est. gas: ${gas} (paid by wallet).`)
-    .replace('{t}', String(t)).replace('{gas}', gas)
-})
+  const wallet = multisigStore.activeWallet;
+  if (!wallet) return "";
+  const t = wallet.threshold;
+  const n = 0; // owner count unknown here; use threshold as base
+  const gas = multisigGasEstimateEth.value ? `~${multisigGasEstimateEth.value} ETH` : "...";
+  return (
+    i18n.text["multisig.proposalHint"] ||
+    `This transaction will be submitted as a multisig proposal and requires ${t} signature(s) to execute. Est. gas: ${gas} (paid by wallet).`
+  )
+    .replace("{t}", String(t))
+    .replace("{gas}", gas);
+});
 
 const handleBack = () => {
   if (multisigStore.activeWallet) {
@@ -309,9 +389,6 @@ const getErrorMessage = (error: unknown): string => {
 
 const handleError = (error: unknown, title: string, description?: string) => {
   console.error(error);
-  if (error instanceof Error) {
-    trackJsTrack?.(error);
-  }
   try {
     $fetch("/api/log-error", {
       method: "POST",
@@ -357,10 +434,10 @@ const fetchTokenBalance = async () => {
       formState.token.address === zeroAddress
         ? await getBalance(accountAddress, useChain.chain)
         : await getErc20Balance(
-          accountAddress,
-          formState.token.address as `0x${string}`,
-          useChain.chain
-        );
+            accountAddress,
+            formState.token.address as `0x${string}`,
+            useChain.chain
+          );
   } catch (error) {
     handleError(error, i18n.text["Get balance failed"]);
   } finally {
@@ -445,7 +522,8 @@ const handleTokenTransfer = async () => {
       amount: formState.amount,
       privateKey: privateKey as `0x${string}`,
       chain: useChain.chain,
-      sponsorFee: isGasSponsorshipChain(useChain.chain.id) && formState.remainingFreeTransactions > 0,
+      sponsorFee:
+        isGasSponsorshipChain(useChain.chain.id) && formState.remainingFreeTransactions > 0,
     };
 
     const proxyAddress = REMARK_PROXY_ADDRESS[useChain.chain.id];
@@ -653,7 +731,7 @@ const handleMultisigProposal = async () => {
 
   try {
     const isErc20 = formState.token?.address && formState.token.address !== zeroAddress.toString();
-    const txType = isErc20 ? 'erc20_transfer' : 'transfer';
+    const txType = isErc20 ? "erc20_transfer" : "transfer";
     const callDetail: Record<string, any> = {
       to: formState.recipient,
       amount: formState.amount,
@@ -662,28 +740,32 @@ const handleMultisigProposal = async () => {
     if (isErc20) callDetail.token_address = formState.token?.address;
 
     // Build evm_call_data for transfer
-    let evmCallData = '0x';
+    let evmCallData = "0x";
     if (isErc20 && formState.token?.address) {
-      const { encodeFunctionData, erc20Abi, parseUnits } = await import('viem');
+      const { encodeFunctionData, erc20Abi, parseUnits } = await import("viem");
       const decimals = formState.token.decimals as number;
       // 精确字符串转换，避免 Number(amount)*10**decimals 丢精度
       const amountBN = parseUnits(String(formState.amount), decimals);
-      evmCallData = encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [formState.recipient as `0x${string}`, amountBN] });
+      evmCallData = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "transfer",
+        args: [formState.recipient as `0x${string}`, amountBN],
+      });
     }
 
     // 备注上链：与单签一致，通过 Remark Proxy 合约的 saveRemark 调用将备注写入链上
     const proxyAddress = REMARK_PROXY_ADDRESS[useChain.chain.id];
-    const publicRemark = (formState.memo ?? '').trim().slice(0, REMARK_MAX_CHARS);
+    const publicRemark = (formState.memo ?? "").trim().slice(0, REMARK_MAX_CHARS);
     const hasRemark = Boolean(publicRemark);
     if (proxyAddress && hasRemark) {
-      const { encodeFunctionData } = await import('viem');
+      const { encodeFunctionData } = await import("viem");
       const uuidToU256 = (uuid: string): bigint => hexToBigInt(keccak256(toBytes(uuid)));
       const remarkUuid = crypto.randomUUID();
       const remarkId = uuidToU256(remarkUuid);
       const remarkCallData = encodeFunctionData({
         abi: remarkProxyAbi,
-        functionName: 'saveRemark',
-        args: [remarkId, remarkId, publicRemark, ''],
+        functionName: "saveRemark",
+        args: [remarkId, remarkId, publicRemark, ""],
       });
       // 将 remark 调用信息存入 call_detail，签名时 buildCallsFromTx 会读取并附加
       callDetail.remark_to = proxyAddress;
@@ -700,13 +782,13 @@ const handleMultisigProposal = async () => {
     });
 
     toast.add({
-      title: i18n.text['multisig.proposalSubmitted'] || 'Proposal submitted!',
-      description: i18n.text['multisig.goToSign'] || 'Go to sign',
-      color: 'success',
+      title: i18n.text["multisig.proposalSubmitted"] || "Proposal submitted!",
+      description: i18n.text["multisig.goToSign"] || "Go to sign",
+      color: "success",
     });
     router.push(`/multisig/${tx.id}`);
   } catch (err: any) {
-    handleError(err, i18n.text['multisig.proposalFailed'] || 'Proposal failed');
+    handleError(err, i18n.text["multisig.proposalFailed"] || "Proposal failed");
   }
 };
 
@@ -754,7 +836,6 @@ watch(
 
 // 生命周期
 onMounted(async () => {
-  await initTrackJs();
   await initForm();
 });
 </script>
