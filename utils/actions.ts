@@ -1,5 +1,5 @@
 import type { Chain } from "viem";
-import { parseSendActions, parseActionsFromAlchemyApi, type ActionPreview } from "./display";
+import { parseActionsFromAlchemyApi, type ActionPreview } from "./display";
 import { Alchemy, Network, AssetTransfersCategory, SortingOrder } from "alchemy-sdk";
 import type { TokenClass } from "./semi_api";
 import type { TransactionRecord } from "./semi_api";
@@ -113,26 +113,6 @@ export function collectUniqueTxHexes(...actionLists: ActionPreview[][]): string 
   }
   return Array.from(hashes).join(",");
 }
-
-// deprecated
-export const getSendActions = async (safeAddress: string, chain: Chain) => {
-  try {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const result = await fetch(
-      `https://semi.mobit.app/api/actions?safeAddress=${safeAddress}&chainId=${chain.id}&timezone=${timezone}`
-    );
-
-    if (!result.ok) {
-      throw new Error(`HTTP error! status: ${result.status}`);
-    }
-
-    const resultData = await result.json();
-    return parseSendActions(resultData.results);
-  } catch (error) {
-    console.error("Error fetching send actions:", error);
-    throw new Error("Failed to fetch send actions");
-  }
-};
 
 export const getReceiveActions = async (
   safeAddress: string,

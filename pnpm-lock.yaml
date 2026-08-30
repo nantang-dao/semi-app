@@ -65,9 +65,6 @@ importers:
       serialize-error:
         specifier: ^12.0.0
         version: 12.0.0
-      solar-contract-sdk:
-        specifier: ^0.0.3
-        version: 0.0.3(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
       tailwindcss:
         specifier: 4.2.4
         version: 4.2.4
@@ -3983,9 +3980,6 @@ packages:
   smob@1.6.2:
     resolution: {integrity: sha512-RQsvleCbF8cVHEv+xuDGaA4pOizFqJ0GgjtMSRo6oP8pnN7WsigHgVGey6aILRBKv4W2YOMHLqbKdnB6hpB9fw==}
     engines: {node: '>=20.0.0'}
-
-  solar-contract-sdk@0.0.3:
-    resolution: {integrity: sha512-Lb1BzQSoWHh+UfYVnm0qHZ3t1jicqcPAfEwIxc3+0ksPfwIgQlCymM7VqVj1+XGFryE/Bm5P7NJKIJeIIlGddQ==}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -9489,15 +9483,6 @@ snapshots:
   slash@5.1.0: {}
 
   smob@1.6.2: {}
-
-  solar-contract-sdk@0.0.3(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6):
-    dependencies:
-      viem: 2.48.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
-    transitivePeerDependencies:
-      - bufferutil
-      - typescript
-      - utf-8-validate
-      - zod
 
   source-map-js@1.2.1: {}
 
