@@ -22,16 +22,16 @@
     "@nuxt/icon": "1.13.0",
     "@nuxt/ui": "^3.3.7",
     "@pinia/nuxt": "^0.11.3",
-    "autoprefixer": "10.5.0",
+    "autoprefixer": "10.5.4",
     "js-cookie": "^3.0.5",
     "nuxt": "4.5.2",
     "permissionless": "^0.4.0",
     "pinia": "^3.0.4",
-    "qrcode.vue": "3.9.0",
+    "qrcode.vue": "3.10.0",
     "semi-core": "workspace:*",
-    "tailwindcss": "4.2.4",
+    "tailwindcss": "4.3.3",
     "viem": "2.48.4",
-    "vue": "3.5.33",
+    "vue": "3.5.42",
     "vue-boring-avatars": "^1.4.0",
     "vue-qrcode-reader": "^5.7.3",
     "vue-router": "^4.6.4"
@@ -39,7 +39,7 @@
   "devDependencies": {
     "@iconify-json/ci": "^1.2.2",
     "@types/js-cookie": "^3.0.6",
-    "prettier": "3.8.3"
+    "prettier": "3.9.6"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
