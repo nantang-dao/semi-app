@@ -1,0 +1,25 @@
+utils/actions.ts
+  s_881e33c21d9e1f::t_c5b1f5ffa2029a 2
+utils/config.ts
+  s_881e33c21d9e1f::t_c5b1f5ffa2029a 6,22
+docs/semi-core.md
+  s_881e33c21d9e1f::t_2fcdfaaed5db86 64
+  s_881e33c21d9e1f::t_6b6994f3f2aa3d 1-18,20-37,40-52,54-63,65-110,112-116
+  s_881e33c21d9e1f::t_2cf968e8eaf25c 19,38-39,53,111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "7ff0b70cec97c82c58fb7e53e774c843697db028",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
