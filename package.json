@@ -21,12 +21,12 @@
     "@instantdb/admin": "0.22.185",
     "@nuxt/icon": "2.5.1",
     "@nuxt/ui": "^4.11.0",
-    "@pinia/nuxt": "^0.11.3",
+    "@pinia/nuxt": "^1.0.2",
     "autoprefixer": "10.5.4",
     "js-cookie": "^3.0.5",
     "nuxt": "4.5.2",
     "permissionless": "^0.4.0",
-    "pinia": "^3.0.4",
+    "pinia": "^4.0.3",
     "qrcode.vue": "3.10.0",
     "semi-core": "workspace:*",
     "tailwindcss": "4.3.3",
@@ -34,7 +34,7 @@
     "vue": "3.5.42",
     "vue-boring-avatars": "^1.4.0",
     "vue-qrcode-reader": "^5.7.3",
-    "vue-router": "^4.6.4"
+    "vue-router": "^5.3.0"
   },
   "devDependencies": {
     "@iconify-json/ci": "^1.2.2",
