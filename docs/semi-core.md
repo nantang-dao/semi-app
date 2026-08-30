@@ -52,9 +52,9 @@ app 侧的组装在 `utils/semi_core.ts`，那是整个应用**唯一**读环境
 |                                               | 为什么                                                     |
 | --------------------------------------------- | ---------------------------------------------------------- |
 | `utils/semi_api.ts` / `utils/multisig_api.ts` | Rails 后端客户端                                           |
-| `utils/actions.ts` / `utils/display.ts`       | Alchemy 索引查询，不是链                                   |
+| `utils/actions.ts` / `utils/alchemy.ts`       | Alchemy 索引查询（转账历史、NFT），不是链上交互             |
 | `deploy` / `deployToken`                      | CreateCall 和 TokenFactory 是 **Semi 自己部署的**业务合约  |
-| `server/utils/solar_badge/**`                 | 同上，且是 wagmi 代码生成产物，会把 `@wagmi/core` 拖进来   |
+| `server/utils/solar_badge/**`                 | 同上；badge / profile 合约是 Semi 的业务合约               |
 | badge 铸造                                    | 用管理员私钥，必须留在服务端；semi-core 是客户端也会打包的 |
 | `abbreviateAddress` / `exportKeyStore`        | 展示与 UI                                                  |
 
@@ -110,7 +110,7 @@ fork Optimism 主网的 anvil 上，Safe 1.4.1 / Safe4337Module / EntryPoint 0.7
 |             | 用途                                                                       |
 | ----------- | -------------------------------------------------------------------------- |
 | **Alchemy** | JSON-RPC（主机名按链推导，只需一个 key）+ 索引 API（转账历史、NFT 持有者） |
-| **ZeroDev** | OP / Sepolia 的 bundler、paymaster、gas 报价                               |
+| **ZeroDev** | 三条链的 bundler 与 gas 报价；paymaster 只有 OP 充了存款（`VITE_ZERODEV_PROJECT_ID` 一个变量，链由 URL 里的 chain id 决定） |
 
 gas 报价问的是 bundler，因为**决定这笔 UserOp 收不收的就是它**。取不到时退回
 链上 EIP-1559 估价并记 warning——出一个可能被拒的价格，好过让交易根本发不出去。
