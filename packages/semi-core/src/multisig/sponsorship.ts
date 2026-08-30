@@ -2,14 +2,53 @@ import type { Address, Hex } from "viem";
 import { ENTRY_POINT_07_ADDRESS } from "../chains";
 import type { ChainContext } from "../config";
 
-/** 7 天 —— 足够覆盖任何现实中的收签周期 */
-const PAYMASTER_VALIDITY_SECONDS = 7 * 24 * 60 * 60;
+/**
+ * eth-infinitism VerifyingPaymaster（ZeroDev 用的就是这个）的 paymasterData 布局：
+ *   abi.encode(uint48 validUntil, uint48 validAfter)  64 字节
+ *   + ECDSA 签名                                        65 字节
+ */
+const VERIFYING_PAYMASTER_DATA_BYTES = 129;
+
+export interface PaymasterValidity {
+  /** unix 秒；0 表示不过期 */
+  validUntil: number;
+  validAfter: number;
+}
+
+/**
+ * 从 paymasterData 里解出赞助的有效期窗口。
+ *
+ * 这个值以前是本地写死的「7 天」猜测——从来没发给过 paymaster，纯属假设。
+ * 实测 ZeroDev 返回的 validUntil 是 0（不过期），于是那个假期限会在第 8 天
+ * 拒掉一笔完全有效的交易，而此时所有签名已经收齐，只能作废重来。
+ *
+ * 布局不认识就返回 null，由调用方决定——**不要**退回一个猜出来的期限。
+ * 误判过期的代价（丢掉已收集的全部签名）远大于漏判（提交后拿到一个
+ * 说得清原因的 AA33）。
+ */
+export function parsePaymasterValidity(paymasterData: Hex): PaymasterValidity | null {
+  const body = paymasterData.startsWith("0x") ? paymasterData.slice(2) : paymasterData;
+  if (body.length !== VERIFYING_PAYMASTER_DATA_BYTES * 2) return null;
+
+  const validUntil = Number(BigInt(`0x${body.slice(0, 64)}`));
+  const validAfter = Number(BigInt(`0x${body.slice(64, 128)}`));
+
+  // uint48 的上限；超出说明这不是我们认识的布局
+  const UINT48_MAX = 281_474_976_710_655;
+  if (validUntil > UINT48_MAX || validAfter > UINT48_MAX) return null;
+
+  return { validUntil, validAfter };
+}
 
 export interface SponsorPaymasterFields {
   paymaster: Address;
   paymasterData: Hex;
   paymasterVerificationGasLimit: bigint;
   paymasterPostOpGasLimit: bigint;
+  /**
+   * 赞助失效的 unix 秒，从 paymasterData 里解出来的真实值。
+   * 0 = 不过期，或布局不认识、无从判断。两种情况都不做本地预检查。
+   */
   validUntil: number;
 }
 
@@ -42,8 +81,6 @@ export async function fetchSponsorPaymasterData(
 ): Promise<SponsorPaymasterFields | null> {
   const url = ctx.paymasterUrl;
   if (!url) return null;
-
-  const validUntil = Math.floor(Date.now() / 1000) + PAYMASTER_VALIDITY_SECONDS;
 
   // 走原始 ERC-7677 RPC，**不用** viem 的 getPaymasterData：后者会从请求体里
   // 剥掉 paymasterVerificationGasLimit / paymasterPostOpGasLimit，而 ZeroDev 的
@@ -105,11 +142,20 @@ export async function fetchSponsorPaymasterData(
   ]);
   if (!res?.paymaster) return null;
 
+  const paymasterData = (res.paymasterData ?? "0x") as Hex;
+  const validity = parsePaymasterValidity(paymasterData);
+  if (!validity) {
+    ctx.logger.warn(
+      "Unrecognised paymasterData layout — cannot tell when this sponsorship expires, so no local expiry check will be made",
+      { bytes: (paymasterData.length - 2) / 2 }
+    );
+  }
+
   return {
     paymaster: res.paymaster as Address,
-    paymasterData: (res.paymasterData ?? "0x") as Hex,
+    paymasterData,
     paymasterVerificationGasLimit: pmVerGas,
     paymasterPostOpGasLimit: pmPostOpGas,
-    validUntil,
+    validUntil: validity?.validUntil ?? 0,
   };
 }

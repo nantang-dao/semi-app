@@ -11,4 +11,9 @@ export {
   getActualGasFee,
   type SafeOwners,
 } from "./owners";
-export { fetchSponsorPaymasterData, type SponsorPaymasterFields } from "./sponsorship";
+export {
+  fetchSponsorPaymasterData,
+  parsePaymasterValidity,
+  type SponsorPaymasterFields,
+  type PaymasterValidity,
+} from "./sponsorship";
