@@ -28,42 +28,52 @@ export const multisigVerificationGasLimit = (threshold: number): bigint =>
 /**
  * 取 gas 价格。
  *
- * 配了 gasPriceUrl 就用它（Pimlico 的 `pimlico_getUserOperationGasPrice`
- * 给的是能被 bundler 接受的价格，比链上 baseFee 更贴近实际）；
- * 没配就退回链上的 EIP-1559 估价。
+ * 优先问 bundler：它给的是**它自己愿意接受**的价格。链上 baseFee 只是链的
+ * 状态，两者可以差很远，按后者出价会被 bundler 拒收。
+ *
+ * 问不到就退回链上的 EIP-1559 估价并记 warning —— 出一个可能被拒的价格，
+ * 好过让整笔交易根本发不出去（原来这里是直接抛错）。
  */
 export async function getUserOperationGasPrice(ctx: ChainContext): Promise<GasPrice> {
   if (ctx.gasPriceUrl) {
-    const response = await fetch(ctx.gasPriceUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "pimlico_getUserOperationGasPrice",
-        params: [],
-        id: 1,
-      }),
-    });
-    if (!response.ok) {
-      throw new GasEstimationError(`Gas price endpoint returned HTTP ${response.status}`);
+    try {
+      return await fetchBundlerGasPrice(ctx.gasPriceUrl, ctx.gasPriceMethod);
+    } catch (error) {
+      ctx.logger.warn(
+        `${ctx.gasPriceMethod} failed, falling back to the chain's EIP-1559 estimate`,
+        error
+      );
     }
-    const data = (await response.json()) as {
-      error?: { message: string };
-      result?: { standard: { maxFeePerGas: string; maxPriorityFeePerGas: string } };
-    };
-    if (data.error) throw new GasEstimationError(`Gas price RPC error: ${data.error.message}`);
-    if (!data.result?.standard)
-      throw new GasEstimationError("Gas price response has no `standard`");
-    return {
-      maxFeePerGas: BigInt(data.result.standard.maxFeePerGas),
-      maxPriorityFeePerGas: BigInt(data.result.standard.maxPriorityFeePerGas),
-    };
   }
 
   const fees = await ctx.publicClient.estimateFeesPerGas();
   return {
     maxFeePerGas: fees.maxFeePerGas,
     maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
+  };
+}
+
+async function fetchBundlerGasPrice(url: string, method: string): Promise<GasPrice> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params: [], id: 1 }),
+  });
+  if (!response.ok) {
+    throw new GasEstimationError(`${method} returned HTTP ${response.status}`);
+  }
+  const data = (await response.json()) as {
+    error?: { message: string };
+    result?: { standard?: { maxFeePerGas: string; maxPriorityFeePerGas: string } };
+  };
+  if (data.error) throw new GasEstimationError(`${method}: ${data.error.message}`);
+  const standard = data.result?.standard;
+  if (!standard?.maxFeePerGas || !standard.maxPriorityFeePerGas) {
+    throw new GasEstimationError(`${method} returned no standard price`);
+  }
+  return {
+    maxFeePerGas: BigInt(standard.maxFeePerGas),
+    maxPriorityFeePerGas: BigInt(standard.maxPriorityFeePerGas),
   };
 }
 

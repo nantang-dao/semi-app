@@ -21,8 +21,19 @@ export interface ChainConfig {
   bundlerUrl?: string;
   /** ERC-7677 paymaster。不配则该链只能自付 gas。 */
   paymasterUrl?: string;
-  /** gas 价格端点。不配则退回 bundler 自己的估价。 */
+  /**
+   * gas 价格端点。留空即用 bundlerUrl —— 价格本就该来自将要收这笔 UserOp
+   * 的那个 bundler，因为决定收不收的是它。
+   */
   gasPriceUrl?: string;
+  /**
+   * 取 gas 价格的 RPC 方法名。4337 生态在这件事上没有标准，各家自己定。
+   * 默认 `pimlico_getUserOperationGasPrice` —— Pimlico 定义的，ZeroDev
+   * 也实现了同名方法作为兼容（也可以用它自家的
+   * `zd_getUserOperationGasPrice`，返回结构一样）。
+   * 调不通时退回链上的 EIP-1559 估价。
+   */
+  gasPriceMethod?: string;
 }
 
 export interface SemiCoreConfig {
@@ -63,6 +74,7 @@ export interface ChainContext {
   readonly bundlerUrl: string | undefined;
   readonly paymasterUrl: string | undefined;
   readonly gasPriceUrl: string | undefined;
+  readonly gasPriceMethod: string;
   /** 该链是否能代付 gas */
   readonly canSponsorGas: boolean;
 }
@@ -118,7 +130,8 @@ export function createSemiCore(config: SemiCoreConfig): SemiCore {
       logger,
       bundlerUrl: entry.bundlerUrl,
       paymasterUrl: entry.paymasterUrl,
-      gasPriceUrl: entry.gasPriceUrl,
+      gasPriceUrl: entry.gasPriceUrl ?? entry.bundlerUrl,
+      gasPriceMethod: entry.gasPriceMethod ?? "pimlico_getUserOperationGasPrice",
       canSponsorGas: Boolean(entry.paymasterUrl),
     });
   }

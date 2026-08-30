@@ -59,19 +59,11 @@ function buildChains(): ChainConfig[] {
       rpcUrl: join([c.rpc, base], ["VITE_INFURA_API_KEY", infuraKey()]),
       bundlerUrl: c.bundler ? env(c.bundler) : undefined,
       paymasterUrl: paymaster || undefined,
-      gasPriceUrl: pimlicoGasPriceUrl(c.chain.id),
+      // gasPriceUrl 留空：semi-core 会去问 bundler，那才是决定这笔 UserOp
+      // 收不收的一方。原来这里指向 Pimlico，而 bundler 是 ZeroDev。
     });
   }
   return configured;
-}
-
-/**
- * `pimlico_getUserOperationGasPrice` 是 Pimlico 自家的 RPC 方法，无论
- * UserOp 最终从哪个 bundler 提交，价格都从 Pimlico 的端点取。
- */
-function pimlicoGasPriceUrl(chainId: number): string | undefined {
-  const key = env("VITE_PIMLICO_API_KEY");
-  return key ? `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${key}` : undefined;
 }
 
 const REQUIRED_HINT = ["VITE_INFURA_API_KEY", "VITE_OP_RPC_URL", "VITE_OP_BUNDLER_URL"].join(", ");
