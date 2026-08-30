@@ -1,0 +1,61 @@
+utils/SafeSmartAccount/prepareClient.ts
+  s_881e33c21d9e1f::t_f7137123deaf8d 1-2,4-5,8,10-11,14-16,19-23,26,30
+packages/semi-core/src/token/balances.ts
+  s_881e33c21d9e1f::t_11d8278e14e282 1-69
+packages/semi-core/package.json
+  s_881e33c21d9e1f::t_a9148680989a91 11-13,21-22,27-33
+packages/semi-core/src/index.ts
+  s_881e33c21d9e1f::t_a9148680989a91 4-12
+pages/multisig/owners.client.vue
+  s_881e33c21d9e1f::t_853b62657367cd 671-672
+utils/balance/index.ts
+  s_881e33c21d9e1f::t_26b39b9f800ffb 1-3,6-12,14,18,31-36
+utils/semi_core.ts
+  s_881e33c21d9e1f::t_cbc64b6cfef311 1-11,15-76,79-82,93-96
+  s_881e33c21d9e1f::t_6968ac049f545b 12-14,77-78,83-92
+packages/semi-core/src/config.ts
+  s_881e33c21d9e1f::t_2c0f2c494722a0 1-130
+utils/config.ts
+  s_881e33c21d9e1f::t_853b62657367cd 7-10,12,18
+packages/semi-core/src/token/index.ts
+  s_881e33c21d9e1f::t_11d8278e14e282 1-7
+utils/gas_sponsorship.ts
+  s_881e33c21d9e1f::t_f7137123deaf8d 1,3-5
+utils/SafeSmartAccount/multisig.ts
+  s_881e33c21d9e1f::t_cdd67d87609baa 662,697,719
+  s_881e33c21d9e1f::t_f7137123deaf8d 28,170,400
+packages/semi-core/src/account/index.ts
+  s_881e33c21d9e1f::t_a9148680989a91 1-8
+utils/SafeSmartAccount/operation.ts
+  s_881e33c21d9e1f::t_f7137123deaf8d 6-7,322-326
+packages/semi-core/src/errors.ts
+  s_881e33c21d9e1f::t_2c0f2c494722a0 22-52
+packages/semi-core/src/account/safeAccount.ts
+  s_881e33c21d9e1f::t_56987ec0fe7b49 52
+  s_881e33c21d9e1f::t_a9148680989a91 1-51,53-59,61-97,99-128,130-132
+  s_881e33c21d9e1f::t_b9452b7f77450a 129
+  s_881e33c21d9e1f::t_501c216e30add2 60,98
+utils/SafeSmartAccount/account.ts
+  s_881e33c21d9e1f::t_26b39b9f800ffb 2-8,11-12,19-23,26,31-32,34-36,49
+packages/semi-core/test/config.test.ts
+  s_881e33c21d9e1f::t_56987ec0fe7b49 38-40,47-49,59-62
+  s_881e33c21d9e1f::t_f569c1cc7c9cb8 1-37,41-46,50-58,63-100
+pnpm-lock.yaml
+  s_881e33c21d9e1f::t_df890222bae825 102-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "2b94301774c025e264f6a3ac0157f83db4d592eb",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
