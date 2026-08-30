@@ -1,6 +1,6 @@
 import type { Address, Chain } from "viem";
 
-import { prepareClient } from "./utils/prepareClient";
+import { prepareClient } from "./prepareClient";
 import { getSafeAccount, getVirtualSafeAccount } from "./account";
 import { erc20Abi, formatEther, parseEther, toBytes, bytesToHex, zeroAddress } from "viem";
 import { CREATE_CALL_CONTRACT, TOKEN_FACTORY_CONTRACT, pimlicoGasPriceUrl } from "../config";

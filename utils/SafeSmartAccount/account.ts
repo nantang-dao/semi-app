@@ -1,17 +1,24 @@
 import { toSafeSmartAccount } from "permissionless/accounts";
-import { predictSafeSmartAccountAddress } from "./utils";
 import { privateKeyToAccount } from "viem/accounts";
 import { type Chain } from "viem/chains";
 import { http, createPublicClient, type Address } from "viem";
 import { getSafeDeployment } from "semi-core/chains";
+import { predictSafeAddress } from "semi-core/safe";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { RPC_URL } from "../config";
 
-const SAFE_COMMON_ADDRESSES = {
-  safeProxyFactoryAddress: "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67" as Address,
-  safeSingletonAddress: "0x41675C099F32341bf84BFc5382aF534df5C7461a" as Address,
-  multiSendAddress: "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526" as Address,
-  multiSendCallOnlyAddress: "0x9641d764fc13c8B624c04430C7356C1C7C8102e2" as Address,
+/**
+ * permissionless 的 toSafeSmartAccount 要的那几个地址，从 semi-core 的
+ * 部署表里取——这里原本是第三份硬编码副本。
+ */
+const safeAddressesFor = (chainId: number) => {
+  const d = getSafeDeployment(chainId);
+  return {
+    safeProxyFactoryAddress: d.safe_proxy_factory,
+    safeSingletonAddress: d.safe,
+    multiSendAddress: d.multi_send,
+    multiSendCallOnlyAddress: d.multi_send_call_only,
+  };
 };
 
 export const getSafeAccount = async (
@@ -19,7 +26,6 @@ export const getSafeAccount = async (
   chain: Chain,
   options?: { owners?: Address[]; threshold?: number }
 ) => {
-  getSafeDeployment(chain.id); // 未支持的链在此抛错
 
   const signer = privateKeyToAccount(privateKey);
 
@@ -46,7 +52,7 @@ export const getSafeAccount = async (
     owners: allOwners,
     threshold: options?.threshold ?? 1,
     version: "1.4.1",
-    ...SAFE_COMMON_ADDRESSES,
+    ...safeAddressesFor(chain.id),
   });
 
   return account;
@@ -58,7 +64,6 @@ export const getVirtualSafeAccount = async (
   chain: Chain,
   options?: { threshold?: number; owners?: Address[]; ownerCount?: number }
 ) => {
-  getSafeDeployment(chain.id); // 未支持的链在此抛错
 
   const threshold = options?.threshold ?? 1;
 
@@ -91,7 +96,7 @@ export const getVirtualSafeAccount = async (
     owners: allOwners,
     threshold,
     version: "1.4.1",
-    ...SAFE_COMMON_ADDRESSES,
+    ...safeAddressesFor(chain.id),
   });
 
   return account;
@@ -108,8 +113,6 @@ export const predictSafeAccountAddress = async ({
   owners?: Address[];
   threshold?: number;
 }): Promise<Address> => {
-  getSafeDeployment(chain.id); // 未支持的链在此抛错
-
   const client = createPublicClient({
     chain,
     transport: http(RPC_URL[chain.id]),
@@ -118,13 +121,10 @@ export const predictSafeAccountAddress = async ({
   // Sort owners by address for deterministic address generation
   const ownerList = owners ? [...owners].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) : [owner!];
 
-  const address = await predictSafeSmartAccountAddress({
+  return predictSafeAddress({
     client,
+    chainId: chain.id,
     owners: ownerList,
     threshold: threshold ?? 1,
-    version: "1.4.1",
-    entryPoint: { address: entryPoint07Address, version: "0.7" },
-    ...SAFE_COMMON_ADDRESSES,
   });
-  return address;
 };

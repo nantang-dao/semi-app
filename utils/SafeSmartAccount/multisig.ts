@@ -23,13 +23,13 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { entryPoint07Address } from "viem/account-abstraction";
-import { EIP712_SAFE_OPERATION_TYPE_V07, getPaymasterAndData } from "./utils/index";
 import { getVirtualSafeAccount } from "./account";
-import { prepareClient } from "./utils/prepareClient";
+import { prepareClient } from "./prepareClient";
 import { estimateMultisigGas } from "./operation";
 import { BUNDLER_URL, RPC_URL, PAYMASTER_URL } from "../config";
 import { isGasSponsorshipChain } from "../gas_sponsorship";
 import { SAFE_4337_MODULE_ADDRESS, SENTINEL_OWNERS } from "semi-core/chains";
+import { EIP712_SAFE_OPERATION_TYPE_V07, packPaymasterAndData } from "semi-core/safe";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -323,12 +323,12 @@ export async function buildMultisigUserOpSnapshot(
         paymasterVerificationGasLimit = pm.paymasterVerificationGasLimit.toString();
         paymasterPostOpGasLimit = pm.paymasterPostOpGasLimit.toString();
         // Pack into the EIP-712 form that the SafeOp signature commits to.
-        paymasterAndData = getPaymasterAndData({
+        paymasterAndData = packPaymasterAndData({
           paymaster: pm.paymaster,
           paymasterVerificationGasLimit: pm.paymasterVerificationGasLimit,
           paymasterPostOpGasLimit: pm.paymasterPostOpGasLimit,
           paymasterData: pm.paymasterData,
-        } as any);
+        });
         sponsored = true;
         paymasterValidUntil = pm.validUntil;
       }
