@@ -1,0 +1,24 @@
+packages/semi-core/src/multisig/index.ts
+  s_881e33c21d9e1f::t_e1858f2944c385 14-19
+packages/semi-core/test/paymaster-validity.test.ts
+  s_881e33c21d9e1f::t_b094c389b11be9 1-45
+  s_881e33c21d9e1f::t_d360bcd721206d 46-109
+packages/semi-core/src/multisig/sponsorship.ts
+  s_881e33c21d9e1f::t_4737c8e2b3b710 5-41,48-51,145-153,156,159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "6a50c3f037f9d21ab9db9d121302843268be5533",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
