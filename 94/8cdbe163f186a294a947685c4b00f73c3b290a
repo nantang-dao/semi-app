@@ -1,0 +1,25 @@
+server/api/badge/create-badges.post.ts
+  s_881e33c21d9e1f::t_959d38529b1df7 4,61-64,89-95
+  s_881e33c21d9e1f::t_89ce423b9d5428 96-98
+server/utils/badge_wallet.ts
+  s_881e33c21d9e1f::t_959d38529b1df7 1,55-63
+  s_881e33c21d9e1f::t_ba9b99ba057ddf 64
+server/api/badge/accept-badge.post.ts
+  s_881e33c21d9e1f::t_959d38529b1df7 5,113-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "948cdbe163f186a294a947685c4b00f73c3b290a",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
