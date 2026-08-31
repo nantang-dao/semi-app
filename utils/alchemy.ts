@@ -9,6 +9,7 @@
  * 这是**索引/查询**，不是链上交互，所以留在 app 里而不是 semi-core——
  * semi-core 只做「发 RPC、算加密、编解码 calldata」那三件事。
  */
+import { env } from "./env";
 
 /** Alchemy 的主机名前缀，按链固定。与 utils/semi_core.ts 的映射同源。 */
 const ALCHEMY_NETWORK: Record<number, string> = {
@@ -49,10 +50,9 @@ function baseUrl(chainId: number): string {
 }
 
 function apiKeyOrThrow(explicit?: string): string {
-  const key =
-    explicit ||
-    (typeof process !== "undefined" ? process.env.VITE_ALCHEMY_API_KEY : undefined) ||
-    (typeof process !== "undefined" ? process.env.ALCHEMY_API_KEY : undefined);
+  // 浏览器里没有 process.env，只能靠 Vite 在构建期把 import.meta.env 内联进来；
+  // Nitro 服务端反过来只有 process.env。utils/env.ts 的 env() 同时覆盖两边。
+  const key = explicit || env("VITE_ALCHEMY_API_KEY") || env("ALCHEMY_API_KEY");
   if (!key) throw new Error("VITE_ALCHEMY_API_KEY is missing");
   return key;
 }

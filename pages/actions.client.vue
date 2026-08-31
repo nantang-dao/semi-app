@@ -369,7 +369,9 @@ const loadInitialActions = async (chain: Chain, safeAddress: string) => {
             description: (error as Error).message,
             color: "error",
         });
-        throw error;
+        // 不再往上抛：唯一的调用方是 onMounted，抛出去只会变成
+        // "Unhandled error during execution of mounted hook"，而错误已经
+        // 记了日志也弹了 toast。列表留空即可。
     } finally {
         loading.value = false;
     }
