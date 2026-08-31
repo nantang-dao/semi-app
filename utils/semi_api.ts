@@ -141,12 +141,17 @@ export function deleteCookie(name: string) {
  */
 export async function logout(): Promise<void> {
   try {
-    await fetch(`${requireSemiRestBaseUrl()}/logout`, {
+    const resp = await fetch(`${requireSemiRestBaseUrl()}/logout`, {
       method: "POST",
       headers: getAuthHeaders(),
     });
+    // fetch 只在网络层失败时 reject —— 401 / 500 都会正常 resolve。
+    // 不看 resp.ok 的话「吊销失败」就被静默吞掉了，正是上面注释说不该发生的事。
+    if (!resp.ok) {
+      console.error(`[logout] 服务端吊销失败（HTTP ${resp.status}），该 token 将保持有效至过期`);
+    }
   } catch (error) {
-    console.error("[logout] 服务端吊销失败，该 token 将保持有效至过期", error);
+    console.error("[logout] 服务端吊销失败（网络错误），该 token 将保持有效至过期", error);
   } finally {
     clearAuthToken();
   }
