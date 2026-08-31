@@ -1,0 +1,25 @@
+utils/semi_core.ts
+  s_881e33c21d9e1f::t_c18011c85bd99b 3
+utils/env.ts
+  s_881e33c21d9e1f::t_c18011c85bd99b 1-30
+pages/actions.client.vue
+  s_881e33c21d9e1f::t_634cd3d25a27aa 372-374
+utils/alchemy.ts
+  s_881e33c21d9e1f::t_799777651ef64c 12,53-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "f0dbe4a9cbb5665769bf6522a54964a13523c933",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
