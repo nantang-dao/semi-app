@@ -1,0 +1,31 @@
+server/api/badge/accept-badge.post.ts
+  s_881e33c21d9e1f::t_63d17f392f8230 4,78-80
+server/utils/badge_address.ts
+  s_881e33c21d9e1f::t_e277a2a226a6aa 1-38
+server/api/badge/owned.get.ts
+  s_881e33c21d9e1f::t_63d17f392f8230 4,44
+server/api/badge/pending.get.ts
+  s_881e33c21d9e1f::t_63d17f392f8230 4,44
+server/api/badge/reject-badge.post.ts
+  s_881e33c21d9e1f::t_63d17f392f8230 4,76-78
+server/api/badge/create-badges.post.ts
+  s_881e33c21d9e1f::t_63d17f392f8230 7,91-103,108-109,120
+server/api/badge/summary.get.ts
+  s_881e33c21d9e1f::t_63d17f392f8230 4,33,42-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "8c6e9a4dd5fb5c4688b95e267cc0fab668f4e309",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
