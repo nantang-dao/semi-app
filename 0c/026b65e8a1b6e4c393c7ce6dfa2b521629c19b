@@ -1,0 +1,42 @@
+utils/qrcode/decode.ts
+  s_881e33c21d9e1f::t_298af11b1b71c9 1-365
+utils/qrcode/locate.ts
+  s_881e33c21d9e1f::t_298af11b1b71c9 1-615
+utils/qrcode/spec.ts
+  s_881e33c21d9e1f::t_298af11b1b71c9 1-265
+utils/qrcode/index.ts
+  s_881e33c21d9e1f::t_298af11b1b71c9 1-42
+utils/qrcode/reedsolomon.ts
+  s_881e33c21d9e1f::t_298af11b1b71c9 1-101
+assets/i18n/zh.json
+  s_881e33c21d9e1f::t_aa1adadfa3f766 22-23
+assets/i18n/en.json
+  s_881e33c21d9e1f::t_aa1adadfa3f766 22-23
+utils/qrcode/bitmatrix.ts
+  s_881e33c21d9e1f::t_298af11b1b71c9 1-42
+utils/qrcode/extract.ts
+  s_881e33c21d9e1f::t_298af11b1b71c9 1-148
+utils/qrcode/galois.ts
+  s_881e33c21d9e1f::t_298af11b1b71c9 1-111
+components/ScanQrcodeBtn.client.vue
+  s_881e33c21d9e1f::t_298af11b1b71c9 112,156
+  s_881e33c21d9e1f::t_f4fef6e93d39e6 22-35,44,49-50,54-70,72-78,82-94,97-111,113-155,157-220,222-232
+utils/qrcode/binarize.ts
+  s_881e33c21d9e1f::t_298af11b1b71c9 1-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "0c026b65e8a1b6e4c393c7ce6dfa2b521629c19b",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
