@@ -25,3 +25,5 @@ logs
 .vercel
 
 .cursor
+# 徽章迁移的导出产物（含钱包地址），不入库
+/tmp

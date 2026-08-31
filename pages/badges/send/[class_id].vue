@@ -79,7 +79,7 @@
                 :key="`receiver-${index}`"
                 class="flex items-start gap-2"
               >
-              <UInput
+                <UInput
                   icon="ci:user"
                   v-if="receiver.input !== receiver.wallet"
                   variant="subtle"
@@ -142,7 +142,7 @@
                       <UButton
                         size="xl"
                         color="primary"
-                         class="flex-1 justify-center"
+                        class="flex-1 justify-center"
                         @click="handleConfirmAddReceiver"
                         :loading="isValidatingReceiver"
                       >
@@ -254,6 +254,7 @@ import type { BadgeClass } from "@/server/api/badge/types";
 import { isAddress } from "viem";
 import { getUserByHandleOrPhone } from "~/utils/semi_api";
 import { isPhoneNumber } from "~/utils";
+import { signBadgeAuth } from "@/utils/badge_auth_client";
 
 const route = useRoute();
 const useChain = useChainStore();
@@ -394,7 +395,7 @@ const uploadImage = async () => {
       ia[i] = byteString.charCodeAt(i);
     }
     const blob = new Blob([ia], { type: mime_type });
-    const url = await uploadFile(blob, import.meta.env.VITE_SOLA_AUTH_TOKEN!);
+    const url = await uploadFile(blob);
     formState.image_url = url;
   };
 };
@@ -410,7 +411,9 @@ const handleCancelAddReceiver = () => {
 const handleConfirmAddReceiver = async () => {
   const input = newReceiverInput.value.trim();
   if (!input) {
-    addReceiverError.value = i18n.text["Please enter recipient address/phone number"] || "Please enter recipient address/phone number";
+    addReceiverError.value =
+      i18n.text["Please enter recipient address/phone number"] ||
+      "Please enter recipient address/phone number";
     return;
   }
 
@@ -444,7 +447,9 @@ const handleConfirmAddReceiver = async () => {
     }
   } catch (error) {
     console.error("Error validating receiver:", error);
-    addReceiverError.value = i18n.text["Please check if the phone number is correct"] || "Please check if the phone number is correct";
+    addReceiverError.value =
+      i18n.text["Please check if the phone number is correct"] ||
+      "Please check if the phone number is correct";
   } finally {
     isValidatingReceiver.value = false;
   }
@@ -468,11 +473,38 @@ const handleCreate = async () => {
   console.log(pinCode.value);
   console.log(formState);
   isSubmitting.value = true;
+
+  // 本地解密 + 签名。PIN 错在这里就抛，不再由服务端判断。
+  let auth;
+  try {
+    auth = await signBadgeAuth({
+      keystoreJson: user.user!.encrypted_keys,
+      pinCode: pinCode.value.join(""),
+      action: "create-badges",
+      chainId: useChain.chain.id,
+      params: {
+        class_id: classId,
+        receiver_addresses: formState.receivers.map((r) => r.wallet),
+        badge_name: formState.name,
+        badge_description: formState.description,
+        badge_image_url: formState.image_url,
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    isSubmitting.value = false;
+    toast.add({
+      title: t("Invalid passcode", "Invalid passcode"),
+      description: t("Invalid passcode", "Invalid passcode"),
+      color: "error",
+    });
+    return;
+  }
+
   const { data, error } = await useFetch("/api/badge/create-badges", {
     method: "POST",
     body: {
-      pin_code: pinCode.value.join(""),
-      keystore_json: user.user!.encrypted_keys,
+      ...auth,
       chain_id: useChain.chain.id,
       badge_name: formState.name,
       badge_description: formState.description,
@@ -520,9 +552,7 @@ const validateField = (field: keyof FormState | "receiver_addresses") => {
       return;
     }
     const hasInvalidAddress = receivers.some((receiver) => !isAddress(receiver.wallet));
-    errors.receiver_addresses = hasInvalidAddress
-      ? t("Invalid address", "Invalid address")
-      : "";
+    errors.receiver_addresses = hasInvalidAddress ? t("Invalid address", "Invalid address") : "";
     return;
   }
 

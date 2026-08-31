@@ -1,6 +1,5 @@
-import db from "@/server/utils/db";
 import { sepolia, mainnet, optimism } from "viem/chains";
-import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
+import { badgeGet, BadgeBackendError, type BadgeProfileRow } from "@/server/utils/badge_backend";
 
 const chains = {
   "11155111": sepolia,
@@ -27,32 +26,22 @@ export default defineEventHandler(async (event) => {
   }
   const chain = chains[chain_id as keyof typeof chains];
 
-  const queryProfile = await db.query({
-    profiles: {
-      $: {
-        where: {
-          wallet_address: wallet_address as string,
-          chain_id: Number(chain_id),
-        },
-      },
-    },
-  });
-
-  if (queryProfile.profiles.length === 0) {
+  try {
+    const result = await badgeGet<{ profile: BadgeProfileRow | null }>("/profile", {
+      wallet_address,
+      chain_id: chain.id,
+    });
     return {
       success: true,
-      message: "Profile not found",
-      data: {
-        profile: null,
-      },
+      message: result.profile ? "Profile found" : "Profile not found",
+      data: { profile: result.profile },
     };
-  } else {
+  } catch (error) {
+    console.error(error);
     return {
-      success: true,
-      message: "Profile found",
-      data: {
-        profile: queryProfile.profiles[0],
-      },
+      success: false,
+      message: error instanceof BadgeBackendError ? error.message : "Failed to fetch profile",
+      data: { profile: null },
     };
   }
 });

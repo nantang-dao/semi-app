@@ -6,7 +6,11 @@ WORKDIR /app
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml ./
+# workspace: 根清单 + 各 package 的 package.json 都要先到位，
+# 否则 pnpm 解析不出 workspace: 协议的依赖。只 COPY 清单是为了
+# 让依赖层在源码变动时仍能命中缓存。
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/semi-core/package.json ./packages/semi-core/
 RUN pnpm install --frozen-lockfile
 
 COPY . .

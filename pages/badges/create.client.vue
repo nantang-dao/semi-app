@@ -134,8 +134,8 @@
 import { reactive, computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import type { Profile } from "@/server/api/badge/types";
-import { waitForTransactionReceipt } from "@wagmi/core";
-import { client } from "@/utils/wagmi_config_client";
+import { chainContext } from "@/utils/semi_core";
+import { signBadgeAuth } from "@/utils/badge_auth_client";
 
 const router = useRouter();
 const i18n = useI18n();
@@ -298,7 +298,7 @@ const uploadImage = async () => {
       ia[i] = byteString.charCodeAt(i);
     }
     const blob = new Blob([ia], { type: mime_type });
-    const url = await uploadFile(blob, import.meta.env.VITE_SOLA_AUTH_TOKEN!);
+    const url = await uploadFile(blob);
     formState.image_url = url;
   };
 };
@@ -350,8 +350,13 @@ const handleCreate = async () => {
       }>("/api/profile/create", {
         method: "POST",
         body: {
-          pin_code: pinCode.value.join(""),
-          keystore_json: user.user!.encrypted_keys,
+          ...(await signBadgeAuth({
+            keystoreJson: user.user!.encrypted_keys,
+            pinCode: pinCode.value.join(""),
+            action: "create-profile",
+            chainId: useChain.chain.id,
+            params: {},
+          })),
           chain_id: useChain.chain.id,
         },
       });
@@ -367,9 +372,8 @@ const handleCreate = async () => {
         return;
       } else {
         console.log("create profile tx hash", createProfileData.data.tx_hash);
-        await waitForTransactionReceipt(client, {
+        await chainContext(useChain.chain.id).publicClient.waitForTransactionReceipt({
           hash: createProfileData.data.tx_hash as `0x${string}`,
-          chainId: useChain.chain.id as any,
         });
       }
     } catch (error) {
@@ -395,8 +399,17 @@ const handleCreate = async () => {
     }>("/api/badge/create-class", {
       method: "POST",
       body: {
-        pin_code: pinCode.value.join(""),
-        keystore_json: user.user!.encrypted_keys,
+        ...(await signBadgeAuth({
+          keystoreJson: user.user!.encrypted_keys,
+          pinCode: pinCode.value.join(""),
+          action: "create-class",
+          chainId: useChain.chain.id,
+          params: {
+            class_name: formState.name,
+            class_description: formState.description,
+            class_image_url: formState.image_url,
+          },
+        })),
         chain_id: useChain.chain.id,
         class_name: formState.name,
         class_description: formState.description,
@@ -414,9 +427,8 @@ const handleCreate = async () => {
       return;
     } else {
       console.log("create class tx hash", createClassData.data.tx_hash);
-      await waitForTransactionReceipt(client, {
+      await chainContext(useChain.chain.id).publicClient.waitForTransactionReceipt({
         hash: createClassData.data.tx_hash as `0x${string}`,
-        chainId: useChain.chain.id as any,
       });
       toast.add({
         title: t("Create successful", "Create successful"),

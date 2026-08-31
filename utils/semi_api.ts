@@ -128,9 +128,33 @@ export function deleteCookie(name: string) {
   setCookie(name, "", -1);
 }
 
-// 登出方法
-export function logout(): void {
-  clearAuthToken();
+/**
+ * 登出。
+ *
+ * 先让服务端吊销这个 token，再删本地 cookie。**顺序不能反** —— cookie 一删
+ * 就拼不出 Authorization 头，服务端也就不知道该吊销哪一个。
+ *
+ * 服务端调用失败不阻断登出：用户点了退出，本地状态就必须清掉。代价是那个
+ * token 在服务端仍然有效直到过期，所以失败要记日志，别静默吞掉。
+ *
+ * 只吊销当前这一个 token，其他设备的登录状态不受影响。
+ */
+export async function logout(): Promise<void> {
+  try {
+    const resp = await fetch(`${requireSemiRestBaseUrl()}/logout`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    // fetch 只在网络层失败时 reject —— 401 / 500 都会正常 resolve。
+    // 不看 resp.ok 的话「吊销失败」就被静默吞掉了，正是上面注释说不该发生的事。
+    if (!resp.ok) {
+      console.error(`[logout] 服务端吊销失败（HTTP ${resp.status}），该 token 将保持有效至过期`);
+    }
+  } catch (error) {
+    console.error("[logout] 服务端吊销失败（网络错误），该 token 将保持有效至过期", error);
+  } finally {
+    clearAuthToken();
+  }
 }
 
 // 1. 获取欢迎信息
@@ -306,7 +330,9 @@ export async function getRemainingGasCredits(): Promise<RemainingGasCreditsRespo
     return handleRequest<RemainingGasCreditsResponse>(response);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("Request timed out: " + `${requireSemiRestBaseUrl()}/remaining_free_transactions`);
+      throw new Error(
+        "Request timed out: " + `${requireSemiRestBaseUrl()}/remaining_free_transactions`
+      );
     }
     throw error;
   } finally {
@@ -379,9 +405,12 @@ export async function getUserByHandle(handle: string): Promise<UserInfo> {
 }
 
 export async function getUserByHandleOrPhone(handleOrPhone: string): Promise<UserInfo | null> {
-  const response = await fetch(`${requireSemiRestBaseUrl()}/get_by_handle?handle=${handleOrPhone}`, {
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${requireSemiRestBaseUrl()}/get_by_handle?handle=${handleOrPhone}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
 
   try {
     return await handleRequest<UserInfo | null>(response);
@@ -390,24 +419,43 @@ export async function getUserByHandleOrPhone(handleOrPhone: string): Promise<Use
   }
 }
 
-export async function uploadFile(file: Blob, authToken: string): Promise<string> {
-  const formData = new FormData();
-  formData.append("auth_token", authToken);
-  formData.append("uploader", "user");
-  formData.append("resource", Math.random().toString(36).slice(-8));
-  formData.append("data", file);
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
 
-  const response = await fetch("https://api.sola.day/service/upload_image", {
+/**
+ * 上传图片，返回图床 URL。
+ *
+ * 文件交给 Semi 后端 `/upload_image`，由后端拿服务端保管的凭证转发到图床。
+ * 之前是浏览器直传 api.sola.day，且把上游 token 打进了客户端 bundle。
+ */
+export async function uploadFile(file: Blob): Promise<string> {
+  const extension = IMAGE_EXTENSIONS[file.type] ?? "bin";
+  const formData = new FormData();
+  formData.append("file", file, `upload.${extension}`);
+
+  // 不能复用 getAuthHeaders()：它会设 Content-Type: application/json，
+  // 那样 multipart 的 boundary 就丢了。
+  const headers: Record<string, string> = {};
+  const authToken = getCookie(AUTH_TOKEN_KEY);
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`${requireSemiRestBaseUrl()}/upload_image`, {
     method: "POST",
+    headers,
     body: formData,
   });
 
-  if (!response.ok) {
-    throw new Error("Upload failed");
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.url) {
+    throw new Error(data?.message ?? `Upload failed (HTTP ${response.status})`);
   }
-
-  const data = await response.json();
-  return data.result.url as string;
+  return data.url as string;
 }
 
 export interface TokenClass {
@@ -516,10 +564,7 @@ export interface Contact {
 }
 
 // 设置联系人列表
-export async function setContacts(
-  id: string,
-  contact_list: Contact[]
-): Promise<BaseResponse> {
+export async function setContacts(id: string, contact_list: Contact[]): Promise<BaseResponse> {
   const response = await fetch(`${requireSemiRestBaseUrl()}/set_contacts`, {
     method: "POST",
     headers: getAuthHeaders(),

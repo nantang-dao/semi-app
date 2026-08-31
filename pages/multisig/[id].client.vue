@@ -253,7 +253,7 @@ import {
   getActualGasFee,
   getSafeOwnersAndThreshold,
 } from '~/utils/SafeSmartAccount/multisig'
-import { keystoreToPrivateKey } from '~/utils/encryption'
+import { keystoreToPrivateKey } from 'semi-core/keys'
 import { chainMap } from '~/stores/chain'
 import { uploadTransaction } from '~/utils/semi_api'
 import { parseEther } from 'viem'

@@ -156,11 +156,10 @@
 <script setup lang="ts">
 import { useUserStore } from "~/stores/user";
 import { useI18n } from "~/stores/i18n";
-import { isPrivateKey } from "~/utils";
 import { useChainStore } from "~/stores/chain";
 import { predictSafeAccountAddress } from "~/utils/SafeSmartAccount";
 import { setEncryptedKeys } from "~/utils/semi_api";
-import { privateKeyToSafeAccount, encryptMnemonicToKeystore } from "~/utils/encryption";
+import { privateKeyToAddress, encryptToKeystore, isPrivateKey } from "semi-core/keys";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -209,7 +208,7 @@ const toStep2 = async () => {
     return;
   }
 
-  const eoa = privateKeyToSafeAccount(formState.privateKey as `0x${string}`);
+  const eoa = privateKeyToAddress(formState.privateKey as `0x${string}`);
   const safeAccount = await predictSafeAccountAddress({
     owner: eoa,
     chain: chainStore.chain,
@@ -256,7 +255,7 @@ const handleImport = async () => {
 
   loading.value = true;
   try {
-    const keystore = await encryptMnemonicToKeystore(formState.privateKey, formState.pin.join(""));
+    const keystore = await encryptToKeystore(formState.privateKey, formState.pin.join(""));
     const opts = {
       id: userStore.user!.id,
       encrypted_keys: JSON.stringify(keystore),

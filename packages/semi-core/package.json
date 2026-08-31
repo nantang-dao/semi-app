@@ -1,0 +1,38 @@
+{
+  "name": "semi-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Semi 的区块链核心：Safe 智能账户、4337、密钥。不依赖任何 Semi 后端。",
+  "exports": {
+    ".": "./src/index.ts",
+    "./keys": "./src/keys/index.ts",
+    "./chains": "./src/chains/index.ts",
+    "./safe": "./src/safe/index.ts",
+    "./account": "./src/account/index.ts",
+    "./token": "./src/token/index.ts",
+    "./ops": "./src/ops/index.ts",
+    "./multisig": "./src/multisig/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run --exclude 'test/fork/**'",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "test:fork": "vitest run test/fork"
+  },
+  "peerDependencies": {
+    "permissionless": "^0.4.0",
+    "viem": "^2.48.0"
+  },
+  "devDependencies": {
+    "permissionless": "0.4.0",
+    "typescript": "^5.9.3",
+    "viem": "2.56.0",
+    "vitest": "^4.1.11"
+  },
+  "peerDependenciesMeta": {
+    "permissionless": {
+      "optional": true
+    }
+  }
+}

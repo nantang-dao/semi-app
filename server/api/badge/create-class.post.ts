@@ -1,12 +1,11 @@
-import db from "@/server/utils/db";
-import { keystoreToPrivateKey, privateKeyToSafeAccount } from "@/utils/encryption";
+import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
-import { id } from "@instantdb/admin";
 import { getProfileId, getBadgeClassId } from "@/server/utils";
-import { wagmi_config } from "@/server/utils/wagmi_config";
-import { writeProfileRegistryRegisterClass } from "@/server/utils/solar_badge";
+import { badgeWalletClient } from "@/server/utils/badge_wallet";
+import { profileRegistryAbi } from "@/server/utils/solar_badge";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
+import { badgeGet, badgePost, type BadgeProfileRow } from "@/server/utils/badge_backend";
 
 const chains = {
   "11155111": sepolia,
@@ -17,17 +16,9 @@ const chains = {
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  const { pin_code, keystore_json, chain_id, class_name, class_description, class_image_url } =
-    body;
+  const { chain_id, class_name, class_description, class_image_url } = body;
 
-  if (
-    !pin_code ||
-    !keystore_json ||
-    !chain_id ||
-    !class_name ||
-    !class_description ||
-    !class_image_url
-  ) {
+  if (!chain_id || !class_name || !class_description || !class_image_url) {
     return {
       success: false,
       message: "Invalid parameters",
@@ -42,15 +33,19 @@ export default defineEventHandler(async (event) => {
   }
   const chain = chains[chain_id as keyof typeof chains];
 
-  let eoa_address = "0x0000000000000000000000000000000000000000";
+  let eoa_address: `0x${string}`;
   try {
-    const private_key = await keystoreToPrivateKey(JSON.parse(keystore_json), pin_code);
-    eoa_address = privateKeyToSafeAccount(private_key as `0x${string}`);
+    eoa_address = await verifyBadgeAuth({
+      body,
+      action: "create-class",
+      chainId: chain.id,
+      params: { class_name, class_description, class_image_url },
+    });
   } catch (error) {
     console.error(error);
     return {
       success: false,
-      message: "Invalid passcode",
+      message: error instanceof BadgeAuthError ? error.message : "Unauthorized",
     };
   }
 
@@ -61,12 +56,6 @@ export default defineEventHandler(async (event) => {
 
   const profile_id = getProfileId(safe_account_address, chain.id);
 
-  const queryProfile = await db.query({
-    profiles: {
-      $: { where: { profile_id: profile_id.toString(), chain_id: chain.id } },
-    },
-  });
-
   const contract_addresses = sola_badge_contract_address[chain.id];
   if (!contract_addresses) {
     return {
@@ -75,8 +64,22 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  if (queryProfile.profiles.length === 0) {
-    // create new profile
+  let profile: BadgeProfileRow | null;
+  try {
+    const result = await badgeGet<{ profile: BadgeProfileRow | null }>("/profile", {
+      wallet_address: safe_account_address,
+      chain_id: chain.id,
+    });
+    profile = result.profile;
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Failed to look up profile",
+    };
+  }
+
+  if (!profile) {
     return {
       success: false,
       message: "Profile not found",
@@ -85,31 +88,29 @@ export default defineEventHandler(async (event) => {
 
   // register class
   try {
-    const new_class_id = id();
-    const class_id = getBadgeClassId(new_class_id, safe_account_address, chain.id);
-    const create_class_hash = await writeProfileRegistryRegisterClass(wagmi_config.client, {
+    // class_id 的第一段只是一个随机标签，链上和库里认的都是 namehash 之后的值。
+    const class_id = getBadgeClassId(crypto.randomUUID(), safe_account_address, chain.id);
+    const create_class_hash = await badgeWalletClient(chain.id).writeContract({
       address: contract_addresses.profile_registry,
+      abi: profileRegistryAbi,
+      functionName: "registerClass",
       args: [BigInt(profile_id), BigInt(class_id), contract_addresses.badgeUnbounded],
-      chainId: chain.id,
-      account: wagmi_config.admin_account(chain.id),
     });
     console.log("create class tx hash", create_class_hash);
 
-    await db.transact([
-      db.tx.badge_classes[new_class_id].create({
-        class_id,
-        chain_id: chain.id,
-        profile_id,
-        wallet_address: safe_account_address,
-        badge_contract_address: contract_addresses.badgeUnbounded,
-        metadata: {
-          class_name,
-          class_description,
-          class_image_url,
-        },
-        tx_hash: create_class_hash,
-      }),
-    ]);
+    await badgePost("/classes", {
+      class_id,
+      chain_id: chain.id,
+      profile_id,
+      wallet_address: safe_account_address,
+      badge_contract_address: contract_addresses.badgeUnbounded,
+      metadata: {
+        class_name,
+        class_description,
+        class_image_url,
+      },
+      tx_hash: create_class_hash,
+    });
 
     return {
       success: true,

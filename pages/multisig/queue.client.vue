@@ -245,7 +245,7 @@
             {{ (item as MultisigTx).memo }}
           </p>
           <p v-if="(item as MultisigTx).sender_note" class="text-xs text-blue-500 flex items-center gap-1">
-            <UIcon name="ci:chat-alt-check" size="12" />
+            <UIcon name="ci:chat-check" size="12" />
             {{ (item as MultisigTx).sender_note }}
           </p>
         </div>
@@ -344,7 +344,7 @@ import { useChainStore } from '~/stores/chain'
 import { useI18n } from '~/stores/i18n'
 import { getMultisigWalletOwners, getMultisigTxs, executeMultisigTx, confirmMultisigTx, failMultisigTx, resetExecutingMultisigTx, syncMultisigWallet, lookupMultisigTxMemos } from '~/utils/multisig_api'
 import { executeMultisigUserOp, getSafeOwnersAndThreshold } from '~/utils/SafeSmartAccount/multisig'
-import { keystoreToPrivateKey } from '~/utils/encryption'
+import { keystoreToPrivateKey } from 'semi-core/keys'
 import { chainMap } from '~/stores/chain'
 import type { MultisigTx, MultisigOwner } from '~/utils/multisig_api'
 import { getBalance, getPopularERC20Balance, type ERC20Balance } from '~/utils/balance'
@@ -649,7 +649,7 @@ async function onExecutePasscode(passcode: string) {
       )
     }
 
-    const { txHash, actualGasCost } = await executeMultisigUserOp(
+    const { txHash, userOpHash, actualGasCost } = await executeMultisigUserOp(
       lockedTx.user_op_snapshot,
       eligibleSignatures,
       execThreshold,
@@ -660,7 +660,12 @@ async function onExecutePasscode(passcode: string) {
     // gas 由 paymaster 代付，但实际成本记账给执行者（"最后一个用户"）
     // confirm 失败属于可恢复状态：交易已上链，绝不能因此把它标记为 failed
     try {
-      await confirmMultisigTx({ multisig_tx_id: tx.id, tx_hash: txHash, gas_used: actualGasCost })
+      await confirmMultisigTx({
+        multisig_tx_id: tx.id,
+        tx_hash: txHash,
+        gas_used: actualGasCost,
+        user_op_hash: userOpHash,
+      })
     } catch (confirmErr: any) {
       console.error('[execute] confirm failed after on-chain success:', confirmErr)
       showPasscode.value = false
@@ -734,10 +739,21 @@ async function onExecutePasscode(passcode: string) {
       showPasscode.value = false
       // 仅当链上从未提交（无 txHash）时才标记失败；
       // 已上链的交易即使后续步骤失败也绝不能标记为 failed（否则会诱导重复发起 → 双花）
+      //
+      // 内层 revert 是这条规则的一个特例，而且落在「标记失败」这一侧：UserOp
+      // 上链了，但调用回滚了，钱没动、nonce 已消耗。这笔提案再也执行不了，
+      // 必须重新发起 —— 所以 semi-core 抛错时不设 submittedTxHash，正好走这里。
       if (!submittedTxHash) {
         await failMultisigTx(tx.id).catch(() => {})
       }
-      toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
+      const reverted = err?.code === 'USER_OP_FAILED' && err?.txHash
+      toast.add({
+        title: i18n.text['Error'] || 'Error',
+        description: reverted
+          ? `${i18n.text['multisig.executionReverted'] || '链上执行失败，资金未转出，请重新发起'}（${err.txHash}）`
+          : err.message,
+        color: 'error',
+      })
     }
     await fetchQueue()
   } finally {

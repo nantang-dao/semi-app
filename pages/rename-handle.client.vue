@@ -14,7 +14,10 @@
       <h1 class="text-2xl font-bold">{{ i18n.text["Rename Username"] }}</h1>
 
       <div class="w-full text-sm text-gray-500 space-y-1">
-        <p>{{ i18n.text["Current username"] }}: <span class="text-gray-800 font-medium">@{{ userStore.user?.handle }}</span></p>
+        <p>
+          {{ i18n.text["Current username"] }}:
+          <span class="text-gray-800 font-medium">@{{ userStore.user?.handle }}</span>
+        </p>
         <p v-if="userStore.user?.handle_changed_at">
           {{ i18n.text["Last renamed"] }}: {{ formatTime(userStore.user.handle_changed_at) }}
         </p>
@@ -63,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import dayjs from "dayjs";
+import { formatDateTime } from "~/utils/format";
 import { setHandle, getUserByHandle } from "~/utils/semi_api";
 
 const router = useRouter();
@@ -80,7 +83,7 @@ const canRename = computed(() => {
   return new Date(nextRenameAt.value) <= new Date();
 });
 
-const formatRenameTime = (value: string) => dayjs(value).format("YYYY-MM-DD HH:mm");
+const formatRenameTime = (value: string) => formatDateTime(value);
 
 const formatTime = (value: string) => formatRenameTime(value);
 
@@ -114,7 +117,11 @@ const onSubmit = async () => {
   try {
     const validation = validateHandle(formState.handle);
     if (validation !== true) {
-      toast.add({ title: i18n.text["Please enter correct username"], description: validation, color: "error" });
+      toast.add({
+        title: i18n.text["Please enter correct username"],
+        description: validation,
+        color: "error",
+      });
       return;
     }
 

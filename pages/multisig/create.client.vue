@@ -156,7 +156,7 @@ import { useI18n } from '~/stores/i18n'
 import { predictSafeAccountAddress } from '~/utils/SafeSmartAccount/account'
 import { useChainStore, chainMap } from '~/stores/chain'
 import { createMultisigWallet } from '~/utils/multisig_api'
-import { keystoreToPrivateKey } from '~/utils/encryption'
+import { keystoreToPrivateKey } from 'semi-core/keys'
 import { getUserByHandle } from '~/utils/semi_api'
 
 const router = useRouter()

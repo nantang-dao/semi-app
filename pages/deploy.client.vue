@@ -273,7 +273,7 @@ import { useChainStore } from "@/stores/chain";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { isAddress, zeroAddress, parseEther } from "viem";
-import { keystoreToPrivateKey } from "~/utils/encryption";
+import { keystoreToPrivateKey } from "semi-core/keys";
 import { deployToken } from "~/utils/SafeSmartAccount/operation";
 import { addTokenClass } from "~/utils/semi_api";
 import { TOKEN_FACTORY_CONTRACT } from "~/utils/config";

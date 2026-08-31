@@ -259,6 +259,13 @@ export async function confirmMultisigTx(params: {
   tx_hash: string;
   /** 实际 gas 成本（wei），来自 UserOp 回执的 actualGasCost；记账给执行者 */
   gas_used?: string;
+  /**
+   * 让后端在回执里精确定位这一笔 UserOp。
+   *
+   * 一个 bundle 里可能有同一个 Safe 的多笔 UserOp；不给的话后端只能按 sender
+   * 匹配，并要求匹配到的每一笔都成功。
+   */
+  user_op_hash?: string;
 }): Promise<{ result: string }> {
   const resp = await fetch(`${base()}/confirm_multisig_tx`, {
     method: "POST",

@@ -1,10 +1,10 @@
-import db from "@/server/utils/db";
-import { keystoreToPrivateKey, privateKeyToSafeAccount } from "@/utils/encryption";
+import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
-import { id } from "@instantdb/admin";
-import { getProfileId, getBadgeId } from "@/server/utils";
+import { getBadgeId, getProfileId } from "@/server/utils";
+import { normalizeAddress } from "@/server/utils/badge_address";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
+import { badgeGet, badgePost, type BadgeClassRow } from "@/server/utils/badge_backend";
 
 const chains = {
   "11155111": sepolia,
@@ -15,23 +15,14 @@ const chains = {
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  const {
-    class_id,
-    receiver_addresses,
-    pin_code,
-    keystore_json,
-    chain_id,
-    badge_name,
-    badge_description,
-    badge_image_url,
-  } = body;
+  const { class_id, receiver_addresses, chain_id, badge_name, badge_description, badge_image_url } =
+    body;
 
   if (
     !class_id ||
     !receiver_addresses ||
+    !Array.isArray(receiver_addresses) ||
     receiver_addresses.length === 0 ||
-    !pin_code ||
-    !keystore_json ||
     !chain_id ||
     !badge_name ||
     !badge_description ||
@@ -51,15 +42,19 @@ export default defineEventHandler(async (event) => {
   }
   const chain = chains[chain_id as keyof typeof chains];
 
-  let eoa_address = "0x0000000000000000000000000000000000000000";
+  let eoa_address: `0x${string}`;
   try {
-    const private_key = await keystoreToPrivateKey(JSON.parse(keystore_json), pin_code);
-    eoa_address = privateKeyToSafeAccount(private_key as `0x${string}`);
+    eoa_address = await verifyBadgeAuth({
+      body,
+      action: "create-badges",
+      chainId: chain.id,
+      params: { class_id, receiver_addresses, badge_name, badge_description, badge_image_url },
+    });
   } catch (error) {
     console.error(error);
     return {
       success: false,
-      message: "Invalid passcode",
+      message: error instanceof BadgeAuthError ? error.message : "Unauthorized",
     };
   }
 
@@ -68,22 +63,20 @@ export default defineEventHandler(async (event) => {
     chain: chain,
   });
 
-  const profile_id = getProfileId(safe_account_address, chain.id);
-
-  const queryBadgeClass = await db.query({
-    badge_classes: {
-      $: { where: { class_id } },
-    },
-  });
-
-  if (queryBadgeClass.badge_classes.length === 0) {
+  let badge_class: BadgeClassRow;
+  try {
+    const result = await badgeGet<{ badge_class: BadgeClassRow }>("/classes/details", {
+      class_id,
+      chain_id: chain.id,
+    });
+    badge_class = result.badge_class;
+  } catch (error) {
+    console.error(error);
     return {
       success: false,
       message: "Badge class not found",
     };
   }
-
-  const badge_class = queryBadgeClass.badge_classes[0];
 
   const contract_addresses = sola_badge_contract_address[chain.id];
   if (!contract_addresses || badge_class.chain_id !== chain.id) {
@@ -93,50 +86,57 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  // create badges
+  // 这个 class 必须属于调用者。少了这一步，任何登录用户拿到别人的 class_id
+  // 就能以那个 class 的名义发徽章，收件人接受时还会用该 class 的合约真的
+  // mint 上链 —— 等于可以冒用他人的徽章品牌。
+  if (badge_class.profile_id !== getProfileId(safe_account_address, chain.id)) {
+    return {
+      success: false,
+      message: "Badge class does not belong to you",
+    };
+  }
+
+  // 收件人地址参与 badge_id 的 namehash，一旦以非规范形式落库，这枚徽章就再也
+  // 领不了了（历史上正是这样卡住了 4 枚）。写库前统一成 checksummed。
+  let receivers: string[];
   try {
-    const datebase_ids = Array.from({ length: receiver_addresses.length }, () => id());
-    const badge_ids = datebase_ids.map((badge_id, index) => {
-      console.log("badge_id =>", badge_id, receiver_addresses[index], chain.id);
-      return getBadgeId(badge_id, class_id, receiver_addresses[index] as `0x${string}`, chain.id);
-    });
-
-    console.log("datebase_ids", datebase_ids);
-    console.log("badge_ids", badge_ids);
-
-    await db.transact(
-      datebase_ids.map((id, index) => {
-        const new_badge = {
-          badge_id: badge_ids[index],
-          class_id: class_id,
-          wallet_address: receiver_addresses[index],
-          chain_id: chain.id,
-          metadata: {
-            badge_name,
-            badge_description,
-            badge_image_url,
-          },
-          created_at: new Date(),
-          status: "pending",
-        };
-
-        return db.tx.badges[id].create(new_badge);
-      })
-    );
+    receivers = (receiver_addresses as string[]).map(normalizeAddress);
   } catch (error) {
     console.error(error);
     return {
       success: false,
-      message: "Failed to register class",
+      message: "Invalid receiver address",
     };
   }
 
-  return {
-    success: true,
-    message: "Class created successfully",
-    data: {
+  try {
+    const badges = receivers.map((receiver) => ({
+      // 第一段只是随机标签，认的是 namehash 之后的值。
+      badge_id: getBadgeId(crypto.randomUUID(), class_id, receiver as `0x${string}`, chain.id),
       class_id,
-      profile_id,
-    },
-  };
+      wallet_address: receiver,
+      metadata: {
+        badge_name,
+        badge_description,
+        badge_image_url,
+      },
+    }));
+
+    // 整批一个请求：后端放在一个事务里，不会出现半批成功而发送方不知道发出去几枚。
+    await badgePost("/items", { chain_id: chain.id, badges });
+
+    return {
+      success: true,
+      message: "Badges created successfully",
+      data: {
+        badge_ids: badges.map((b) => b.badge_id),
+      },
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Failed to create badges",
+    };
+  }
 });

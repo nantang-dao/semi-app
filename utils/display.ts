@@ -1,12 +1,6 @@
 import { formatUnits, type Chain, zeroAddress } from "viem";
-import bignumber from "bignumber.js";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/zh-cn";
+import { formatAmount, formatRelativeTime } from "./format";
 import { entryPoint07Address } from "viem/account-abstraction";
-
-dayjs.locale("zh-cn");
-dayjs.extend(relativeTime);
 
 export function formatAddress(address: string) {
   return address.slice(0, 6) + "..." + address.slice(-4);
@@ -14,7 +8,7 @@ export function formatAddress(address: string) {
 
 export function displayBalance(wei: bigint, fixed = 6, decimals = 18) {
   const value = formatUnits(wei, decimals);
-  const str = new bignumber(value).toFormat(fixed, 1);
+  const str = formatAmount(value, fixed);
   // remove trailing zeros
   return str.replace(/\.?0+$/, "");
 }
@@ -37,30 +31,6 @@ export interface ActionPreview {
   receiverNote?: string;
   senderHandle?: string | null;
   receiverHandle?: string | null;
-}
-
-export function parseSendActions(history: any[]) {
-  const actions: ActionPreview[] = [];
-  history
-    .filter((item) => item.type === "TRANSACTION" && item.transaction.txInfo.type !== "Creation")
-    .forEach((item) => {
-      console.log("item", item);
-      actions.push({
-        from: item.transaction.txInfo.sender.value,
-        to: item.transaction.txInfo.recipient.value,
-        value: item.transaction.txInfo.transferInfo.value,
-        date: item.transaction.timestamp,
-        status: item.transaction.txStatus,
-        direction: item.transaction.direction,
-        token: item.transaction.txInfo.transferInfo.type,
-        type: item.transaction.txInfo.type,
-        txHex: item.transaction.txHash,
-        symbol: item.transaction.txInfo.transferInfo.tokenSymbol,
-        decimals: item.transaction.txInfo.transferInfo.decimals,
-      });
-    });
-
-  return actions;
 }
 
 export function parseActionsFromAlchemyApi(
@@ -122,5 +92,5 @@ export function parseActionsFromAlchemyApi(
 }
 
 export function displayDate(date: string) {
-  return dayjs(date).fromNow();
+  return formatRelativeTime(date);
 }

@@ -67,7 +67,7 @@
                         </div>
                         <div class="flex items-center gap-2 mt-1" v-if="action.id">
                             <div class="flex flex-row gap-1 items-center text-sm" v-if="action.senderNote">
-                                <UIcon name="ci:chat-alt-check" class="text-blue-400 text-base" />
+                                <UIcon name="ci:chat-check" class="text-blue-400 text-base" />
                                 <span class="text-gray-500">{{ i18n.text["Sender Note"] }}: {{ action.senderNote }}</span>
                             </div>
                             <UButton icon="i-heroicons-pencil-square" color="primary" variant="subtle" size="xs" @click.stop="handleEditClick(action, 'sender')" class="text-xs">
@@ -135,7 +135,7 @@
                         </div>
                         <div class="flex items-center gap-2 mt-1" v-if="action.id">
                             <div class="flex flex-row gap-1 items-center text-sm" v-if="action.receiverNote">
-                                <UIcon name="ci:chat-alt-check" class="text-green-400 text-base" />
+                                <UIcon name="ci:chat-check" class="text-green-400 text-base" />
                                 <span class="text-gray-500">{{ i18n.text["Receiver Note"] }}: {{ action.receiverNote }}</span>
                             </div>
                             <UButton icon="i-heroicons-pencil-square" color="primary" variant="subtle" size="xs" @click.stop="handleEditClick(action, 'receiver')" class="text-xs">
@@ -369,7 +369,9 @@ const loadInitialActions = async (chain: Chain, safeAddress: string) => {
             description: (error as Error).message,
             color: "error",
         });
-        throw error;
+        // 不再往上抛：唯一的调用方是 onMounted，抛出去只会变成
+        // "Unhandled error during execution of mounted hook"，而错误已经
+        // 记了日志也弹了 toast。列表留空即可。
     } finally {
         loading.value = false;
     }

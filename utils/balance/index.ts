@@ -1,30 +1,21 @@
-import { POPULAR_ERC20_TOKENS, type TokenMetadata } from "./tokens";
-import { createPublicClient, http, type Address, type Chain, erc20Abi } from "viem";
-import { RPC_URL } from "~/utils/config";
+import type { Address, Chain } from "viem";
+import { getErc20Balances, getNativeBalance, getErc20Balance as coreGetErc20Balance } from "semi-core/token";
+import { chainContext } from "~/utils/semi_core";
 import type { TokenClass } from "~/utils/semi_api";
 
+/**
+ * 余额查询的适配层。
+ *
+ * semi-core 只认地址、只回余额；TokenClass 这类带 symbol/icon 的业务元数据
+ * 是后端 API 的形状，在这里拼回去。
+ */
+
 export async function getBalance(address: Address, chain: Chain) {
-  const client = createPublicClient({
-    chain,
-    transport: http(RPC_URL[chain.id]),
-  });
-  const balance = await client.getBalance({ address });
-  return balance;
+  return getNativeBalance(chainContext(chain.id), address);
 }
 
 export async function getErc20Balance(address: Address, tokenAddress: Address, chain: Chain) {
-  const client = createPublicClient({
-    chain,
-    transport: http(RPC_URL[chain.id]),
-  });
-  const balance = await client.readContract({
-    address: tokenAddress,
-    abi: erc20Abi,
-    functionName: "balanceOf",
-    args: [address],
-  });
-
-  return balance;
+  return coreGetErc20Balance(chainContext(chain.id), address, tokenAddress);
 }
 
 export interface ERC20Balance {
@@ -37,34 +28,10 @@ export async function getPopularERC20Balance(
   address: Address,
   chain: Chain
 ): Promise<ERC20Balance[]> {
-  if (tokenClasses.length === 0) return [];
-
-  const client = createPublicClient({
-    chain,
-    transport: http(RPC_URL[chain.id]),
-  });
-
-  // One multicall3 round trip instead of one eth_call per token. allowFailure
-  // keeps a single bad token (self-destructed, non-standard) from taking down
-  // the whole balance list — it just reads as 0.
-  const results = await client.multicall({
-    allowFailure: true,
-    contracts: tokenClasses.map((token) => ({
-      address: token.address as `0x${string}`,
-      abi: erc20Abi,
-      functionName: "balanceOf" as const,
-      args: [address] as const,
-    })),
-  });
-
-  return tokenClasses.map((token, i) => {
-    const result = results[i];
-    if (result.status === "failure") {
-      console.warn(`balanceOf failed for ${token.symbol} (${token.address}):`, result.error);
-    }
-    return {
-      token,
-      balance: result.status === "success" ? (result.result as bigint) : 0n,
-    };
-  });
+  const results = await getErc20Balances(
+    chainContext(chain.id),
+    address,
+    tokenClasses.map((t) => t.address as Address)
+  );
+  return results.map((r, i) => ({ token: tokenClasses[i], balance: r.balance }));
 }
