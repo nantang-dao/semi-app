@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { AUTH_TOKEN_KEY, getCookie, clearAuthToken, getMe } from "@/utils/semi_api";
+import { AUTH_TOKEN_KEY, getCookie, logout, getMe } from "@/utils/semi_api";
 
 export const useUserStore = defineStore("user", {
   state: () => ({
@@ -18,7 +18,8 @@ export const useUserStore = defineStore("user", {
       return null;
     },
     async signout() {
-      clearAuthToken();
+      // logout() 会先让服务端吊销 token，再删本地 cookie
+      await logout();
       this.user = null;
     },
     setUser(user: UserInfo) {

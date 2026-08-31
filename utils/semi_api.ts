@@ -128,9 +128,28 @@ export function deleteCookie(name: string) {
   setCookie(name, "", -1);
 }
 
-// 登出方法
-export function logout(): void {
-  clearAuthToken();
+/**
+ * 登出。
+ *
+ * 先让服务端吊销这个 token，再删本地 cookie。**顺序不能反** —— cookie 一删
+ * 就拼不出 Authorization 头，服务端也就不知道该吊销哪一个。
+ *
+ * 服务端调用失败不阻断登出：用户点了退出，本地状态就必须清掉。代价是那个
+ * token 在服务端仍然有效直到过期，所以失败要记日志，别静默吞掉。
+ *
+ * 只吊销当前这一个 token，其他设备的登录状态不受影响。
+ */
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${requireSemiRestBaseUrl()}/logout`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+  } catch (error) {
+    console.error("[logout] 服务端吊销失败，该 token 将保持有效至过期", error);
+  } finally {
+    clearAuthToken();
+  }
 }
 
 // 1. 获取欢迎信息
