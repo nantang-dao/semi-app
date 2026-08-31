@@ -245,7 +245,7 @@
             {{ (item as MultisigTx).memo }}
           </p>
           <p v-if="(item as MultisigTx).sender_note" class="text-xs text-blue-500 flex items-center gap-1">
-            <UIcon name="ci:chat-alt-check" size="12" />
+            <UIcon name="ci:chat-check" size="12" />
             {{ (item as MultisigTx).sender_note }}
           </p>
         </div>
