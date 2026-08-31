@@ -19,6 +19,8 @@
   "Secure context required (HTTPS, localhost)": "Secure context required (HTTPS, localhost)",
   "Is the camera already in use?": "Is the camera already in use?",
   "Installed cameras are not suitable": "Installed cameras are not suitable",
+  "Starting camera": "Starting camera...",
+  "Camera unavailable": "Camera unavailable",
   "Stream API is not supported in this browser": "Stream API is not supported in this browser",
   "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.",
   "Back": "Back",

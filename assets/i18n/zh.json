@@ -19,6 +19,8 @@
   "Secure context required (HTTPS, localhost)": "需要安全上下文（HTTPS、localhost）",
   "Is the camera already in use?": "摄像头是否已被占用？",
   "Installed cameras are not suitable": "已安装的摄像头不适合",
+  "Starting camera": "正在启动摄像头...",
+  "Camera unavailable": "摄像头不可用",
   "Stream API is not supported in this browser": "此浏览器不支持Stream API",
   "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "摄像头访问仅在安全上下文中允许。请使用HTTPS或localhost而不是HTTP。",
   "Back": "返回",
