@@ -110,7 +110,7 @@ const handleUploadIcon = async () => {
       const blob = new Blob([ia], { type: mime_type });
 
       uploading.value = true;
-      const url = await uploadFile(blob, import.meta.env.VITE_SOLA_AUTH_TOKEN!);
+      const url = await uploadFile(blob);
       imageUrl.value = url;
       uploading.value = false;
     };

@@ -395,7 +395,7 @@ const uploadImage = async () => {
       ia[i] = byteString.charCodeAt(i);
     }
     const blob = new Blob([ia], { type: mime_type });
-    const url = await uploadFile(blob, import.meta.env.VITE_SOLA_AUTH_TOKEN!);
+    const url = await uploadFile(blob);
     formState.image_url = url;
   };
 };

@@ -30,7 +30,7 @@ proxy:
   deploy_timeout: 90
 
 ssh:
-  user: ubuntu                # homepod 上 ubuntu 在 docker 组，且能直接调 Nomad
+  user: ubuntu # homepod 上 ubuntu 在 docker 组，且能直接调 Nomad
 
 builder:
   arch: amd64
@@ -48,7 +48,6 @@ secrets:
     - VITE_API_URL
     - VITE_ALCHEMY_API_KEY
     - VITE_ZERODEV_PROJECT_ID
-    - VITE_SOLA_AUTH_TOKEN
     - VITE_TOKEN_OWNER
 
 retain_containers: 3

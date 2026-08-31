@@ -330,7 +330,9 @@ export async function getRemainingGasCredits(): Promise<RemainingGasCreditsRespo
     return handleRequest<RemainingGasCreditsResponse>(response);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("Request timed out: " + `${requireSemiRestBaseUrl()}/remaining_free_transactions`);
+      throw new Error(
+        "Request timed out: " + `${requireSemiRestBaseUrl()}/remaining_free_transactions`
+      );
     }
     throw error;
   } finally {
@@ -403,9 +405,12 @@ export async function getUserByHandle(handle: string): Promise<UserInfo> {
 }
 
 export async function getUserByHandleOrPhone(handleOrPhone: string): Promise<UserInfo | null> {
-  const response = await fetch(`${requireSemiRestBaseUrl()}/get_by_handle?handle=${handleOrPhone}`, {
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${requireSemiRestBaseUrl()}/get_by_handle?handle=${handleOrPhone}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
 
   try {
     return await handleRequest<UserInfo | null>(response);
@@ -414,24 +419,43 @@ export async function getUserByHandleOrPhone(handleOrPhone: string): Promise<Use
   }
 }
 
-export async function uploadFile(file: Blob, authToken: string): Promise<string> {
-  const formData = new FormData();
-  formData.append("auth_token", authToken);
-  formData.append("uploader", "user");
-  formData.append("resource", Math.random().toString(36).slice(-8));
-  formData.append("data", file);
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
 
-  const response = await fetch("https://api.sola.day/service/upload_image", {
+/**
+ * 上传图片，返回图床 URL。
+ *
+ * 文件交给 Semi 后端 `/upload_image`，由后端拿服务端保管的凭证转发到图床。
+ * 之前是浏览器直传 api.sola.day，且把上游 token 打进了客户端 bundle。
+ */
+export async function uploadFile(file: Blob): Promise<string> {
+  const extension = IMAGE_EXTENSIONS[file.type] ?? "bin";
+  const formData = new FormData();
+  formData.append("file", file, `upload.${extension}`);
+
+  // 不能复用 getAuthHeaders()：它会设 Content-Type: application/json，
+  // 那样 multipart 的 boundary 就丢了。
+  const headers: Record<string, string> = {};
+  const authToken = getCookie(AUTH_TOKEN_KEY);
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`${requireSemiRestBaseUrl()}/upload_image`, {
     method: "POST",
+    headers,
     body: formData,
   });
 
-  if (!response.ok) {
-    throw new Error("Upload failed");
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.url) {
+    throw new Error(data?.message ?? `Upload failed (HTTP ${response.status})`);
   }
-
-  const data = await response.json();
-  return data.result.url as string;
+  return data.url as string;
 }
 
 export interface TokenClass {
@@ -540,10 +564,7 @@ export interface Contact {
 }
 
 // 设置联系人列表
-export async function setContacts(
-  id: string,
-  contact_list: Contact[]
-): Promise<BaseResponse> {
+export async function setContacts(id: string, contact_list: Contact[]): Promise<BaseResponse> {
   const response = await fetch(`${requireSemiRestBaseUrl()}/set_contacts`, {
     method: "POST",
     headers: getAuthHeaders(),
