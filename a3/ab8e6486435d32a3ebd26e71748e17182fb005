@@ -1,0 +1,28 @@
+docs/bundle-size.md
+  s_881e33c21d9e1f::t_8b036ea50a7df0 1-66,88-93,105-110
+  s_881e33c21d9e1f::t_50f1b24d2ab670 67-87,94-104
+components/ScanQrcodeBtn.client.vue
+  s_881e33c21d9e1f::t_e5de2c315e31a9 17,23,32-38
+packages/semi-core/src/keys/generate.ts
+  s_881e33c21d9e1f::t_d6f7df8d0d45ef 1-13
+packages/semi-core/src/keys/mnemonic.ts
+  s_881e33c21d9e1f::t_83baf160dc3aaa 1
+packages/semi-core/src/keys/index.ts
+  s_881e33c21d9e1f::t_83baf160dc3aaa 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "a3ab8e6486435d32a3ebd26e71748e17182fb005",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
