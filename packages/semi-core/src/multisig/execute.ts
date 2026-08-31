@@ -1,8 +1,13 @@
 import type { Hex } from "viem";
 import { ENTRY_POINT_07_ADDRESS } from "../chains";
 import type { ChainContext } from "../config";
-import { BundlerError, PaymasterExpiredError, SnapshotExpiredError } from "../errors";
-import { packMultisigSignatures } from "./sign";
+import {
+  BundlerError,
+  PaymasterExpiredError,
+  SnapshotExpiredError,
+  SnapshotHashMismatchError,
+} from "../errors";
+import { packMultisigSignatures, safeOpHash } from "./sign";
 import { assertValidSnapshot, type CollectedSignature, type UserOpSnapshot } from "./types";
 
 const toHexNum = (n: string): Hex => `0x${BigInt(n).toString(16)}`;
@@ -55,6 +60,24 @@ export async function executeMultisigUserOp(
   options?: { maxAttempts?: number; intervalMs?: number }
 ): Promise<ExecuteResult> {
   assertValidSnapshot(snapshot);
+
+  if (snapshot.chainId !== ctx.chainId) {
+    throw new BundlerError(
+      `This snapshot was built for chain ${snapshot.chainId} but is being executed against ` +
+        `chain ${ctx.chainId}. The collected signatures commit to chain ${snapshot.chainId}.`
+    );
+  }
+
+  // 收齐的签名承诺的是这份快照。提交前重算一次哈希：不一致说明快照在收签
+  // 期间被改过，那些签名对现在这份内容是无效的（链上会以 AA24 拒绝），
+  // 与其烧掉一次 gas 换一个难懂的错，不如在这里说清楚。
+  if (snapshot.safeOpHash) {
+    const actual = safeOpHash(snapshot);
+    if (snapshot.safeOpHash.toLowerCase() !== actual.toLowerCase()) {
+      throw new SnapshotHashMismatchError(snapshot.safeOpHash, actual, "recorded in the snapshot");
+    }
+  }
+
   const bundlerUrl = ctx.bundlerUrl;
   if (!bundlerUrl) throw new BundlerError(`No bundler configured for chain ${ctx.chainId}`);
 
@@ -71,6 +94,10 @@ export async function executeMultisigUserOp(
   if (snapshot.paymasterValidUntil && nowSec >= snapshot.paymasterValidUntil) {
     throw new PaymasterExpiredError(snapshot.paymasterValidUntil);
   }
+
+  // 放在所有本地检查之后：这一步要发网络请求，而上面那些不用。先把能就地
+  // 判定的错报出来，别让「提案过期了」变成一个 HTTP 超时。
+  await ctx.assertChainId();
 
   const userOp: Record<string, string> = {
     sender: snapshot.sender,

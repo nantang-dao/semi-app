@@ -1,5 +1,12 @@
 export { type UserOpSnapshot, type CollectedSignature, assertValidSnapshot } from "./types";
-export { signSafeOpSnapshot, packMultisigSignatures, signedBy, remainingSigners } from "./sign";
+export {
+  signSafeOpSnapshot,
+  safeOpHash,
+  packMultisigSignatures,
+  signedBy,
+  remainingSigners,
+  type SignSnapshotOptions,
+} from "./sign";
 export {
   buildMultisigUserOpSnapshot,
   SNAPSHOT_VALIDITY_SECONDS,

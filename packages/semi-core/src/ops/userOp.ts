@@ -125,6 +125,9 @@ export async function sendUserOperation(
   ctx: ChainContext,
   { privateKey, calls, sponsorFee = false, owners, threshold }: SendUserOperationParams
 ): Promise<UserOperationReceipt> {
+  // 连错链时，nonce / 余额 / 是否已部署全是从错的那条链读来的，而签名里的
+  // chainId 来自配置——先确认两者是同一条链再动手。
+  await ctx.assertChainId();
   const account = await getSafeAccount(ctx, { privateKey, owners, threshold });
   const { bundlerClient, paymasterClient } = bundlerFor(ctx, sponsorFee);
 

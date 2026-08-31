@@ -6,6 +6,7 @@ import { GasEstimationError } from "../errors";
 import { estimateMultisigGas } from "../ops";
 import { packPaymasterAndData } from "../safe";
 import { isDeployed } from "../token";
+import { safeOpHash } from "./sign";
 import { fetchSponsorPaymasterData } from "./sponsorship";
 import type { UserOpSnapshot } from "./types";
 
@@ -52,6 +53,9 @@ export async function buildMultisigUserOpSnapshot(
   ctx: ChainContext,
   { safeAddress, owners, threshold, calls, forcedNonce, sponsorFee = true }: BuildSnapshotParams
 ): Promise<UserOpSnapshot> {
+  // 快照要冻结 nonce、gas 和是否已部署，全部读自 RPC；而签名里的 chainId
+  // 写的是配置值。两者不是同一条链的话，这份快照从一开始就是错的。
+  await ctx.assertChainId();
   if (!ctx.bundlerUrl) {
     throw new GasEstimationError(`No bundler configured for chain ${ctx.chainId}`);
   }
@@ -124,7 +128,7 @@ export async function buildMultisigUserOpSnapshot(
     }
   }
 
-  return {
+  const snapshot: UserOpSnapshot = {
     expiresAt: Math.floor(Date.now() / 1000) + SNAPSHOT_VALIDITY_SECONDS,
     sender: safeAddress,
     nonce: nonce.toString(),
@@ -148,4 +152,7 @@ export async function buildMultisigUserOpSnapshot(
     sponsored,
     paymasterValidUntil,
   };
+
+  // 全部被签字段就位之后再算——这个哈希本身不进哈希。
+  return { ...snapshot, safeOpHash: safeOpHash(snapshot) };
 }

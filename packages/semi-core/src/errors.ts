@@ -41,6 +41,30 @@ export class ConfigError extends SemiCoreError {
   }
 }
 
+/**
+ * RPC 实际连着的链和配置里的 `chain.id` 不一致。
+ *
+ * 这是**静默故障**里最贵的一种：Safe 的官方部署在各链是同一批地址，所以
+ * 连错链算出来的钱包地址往往和对的那条一模一样，看不出问题。真正错的是
+ * nonce、余额、是否已部署这些**从链上读来**的东西，而 SafeOp 签名里的
+ * chainId 却来自配置。结果是签出一份内容自相矛盾的签名，最后在提交时以
+ * AA23 / AA25 之类难懂的方式失败——甚至更糟：签名对另一条链是有效的。
+ */
+export class ChainMismatchError extends SemiCoreError {
+  readonly configured: number;
+  readonly actual: number;
+  constructor(configured: number, actual: number, rpcUrlHint: string) {
+    super(
+      "CHAIN_MISMATCH",
+      `Configured chain ${configured} but the RPC at ${rpcUrlHint} reports chain ${actual}. ` +
+        `Fix the RPC URL for chain ${configured} — signing against a mismatched chain produces ` +
+        `signatures and nonces that do not belong together.`
+    );
+    this.configured = configured;
+    this.actual = actual;
+  }
+}
+
 /** 这条链没有配 paymaster，却要求代付 gas */
 export class PaymasterNotConfiguredError extends SemiCoreError {
   constructor(chainId: number) {
@@ -111,6 +135,27 @@ export class SafeNotDeployedError extends SemiCoreError {
       `Safe ${address} has no code on chain ${chainId} — it is still counterfactual. Execute a transaction from it first.`
     );
     this.address = address;
+  }
+}
+
+/**
+ * 快照的 SafeOp 哈希和记录在案的那份对不上。
+ *
+ * 快照要序列化进后端、再取回来给下一个签名者用。任何一个字段在往返中被
+ * 改动——无论是传输损坏、序列化丢字段，还是协调层被攻破——都会让重算出的
+ * 哈希变化。`assertValidSnapshot` 只查字段在不在，查不出值变了；这个查得出。
+ */
+export class SnapshotHashMismatchError extends SemiCoreError {
+  readonly expected: string;
+  readonly actual: string;
+  constructor(expected: string, actual: string, source: string) {
+    super(
+      "SNAPSHOT_HASH_MISMATCH",
+      `This proposal's SafeOp hash does not match the one ${source}: expected ${expected}, ` +
+        `computed ${actual}. The proposal has been altered since it was created — do not sign it.`
+    );
+    this.expected = expected;
+    this.actual = actual;
   }
 }
 

@@ -84,10 +84,19 @@ interface ChainContext {
   readonly gasPriceUrl: string | undefined;
   readonly gasPriceMethod: string;
   readonly canSponsorGas: boolean;   // 等价于 Boolean(paymasterUrl)
+  readonly assertChainId: () => Promise<void>;
 }
 ```
 
 判断能不能代付 gas 用 `ctx.canSponsorGas`，不要自己去看 `paymasterUrl`。
+
+`assertChainId()` 确认 RPC 真的连在 `chain.id` 这条链上，不一致抛
+`ChainMismatchError`。**所有会签名或提交的入口都会先 await 它**，调用方一般不必自己调。
+第一次发一次 `eth_chainId`，结果缓存在 context 上；失败不缓存，下次重试。
+
+为什么值得专门查一次：Safe 的官方部署在各链是同一批地址，连错链算出来的钱包地址往往和
+对的那条一模一样，地址这层看不出问题。真正错的是 nonce、余额、是否已部署这些**从链上
+读来**的东西，而 SafeOp 签名里的 chainId 来自配置 —— 两边凑出一份内容自相矛盾的签名。
 
 ---
 
@@ -442,6 +451,7 @@ interface UserOpSnapshot {
   factoryData?: Hex;
   initCode: Hex;
   chainId: number;
+  safeOpHash?: Hex;            // 全部被签字段的指纹，建快照时算好；旧快照没有 = 跳过检查
   expiresAt?: number;          // Semi 自己的收签窗口；旧快照没有此字段 = 不过期
 
   // paymaster 赞助，建快照时冻结。所有 owner 必须对同一份数据签名
@@ -468,7 +478,14 @@ ZeroDev 的 `validUntil` 是 0，赞助本身不过期）。加它是因为快�
 ### 签名
 
 ```ts
-function signSafeOpSnapshot(privateKey: Hex, snapshot: UserOpSnapshot): Promise<CollectedSignature>
+function safeOpHash(snapshot: UserOpSnapshot): Hex
+
+function signSafeOpSnapshot(
+  privateKey: Hex,
+  snapshot: UserOpSnapshot,
+  options?: SignSnapshotOptions
+): Promise<CollectedSignature>
+interface SignSnapshotOptions { expectedHash?: Hex }
 interface CollectedSignature { signer_address: Address; signature: Hex }
 
 function packMultisigSignatures(
@@ -484,6 +501,17 @@ function remainingSigners(owners: Address[], signatures: CollectedSignature[]): 
 
 `signSafeOpSnapshot` **不联网、不需要 bundler** —— 每个 owner 可以独立完成，这正是
 多签能异步收签的原因。
+
+签名前会重算 SafeOp 哈希并比对，不一致抛 `SnapshotHashMismatchError`：
+
+- 和快照自带的 `safeOpHash` 比 —— 这只能发现**意外**损坏（传输、序列化丢字段）。
+  协调层要是能改快照，同样能改这个字段。
+- 和 `options.expectedHash` 比 —— **这才是真正的防篡改检查**，那份哈希必须从另一条渠道
+  来（提案时展示给用户的、链接里带的、本地留存的）。
+
+`safeOpHash(snapshot)` 是快照全部被签字段的指纹：改动任何一个被签字段哈希都变，而
+`expiresAt` / `sponsored` / `paymasterValidUntil` 这些不进签名的字段不影响它。
+`executeMultisigUserOp` 提交前也会做同样的自洽比对。
 
 ⚠️ `packMultisigSignatures` **按签名者地址升序排列是强制的**：Safe 的
 `checkSignatures` 依赖这个顺序线性扫描 owner 链表，顺序错了会判定为无效签名。
@@ -578,6 +606,8 @@ interface PaymasterValidity { validUntil: number; validAfter: number }
 | --------------------------- | -------------------------- | ------ | -------- |
 | `ConfigError`               | `INVALID_CONFIG`           | `createSemiCore` 配置有问题，构造时即抛 | |
 | `ChainNotConfiguredError`   | `CHAIN_NOT_CONFIGURED`     | `core.chain(id)` 取了没配置的链 | `chainId` |
+| `ChainMismatchError`        | `CHAIN_MISMATCH`           | RPC 实际连着的链和配置的 `chain.id` 不一致 | `configured`, `actual` |
+| `SnapshotHashMismatchError` | `SNAPSHOT_HASH_MISMATCH`   | 快照的 SafeOp 哈希和记录在案的对不上 | `expected`, `actual` |
 | `KeystoreError`             | `KEYSTORE_BAD_PASSCODE`    | 口令错 | |
 | `KeystoreError`             | `KEYSTORE_MALFORMED`       | keystore 结构坏了 | |
 | `PaymasterNotConfiguredError` | `PAYMASTER_NOT_CONFIGURED` | 要求代付但该链没配 paymaster | |
@@ -625,7 +655,9 @@ const first = await signSafeOpSnapshot(privateKey, snapshot);
 
 // 2. 后续签名者（可以离线，不需要 bundler）
 assertValidSnapshot(snapshotFromBackend);
-const sig = await signSafeOpSnapshot(privateKey, snapshotFromBackend);
+const sig = await signSafeOpSnapshot(privateKey, snapshotFromBackend, {
+  expectedHash, // 从另一条渠道拿到的提案哈希；没有就退化成只查自洽
+});
 // 还差谁：remainingSigners(owners, collected)
 
 // 3. 收齐后执行

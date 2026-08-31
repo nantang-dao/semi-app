@@ -23,6 +23,16 @@ export interface UserOpSnapshot {
   chainId: number;
 
   /**
+   * 这份快照的 SafeOp EIP-712 哈希，建快照时算好写进来。
+   *
+   * 它是全部被签字段的指纹。签名前重算比对，能发现快照在往返数据库的途中
+   * 被改过。**注意它只防意外损坏**：协调层要是能改快照，同样能改这个字段，
+   * 真正的防篡改要靠 `signSafeOpSnapshot` 的 `expectedHash`——那份哈希得从
+   * 别的渠道来。旧快照没有这个字段，跳过检查。
+   */
+  safeOpHash?: Hex;
+
+  /**
    * 这个提案作废的 unix 秒 —— **Semi 自己的策略限制**，见
    * SNAPSHOT_VALIDITY_SECONDS。不是 paymaster 给的。
    * 旧快照里没有这个字段，那时按不过期处理。

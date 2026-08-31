@@ -1,5 +1,5 @@
 import { createPublicClient, http, type Chain, type PublicClient, type Transport } from "viem";
-import { ChainNotConfiguredError, ConfigError } from "./errors";
+import { ChainMismatchError, ChainNotConfiguredError, ConfigError } from "./errors";
 
 export interface Logger {
   debug(message: string, data?: unknown): void;
@@ -65,6 +65,15 @@ function validateUrl(value: string, chainId: number, field: string): void {
   }
 }
 
+/** 报错里只带主机名——RPC URL 的路径段通常就是 API key。 */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "the configured RPC";
+  }
+}
+
 export interface ChainContext {
   readonly chain: Chain;
   readonly chainId: number;
@@ -77,6 +86,16 @@ export interface ChainContext {
   readonly gasPriceMethod: string;
   /** 该链是否能代付 gas */
   readonly canSponsorGas: boolean;
+  /**
+   * 校验 RPC 真的连在 `chain.id` 这条链上，不一致抛 ChainMismatchError。
+   *
+   * 所有会签名或提交的入口都会先 await 它，调用方一般不必自己调。第一次
+   * 发一次 `eth_chainId`，结果缓存在这个 context 上；失败不缓存，下次重试。
+   *
+   * 只查 RPC，不查 bundler：bundler 连错链会在 EntryPoint 那里直接拒收，
+   * 报错是明确的；而 RPC 连错链没有任何一层会发现。
+   */
+  readonly assertChainId: () => Promise<void>;
 }
 
 export interface SemiCore {
@@ -123,6 +142,20 @@ export function createSemiCore(config: SemiCoreConfig): SemiCore {
       transport: entry.transport ?? http(entry.rpcUrl),
     }) as PublicClient<Transport, Chain>;
 
+    // 只缓存成功的那一次：把一个 rejected promise 缓存下来，会让一次网络抖动
+    // 永久毒化这个 context。
+    let verified: Promise<void> | undefined;
+    const assertChainId = (): Promise<void> => {
+      verified ??= (async () => {
+        const actual = await publicClient.getChainId();
+        if (actual !== chainId) throw new ChainMismatchError(chainId, actual, hostOf(entry.rpcUrl));
+      })().catch((error) => {
+        verified = undefined;
+        throw error;
+      });
+      return verified;
+    };
+
     contexts.set(chainId, {
       chain: entry.chain,
       chainId,
@@ -133,6 +166,7 @@ export function createSemiCore(config: SemiCoreConfig): SemiCore {
       gasPriceUrl: entry.gasPriceUrl ?? entry.bundlerUrl,
       gasPriceMethod: entry.gasPriceMethod ?? "pimlico_getUserOperationGasPrice",
       canSponsorGas: Boolean(entry.paymasterUrl),
+      assertChainId,
     });
   }
 
