@@ -1,0 +1,30 @@
+ginger.yml
+  s_881e33c21d9e1f::t_a36822c6dd58fd 33
+components/UploadFile.vue
+  s_881e33c21d9e1f::t_57080d16c117f3 113
+utils/semi_api.ts
+  s_881e33c21d9e1f::t_57080d16c117f3 422-436,438-446,448,450,454-456,458
+  s_881e33c21d9e1f::t_a36822c6dd58fd 333-335,408-413,567
+pages/badges/send/[class_id].vue
+  s_881e33c21d9e1f::t_57080d16c117f3 398
+pages/badges/create.client.vue
+  s_881e33c21d9e1f::t_57080d16c117f3 301
+pages/badges/[chain]/send/[badge_class_address]/[receiver_address].vue
+  s_881e33c21d9e1f::t_57080d16c117f3 402
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "aa09fe1ae4fc0e8b06cb500d16769cad349c08be",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
