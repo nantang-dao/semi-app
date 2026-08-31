@@ -1,0 +1,22 @@
+docs/semi-core.md
+  s_881e33c21d9e1f::t_5df3ff8f97a483 6-8
+docs/semi-core-api.md
+  s_881e33c21d9e1f::t_35610eff6e47e6 398-401,512-513,516-518,540-541
+  s_881e33c21d9e1f::t_4e3399086281d5 1-397,402-511,514-515,519-539,542-643
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "d44f303fde21e522b46af44cbdf5e364bcfd5b9a",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
