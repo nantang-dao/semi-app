@@ -117,6 +117,33 @@ async function assertDeployedOrSponsored(ctx: ChainContext, address: Address) {
 }
 
 /**
+ * 上链 ≠ 成功。
+ *
+ * EntryPoint 会 catch 住内层调用的 revert：那笔 handleOps 交易本身是成功的
+ * （回执 status 0x1），只是 UserOperationEvent 里的 success 是 false。所以
+ * 光看有没有拿到回执、有没有 transactionHash，失败的转账看起来和成功的一模一样
+ * ——gas 照扣，nonce 照消耗，钱没动。
+ *
+ * 这里不去猜 revert 的原因：EntryPoint 没有把它放进事件里，要拿到得去 trace
+ * 那笔交易。与其编一个可能是错的原因，不如把两个 hash 交出去。
+ */
+function assertUserOpSucceeded(
+  success: boolean | undefined,
+  userOpHash: Hex,
+  txHash: Hex | undefined
+): void {
+  // undefined = bundler 没给这个字段，无从判断，不当作失败
+  if (success !== false) return;
+  throw new UserOpFailedError(
+    `UserOperation ${userOpHash} was included on chain in ${txHash ?? "an unknown transaction"} ` +
+      `but its call reverted. Gas was spent and the account nonce was consumed, so this operation ` +
+      `must be rebuilt rather than resubmitted.`,
+    undefined,
+    { txHash, userOpHash }
+  );
+}
+
+/**
  * 组装、估算、签名并提交一笔 UserOp，等回执。
  *
  * 这里是所有单签链上写操作的唯一出口——转账、部署都走它，只是 calls 不同。
@@ -146,8 +173,13 @@ export async function sendUserOperation(
       ...(paymasterClient ? { paymaster: paymasterClient } : {}),
     });
     ctx.logger.debug("UserOperation submitted", { hash });
-    return await bundlerClient.waitForUserOperationReceipt({ hash });
+    const receipt = await bundlerClient.waitForUserOperationReceipt({ hash });
+    assertUserOpSucceeded(receipt.success, hash, receipt.receipt?.transactionHash);
+    return receipt;
   } catch (cause) {
+    // 已经是我们自己抛的（内层 revert）：原样放行，否则下面会把它重新包一层，
+    // txHash / userOpHash 就丢了。
+    if (cause instanceof UserOpFailedError) throw cause;
     const message = cause instanceof Error ? cause.message : String(cause);
     const aaCode = message.match(/\bAA\d{2}\b/)?.[0];
     throw new UserOpFailedError(

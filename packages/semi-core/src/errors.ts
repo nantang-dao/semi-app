@@ -96,12 +96,27 @@ export class InsufficientFundsError extends SemiCoreError {
   }
 }
 
-/** UserOp 提交后失败。aaCode 是 ERC-4337 的错误码（如 AA23）。 */
+/**
+ * UserOp 失败。aaCode 是 ERC-4337 的错误码（如 AA23）。
+ *
+ * 两种情况都是它：根本没被打包（bundler / EntryPoint 拒绝），或者**打包上链了
+ * 但内层调用 revert**。后者带 `txHash` / `userOpHash`，且 nonce 已经被消耗掉了
+ * ——调用方据此判断能不能重发。
+ */
 export class UserOpFailedError extends SemiCoreError {
   readonly aaCode: string | undefined;
-  constructor(message: string, aaCode?: string, options?: ErrorOptions) {
+  /** 有值 = 已经上链（nonce 已消耗），只是执行失败 */
+  readonly txHash: string | undefined;
+  readonly userOpHash: string | undefined;
+  constructor(
+    message: string,
+    aaCode?: string,
+    options?: ErrorOptions & { txHash?: string; userOpHash?: string }
+  ) {
     super("USER_OP_FAILED", message, options);
     this.aaCode = aaCode;
+    this.txHash = options?.txHash;
+    this.userOpHash = options?.userOpHash;
   }
 }
 

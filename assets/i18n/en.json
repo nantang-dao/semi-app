@@ -420,5 +420,6 @@
   "oauth.missingParams": "Missing OAuth parameters. Please restart the authorization flow.",
   "oauth.invalidRequest": "Invalid authorization request.",
   "oauth.authFailed": "Authorization failed.",
-  "multisig.userNoWallet": "This user has not set up a digital identity address yet"
+  "multisig.userNoWallet": "This user has not set up a digital identity address yet",
+  "multisig.executionReverted": "On-chain execution reverted; no funds were moved. Please propose again"
 }

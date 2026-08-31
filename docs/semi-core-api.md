@@ -405,8 +405,14 @@ baseFee 只是链的状态，两者可以差很远，按后者出价会被 bundl
 没配 bundler 抛 `GasEstimationError`。
 
 `sendUserOperation` 另外会抛 `InsufficientFundsError`（自付 gas 但余额不够预付）
-和 `UserOpFailedError`（账户未部署又关了赞助，无法自举；或提交后链上失败，
-带 `aaCode`）。
+和 `UserOpFailedError`。
+
+⚠️ **上链 ≠ 成功。** EntryPoint 会 catch 住内层调用的 revert：那笔 handleOps 交易本身
+是成功的（回执 status `0x1`，也有 transactionHash），只是 UserOperationEvent 里的
+`success` 是 false。`sendUserOperation` 和 `executeMultisigUserOp` 都会检查这一位，
+false 时抛 `UserOpFailedError` 并带上 `txHash` / `userOpHash` —— **有 `txHash` 就意味着
+已经上链、nonce 已消耗**，这笔不能重发，必须重新构造。bundler 不返回 `success` 字段时
+无从判断，不当作失败。
 
 ---
 

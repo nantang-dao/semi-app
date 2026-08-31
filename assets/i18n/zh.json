@@ -426,5 +426,6 @@
   "oauth.missingParams": "缺少 OAuth 参数，请重新发起授权。",
   "oauth.invalidRequest": "无效的授权请求。",
   "oauth.authFailed": "授权失败。",
-  "multisig.userNoWallet": "该用户尚未设置数字身份地址"
+  "multisig.userNoWallet": "该用户尚未设置数字身份地址",
+  "multisig.executionReverted": "链上执行失败，资金未转出，请重新发起"
 }

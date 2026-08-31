@@ -6,6 +6,7 @@ import {
   PaymasterExpiredError,
   SnapshotExpiredError,
   SnapshotHashMismatchError,
+  UserOpFailedError,
 } from "../errors";
 import { packMultisigSignatures, safeOpHash } from "./sign";
 import { assertValidSnapshot, type CollectedSignature, type UserOpSnapshot } from "./types";
@@ -145,6 +146,23 @@ export async function executeMultisigUserOp(
   ctx.logger.debug("Multisig UserOperation submitted", { userOpHash });
 
   const receipt = await pollForUserOpReceipt(ctx, bundlerUrl, userOpHash, options);
+
+  // 上链 ≠ 成功。EntryPoint 会 catch 住内层调用的 revert：那笔 handleOps 交易
+  // 本身是成功的，只是 UserOperationEvent 里的 success 是 false。不查这一位的话，
+  // 一笔转账失败的多签会被当成执行成功入库，前端也会弹「转账成功」——钱没动，
+  // gas 扣了，nonce 也消耗了，而所有人都以为成了。
+  //
+  // undefined = bundler 没给这个字段，无从判断，不当作失败。
+  if (receipt.success === false) {
+    throw new UserOpFailedError(
+      `Multisig UserOperation ${userOpHash} was included on chain in ` +
+        `${receipt.receipt?.transactionHash ?? "an unknown transaction"} but its call reverted. ` +
+        `The Safe's nonce was consumed, so this proposal cannot be re-executed — it must be ` +
+        `re-proposed.`,
+      undefined,
+      { txHash: receipt.receipt?.transactionHash, userOpHash }
+    );
+  }
 
   let actualGasCost = 0n;
   try {
