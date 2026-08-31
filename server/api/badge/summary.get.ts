@@ -1,6 +1,7 @@
 import { getProfileId } from "@/server/utils";
 import db from "@/server/utils/db";
 import type { Badge, BadgeClass } from "./types";
+import { addressVariants, normalizeAddress } from "@/server/utils/badge_address";
 
 const SUPPORTED_CHAIN_IDS = new Set([1, 10, 11155111]);
 
@@ -29,7 +30,7 @@ export default defineEventHandler(async (event) => {
       badges: {
         $: {
           where: {
-            wallet_address: wallet_address as string,
+            wallet_address: { $in: addressVariants(wallet_address as string) },
             chain_id: chainId,
             status: { $in: ["accepted", "pending"] },
           },
@@ -38,7 +39,9 @@ export default defineEventHandler(async (event) => {
       badge_classes: {
         $: {
           where: {
-            profile_id: getProfileId(wallet_address as string, chainId),
+            // profile_id 是 namehash 出来的，输入地址必须是 checksummed，
+            // 否则算出来的 id 跟库里那条对不上。
+            profile_id: getProfileId(normalizeAddress(wallet_address as string), chainId),
             chain_id: chainId,
           },
         },

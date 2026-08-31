@@ -1,6 +1,7 @@
 import db from "@/server/utils/db";
 import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
+import { sameAddress } from "@/server/utils/badge_address";
 import { sepolia, mainnet, optimism } from "viem/chains";
 import { badgeWalletClient } from "@/server/utils/badge_wallet";
 import { badgeUnboundedAbi } from "@/server/utils/solar_badge";
@@ -74,7 +75,9 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  if (badge.wallet_address !== safe_account_address) {
+  // 不能直接用 !== ：库里有历史遗留的全小写收件人地址，而这里算出来的
+  // 必然是 checksummed，严格比较会把徽章的真正持有人挡在外面。
+  if (!sameAddress(badge.wallet_address, safe_account_address)) {
     return {
       success: false,
       message: "Badge is not owned by the user",

@@ -4,6 +4,7 @@ import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
 import { id } from "@instantdb/admin";
 import { getProfileId, getBadgeId } from "@/server/utils";
+import { normalizeAddress } from "@/server/utils/badge_address";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
 
 const chains = {
@@ -87,12 +88,25 @@ export default defineEventHandler(async (event) => {
     };
   }
 
+  // 收件人地址参与 badge_id 的 namehash，一旦以非规范形式落库，这枚徽章
+  // 就再也领不了了（历史上正是这样卡住了 4 枚）。写库前统一成 checksummed。
+  let receivers: string[];
+  try {
+    receivers = (receiver_addresses as string[]).map(normalizeAddress);
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Invalid receiver address",
+    };
+  }
+
   // create badges
   try {
     const datebase_ids = Array.from({ length: receiver_addresses.length }, () => id());
     const badge_ids = datebase_ids.map((badge_id, index) => {
-      console.log("badge_id =>", badge_id, receiver_addresses[index], chain.id);
-      return getBadgeId(badge_id, class_id, receiver_addresses[index] as `0x${string}`, chain.id);
+      console.log("badge_id =>", badge_id, receivers[index], chain.id);
+      return getBadgeId(badge_id, class_id, receivers[index] as `0x${string}`, chain.id);
     });
 
     console.log("datebase_ids", datebase_ids);
@@ -103,7 +117,7 @@ export default defineEventHandler(async (event) => {
         const new_badge = {
           badge_id: badge_ids[index],
           class_id: class_id,
-          wallet_address: receiver_addresses[index],
+          wallet_address: receivers[index],
           chain_id: chain.id,
           metadata: {
             badge_name,

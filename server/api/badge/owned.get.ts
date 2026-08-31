@@ -1,6 +1,7 @@
 import db from "@/server/utils/db";
 import { sepolia, mainnet, optimism } from "viem/chains";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
+import { addressVariants } from "@/server/utils/badge_address";
 
 const chains = {
   "11155111": sepolia,
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
       badges: {
         $: {
           where: {
-            wallet_address: wallet_address as string,
+            wallet_address: { $in: addressVariants(wallet_address as string) },
             chain_id: Number(chain_id),
             status: "accepted",
           },
