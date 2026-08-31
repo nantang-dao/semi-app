@@ -3,6 +3,9 @@
 `packages/semi-core/` —— Semi 的区块链核心。Safe 智能账户、ERC-4337、密钥、
 多签协调。**不依赖任何 Semi 后端**，客户端和 Nitro 服务端共用。
 
+逐个函数的签名、参数、抛错见 [semi-core-api.md](./semi-core-api.md)。这里讲的是
+取舍与边界。
+
 零运行时依赖，viem 作为 peer；`permissionless` 是可选 peer，只有
 `semi-core/account` 用得到。
 
