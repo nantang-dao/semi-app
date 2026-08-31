@@ -1,0 +1,24 @@
+nuxt.config.ts
+  s_881e33c21d9e1f::t_5b3d089ce71ab3 33-40,42-46
+  s_881e33c21d9e1f::t_8e6529019a2e2c 41
+docs/dev-server-fd-limit.md
+  s_881e33c21d9e1f::t_fdfc01629f1fb1 1-16,18-19,21,27-30,52-53,55-62,87-89,97,100,104-106,108-115,117-119,124-127
+  s_881e33c21d9e1f::t_104279d6923803 39-46,48-51,54,63,76-83,85-86
+  s_881e33c21d9e1f::t_b26f2d06bf88b6 17,20,22-26,31-38,47,64-75,84,90-96,98-99,101-103,107,116,120-123,128-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "6f987485cf4870b30a3c9b42b4c3e3a60978d74d",
+  "prompts": {},
+  "sessions": {
+    "s_881e33c21d9e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b1bc779-1fb3-4580-99fd-314f41d743c0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
