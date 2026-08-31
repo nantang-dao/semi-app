@@ -1,7 +1,7 @@
 import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
-import { getBadgeId } from "@/server/utils";
+import { getBadgeId, getProfileId } from "@/server/utils";
 import { normalizeAddress } from "@/server/utils/badge_address";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
 import { badgeGet, badgePost, type BadgeClassRow } from "@/server/utils/badge_backend";
@@ -58,7 +58,10 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  await predictSafeAccountAddress({ owner: eoa_address as `0x${string}`, chain: chain });
+  const safe_account_address = await predictSafeAccountAddress({
+    owner: eoa_address as `0x${string}`,
+    chain: chain,
+  });
 
   let badge_class: BadgeClassRow;
   try {
@@ -80,6 +83,16 @@ export default defineEventHandler(async (event) => {
     return {
       success: false,
       message: "Invalid badge class",
+    };
+  }
+
+  // 这个 class 必须属于调用者。少了这一步，任何登录用户拿到别人的 class_id
+  // 就能以那个 class 的名义发徽章，收件人接受时还会用该 class 的合约真的
+  // mint 上链 —— 等于可以冒用他人的徽章品牌。
+  if (badge_class.profile_id !== getProfileId(safe_account_address, chain.id)) {
+    return {
+      success: false,
+      message: "Badge class does not belong to you",
     };
   }
 

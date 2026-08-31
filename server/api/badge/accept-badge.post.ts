@@ -2,7 +2,7 @@ import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sameAddress } from "@/server/utils/badge_address";
 import { sepolia, mainnet, optimism } from "viem/chains";
-import { badgeWalletClient } from "@/server/utils/badge_wallet";
+import { badgeWalletClient, badgeReadClient } from "@/server/utils/badge_wallet";
 import { badgeUnboundedAbi } from "@/server/utils/solar_badge";
 import {
   badgeGet,
@@ -110,6 +110,33 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // 上链在前、写库在后，中间断掉的话徽章仍是 pending，用户重试就会再 mint
+    // 一次。所以先问链上这枚 token 是否已经存在 —— 存在就说明上一次其实成功了，
+    // 只是没记上，这次只补记录、不重复铸造。
+    const alreadyMinted = await badgeReadClient(chain.id).readContract({
+      address: badge_class.badge_contract_address as `0x${string}`,
+      abi: badgeUnboundedAbi,
+      functionName: "exists",
+      args: [BigInt(badge.badge_id)],
+    });
+
+    if (alreadyMinted) {
+      console.warn(
+        `[accept-badge] ${badge.badge_id} 链上已存在但库里仍是 pending，补记录，不重复 mint`
+      );
+      await badgePost("/accept", {
+        badge_id: badge.badge_id,
+        wallet_address: safe_account_address,
+        chain_id: chain.id,
+        recovered: true,
+      });
+
+      return {
+        success: true,
+        message: "Badge accepted successfully",
+      };
+    }
+
     const tx = await badgeWalletClient(chain.id).writeContract({
       address: badge_class.badge_contract_address as `0x${string}`,
       abi: badgeUnboundedAbi,

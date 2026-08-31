@@ -1,4 +1,4 @@
-import { createWalletClient, http, type Chain } from "viem";
+import { createWalletClient, createPublicClient, http, type Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { mainnet, sepolia, optimism } from "viem/chains";
 import { rpcUrlFor } from "~/utils/semi_core";
@@ -51,4 +51,14 @@ export const badgeWalletClient = (chain_id: number) => {
     chain,
     transport: http(rpcUrlFor(chain_id)),
   });
+};
+
+/**
+ * 只读 client。accept 之前要问链上「这枚 token 是否已经存在」，那是一次
+ * eth_call，不需要管理员私钥，也不该因为私钥没配就读不了。
+ */
+export const badgeReadClient = (chain_id: number) => {
+  const chain = CHAINS[chain_id];
+  if (!chain) throw new Error(`Unsupported chain ID: ${chain_id}`);
+  return createPublicClient({ chain, transport: http(rpcUrlFor(chain_id)) });
 };
