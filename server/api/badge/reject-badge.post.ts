@@ -1,8 +1,13 @@
-import db from "@/server/utils/db";
 import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sameAddress } from "@/server/utils/badge_address";
 import { sepolia, mainnet, optimism } from "viem/chains";
+import {
+  badgeGet,
+  badgePost,
+  BadgeBackendError,
+  type BadgeRow,
+} from "@/server/utils/badge_backend";
 
 const chains = {
   "11155111": sepolia,
@@ -51,20 +56,17 @@ export default defineEventHandler(async (event) => {
     chain: chain,
   });
 
-  const queryBadge = await db.query({
-    badges: {
-      $: { where: { badge_id, chain_id } },
-    },
-  });
-
-  if (queryBadge.badges.length === 0) {
+  let badge: BadgeRow;
+  try {
+    const result = await badgeGet<{ badge: BadgeRow }>("/item", { badge_id });
+    badge = result.badge;
+  } catch (error) {
+    console.error(error);
     return {
       success: false,
       message: "Badge not found",
     };
   }
-
-  const badge = queryBadge.badges[0];
 
   if (badge.status !== "pending") {
     return {
@@ -73,8 +75,15 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  // 不能直接用 !== ：库里有历史遗留的全小写收件人地址，而这里算出来的
-  // 必然是 checksummed，严格比较会把徽章的真正持有人挡在外面。
+  if (badge.chain_id !== chain.id) {
+    return {
+      success: false,
+      message: "Badge is not on the same chain",
+    };
+  }
+
+  // 后端也会校验持有人，但这里必须先挡一道：上链发生在调用后端之前，
+  // 少了这个检查就会先 mint 出去、再被后端拒绝，凭空多一枚链上代币。
   if (!sameAddress(badge.wallet_address, safe_account_address)) {
     return {
       success: false,
@@ -82,28 +91,12 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  if (badge.chain_id.toString() !== chain.id.toString()) {
-    return {
-      success: false,
-      message: "Badge is not on the same chain",
-    };
-  }
-
-  const badgeclassQuery = await db.query({
-    badge_classes: {
-      $: { where: { class_id: badge.class_id, chain_id: badge.chain_id } },
-    },
-  });
-
-  if (badgeclassQuery.badge_classes.length === 0) {
-    return {
-      success: false,
-      message: "Badge class not found",
-    };
-  }
-
   try {
-    await db.transact([db.tx.badges[badge.id].update({ status: "rejected" })]);
+    await badgePost("/reject", {
+      badge_id: badge.badge_id,
+      wallet_address: safe_account_address,
+      chain_id: chain.id,
+    });
 
     return {
       success: true,
@@ -113,7 +106,7 @@ export default defineEventHandler(async (event) => {
     console.error(error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Fail to reject badge",
+      message: error instanceof BadgeBackendError ? error.message : "Fail to reject badge",
     };
   }
 });

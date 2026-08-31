@@ -1,4 +1,4 @@
-import db from "@/server/utils/db";
+import { badgeGet, BadgeBackendError, type BadgeClassRow } from "@/server/utils/badge_backend";
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
@@ -11,25 +11,22 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  const queryClass = await db.query({
-    badge_classes: {
-      $: {
-        where: { class_id: class_id.toString(), chain_id: Number(chain_id) },
-      },
-    },
-  });
-
-  if (queryClass.badge_classes.length === 0) {
+  try {
+    const result = await badgeGet<{ badge_class: BadgeClassRow }>("/classes/details", {
+      class_id: class_id.toString(),
+      chain_id: Number(chain_id),
+    });
+    return {
+      success: true,
+      message: "Class fetched successfully",
+      data: result.badge_class,
+    };
+  } catch (error) {
+    console.error(error);
     return {
       success: false,
-      message: "Class not found",
+      message: error instanceof BadgeBackendError ? error.message : "Class not found",
       data: null,
     };
   }
-
-  return {
-    success: true,
-    message: "Class fetched successfully",
-    data: queryClass.badge_classes[0],
-  };
 });

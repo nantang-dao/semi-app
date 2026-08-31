@@ -1,12 +1,11 @@
-import db from "@/server/utils/db";
 import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
-import { id } from "@instantdb/admin";
-import { getProfileId, getBadgeClassId } from "@/server/utils";
+import { getProfileId } from "@/server/utils";
 import { badgeWalletClient } from "@/server/utils/badge_wallet";
 import { profileRegistryAbi } from "@/server/utils/solar_badge";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
+import { badgeGet, badgePost, type BadgeProfileRow } from "@/server/utils/badge_backend";
 
 const chains = {
   "11155111": sepolia,
@@ -57,12 +56,6 @@ export default defineEventHandler(async (event) => {
 
   const profile_id = getProfileId(safe_account_address, chain.id);
 
-  const queryProfile = await db.query({
-    profiles: {
-      $: { where: { profile_id: profile_id.toString(), chain_id: chain.id } },
-    },
-  });
-
   const contract_addresses = sola_badge_contract_address[chain.id];
   if (!contract_addresses) {
     return {
@@ -71,40 +64,52 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  if (queryProfile.profiles.length === 0) {
-    // create new profile
-    try {
-      const create_profile_hash = await badgeWalletClient(chain.id).writeContract({
-        address: contract_addresses.profile_registry as `0x${string}`,
-        abi: profileRegistryAbi,
-        functionName: "createProfile",
-        args: [safe_account_address as `0x${string}`, BigInt(profile_id), true],
-      });
-      console.log("create profile tx hash", create_profile_hash);
-
-      await db.transact([
-        db.tx.profiles[id()].create({
-          profile_id,
-          wallet_address: safe_account_address,
-          chain_id: chain.id,
-          tx_hash: create_profile_hash,
-        } as any),
-      ]);
-
+  try {
+    const existing = await badgeGet<{ profile: BadgeProfileRow | null }>("/profile", {
+      wallet_address: safe_account_address,
+      chain_id: chain.id,
+    });
+    if (existing.profile) {
+      // 已经有了就直接返回，而不是原来的 undefined —— 调用方拿到 undefined
+      // 只能靠猜，分不清「已存在」和「出错了」。
       return {
         success: true,
-        message: "Profile created successfully",
+        message: "Profile already exists",
         data: {
-          profile_id,
-          tx_hash: create_profile_hash,
+          profile_id: existing.profile.profile_id,
+          tx_hash: existing.profile.tx_hash,
         },
       };
-    } catch (error) {
-      console.error(error);
-      return {
-        success: false,
-        message: "Failed to create profile",
-      };
     }
+
+    const create_profile_hash = await badgeWalletClient(chain.id).writeContract({
+      address: contract_addresses.profile_registry as `0x${string}`,
+      abi: profileRegistryAbi,
+      functionName: "createProfile",
+      args: [safe_account_address as `0x${string}`, BigInt(profile_id), true],
+    });
+    console.log("create profile tx hash", create_profile_hash);
+
+    await badgePost("/profile", {
+      profile_id,
+      wallet_address: safe_account_address,
+      chain_id: chain.id,
+      tx_hash: create_profile_hash,
+    });
+
+    return {
+      success: true,
+      message: "Profile created successfully",
+      data: {
+        profile_id,
+        tx_hash: create_profile_hash,
+      },
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Failed to create profile",
+    };
   }
 });

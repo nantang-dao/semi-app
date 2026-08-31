@@ -1,11 +1,10 @@
-import db from "@/server/utils/db";
 import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sepolia, mainnet, optimism } from "viem/chains";
-import { id } from "@instantdb/admin";
-import { getProfileId, getBadgeId } from "@/server/utils";
+import { getBadgeId } from "@/server/utils";
 import { normalizeAddress } from "@/server/utils/badge_address";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
+import { badgeGet, badgePost, type BadgeClassRow } from "@/server/utils/badge_backend";
 
 const chains = {
   "11155111": sepolia,
@@ -22,6 +21,7 @@ export default defineEventHandler(async (event) => {
   if (
     !class_id ||
     !receiver_addresses ||
+    !Array.isArray(receiver_addresses) ||
     receiver_addresses.length === 0 ||
     !chain_id ||
     !badge_name ||
@@ -58,27 +58,22 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  const safe_account_address = await predictSafeAccountAddress({
-    owner: eoa_address as `0x${string}`,
-    chain: chain,
-  });
+  await predictSafeAccountAddress({ owner: eoa_address as `0x${string}`, chain: chain });
 
-  const profile_id = getProfileId(safe_account_address, chain.id);
-
-  const queryBadgeClass = await db.query({
-    badge_classes: {
-      $: { where: { class_id } },
-    },
-  });
-
-  if (queryBadgeClass.badge_classes.length === 0) {
+  let badge_class: BadgeClassRow;
+  try {
+    const result = await badgeGet<{ badge_class: BadgeClassRow }>("/classes/details", {
+      class_id,
+      chain_id: chain.id,
+    });
+    badge_class = result.badge_class;
+  } catch (error) {
+    console.error(error);
     return {
       success: false,
       message: "Badge class not found",
     };
   }
-
-  const badge_class = queryBadgeClass.badge_classes[0];
 
   const contract_addresses = sola_badge_contract_address[chain.id];
   if (!contract_addresses || badge_class.chain_id !== chain.id) {
@@ -88,8 +83,8 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  // 收件人地址参与 badge_id 的 namehash，一旦以非规范形式落库，这枚徽章
-  // 就再也领不了了（历史上正是这样卡住了 4 枚）。写库前统一成 checksummed。
+  // 收件人地址参与 badge_id 的 namehash，一旦以非规范形式落库，这枚徽章就再也
+  // 领不了了（历史上正是这样卡住了 4 枚）。写库前统一成 checksummed。
   let receivers: string[];
   try {
     receivers = (receiver_addresses as string[]).map(normalizeAddress);
@@ -101,50 +96,34 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  // create badges
   try {
-    const datebase_ids = Array.from({ length: receiver_addresses.length }, () => id());
-    const badge_ids = datebase_ids.map((badge_id, index) => {
-      console.log("badge_id =>", badge_id, receivers[index], chain.id);
-      return getBadgeId(badge_id, class_id, receivers[index] as `0x${string}`, chain.id);
-    });
+    const badges = receivers.map((receiver) => ({
+      // 第一段只是随机标签，认的是 namehash 之后的值。
+      badge_id: getBadgeId(crypto.randomUUID(), class_id, receiver as `0x${string}`, chain.id),
+      class_id,
+      wallet_address: receiver,
+      metadata: {
+        badge_name,
+        badge_description,
+        badge_image_url,
+      },
+    }));
 
-    console.log("datebase_ids", datebase_ids);
-    console.log("badge_ids", badge_ids);
+    // 整批一个请求：后端放在一个事务里，不会出现半批成功而发送方不知道发出去几枚。
+    await badgePost("/items", { chain_id: chain.id, badges });
 
-    await db.transact(
-      datebase_ids.map((id, index) => {
-        const new_badge = {
-          badge_id: badge_ids[index],
-          class_id: class_id,
-          wallet_address: receivers[index],
-          chain_id: chain.id,
-          metadata: {
-            badge_name,
-            badge_description,
-            badge_image_url,
-          },
-          created_at: new Date(),
-          status: "pending",
-        };
-
-        return db.tx.badges[id].create(new_badge);
-      })
-    );
+    return {
+      success: true,
+      message: "Badges created successfully",
+      data: {
+        badge_ids: badges.map((b) => b.badge_id),
+      },
+    };
   } catch (error) {
     console.error(error);
     return {
       success: false,
-      message: "Failed to register class",
+      message: "Failed to create badges",
     };
   }
-
-  return {
-    success: true,
-    message: "Class created successfully",
-    data: {
-      class_id,
-      profile_id,
-    },
-  };
 });

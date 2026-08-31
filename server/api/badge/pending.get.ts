@@ -1,7 +1,6 @@
-import db from "@/server/utils/db";
 import { sepolia, mainnet, optimism } from "viem/chains";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
-import { addressVariants } from "@/server/utils/badge_address";
+import { badgeGet, BadgeBackendError, type BadgeRow } from "@/server/utils/badge_backend";
 
 const chains = {
   "11155111": sepolia,
@@ -37,27 +36,20 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const queryBadges = await db.query({
-      badges: {
-        $: {
-          where: {
-            wallet_address: { $in: addressVariants(wallet_address as string) },
-            chain_id: Number(chain_id),
-            status: "pending",
-          },
-        },
-      },
+    const result = await badgeGet<{ badges: BadgeRow[] }>("/pending", {
+      wallet_address,
+      chain_id: chain.id,
     });
     return {
       success: true,
       message: "Badges fetched successfully",
-      data: queryBadges,
+      data: { badges: result.badges },
     };
   } catch (error) {
     console.error(error);
     return {
       success: false,
-      message: "Failed to fetch badges",
+      message: error instanceof BadgeBackendError ? error.message : "Failed to fetch badges",
       data: [],
     };
   }
