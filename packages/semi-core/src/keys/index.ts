@@ -1,6 +1,6 @@
 export { encryptToKeystore, decryptKeystore, type Keystore } from "./keystore";
+export { generateMnemonicPhrase } from "./generate";
 export {
-  generateMnemonicPhrase,
   mnemonicToPrivateKey,
   mnemonicToAddress,
   privateKeyToAddress,

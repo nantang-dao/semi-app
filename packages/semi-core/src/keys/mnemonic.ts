@@ -1,4 +1,4 @@
-import { english, generateMnemonic, mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
+import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
 import type { Address, Hex } from "viem";
 import { bytesToHexRaw } from "./hex";
 
@@ -6,11 +6,6 @@ const PRIVATE_KEY_RE = /^0x[0-9a-fA-F]{64}$/;
 
 export function isPrivateKey(value: string): value is Hex {
   return PRIVATE_KEY_RE.test(value);
-}
-
-/** 生成 BIP-39 助记词（英文词表，12 词） */
-export function generateMnemonicPhrase(): string {
-  return generateMnemonic(english);
 }
 
 /** 取 BIP-44 默认路径 m/44'/60'/0'/0/0 的私钥 */

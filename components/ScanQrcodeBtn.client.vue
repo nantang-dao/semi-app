@@ -14,13 +14,13 @@
       variant="subtle"
       size="xl"
       class="text-2xl cursor-pointer"
-      @click="isOpen = true"
+      @click="open = true"
     />
 
     <template #body>
       <div class="relative">
         <div class="loading-bg">
-          <qrcode-stream :track="paintBoundingBox" @detect="onDetect" @error="onError" />
+          <QrcodeStream v-if="open" :track="paintBoundingBox" @detect="onDetect" @error="onError" />
         </div>
         <div v-if="error" class="text-red-500 mt-2">{{ error }}</div>
       </div>
@@ -29,8 +29,13 @@
 </template>
 
 <script setup>
-import { QrcodeStream } from "vue-qrcode-reader";
-import { ref } from "vue";
+import { defineAsyncComponent, ref } from "vue";
+
+// 摄像头扫码库（vue-qrcode-reader + zxing wasm）体积很大，且大多数用户从不扫码，
+// 所以只在弹窗真正打开时才动态加载。
+const QrcodeStream = defineAsyncComponent(() =>
+  import("vue-qrcode-reader").then((m) => m.QrcodeStream),
+);
 
 const emit = defineEmits(["onDetect"]);
 const open = ref(false);
