@@ -1,18 +1,18 @@
 <template>
   <div
-    class="flex flex-col container-size h-[100vh] rounded-xl bg-[var(--ui-bg)] shadow-lg px-4 sm:px-8 py-8 banner"
+    class="flex flex-col container-size h-[100vh] rounded-xl bg-[var(--ui-bg)] shadow-lg px-4 sm:px-8 py-8 banner overflow-hidden"
   >
     <UButton
       icon="i-heroicons-arrow-left"
       color="neutral"
       variant="ghost"
-      class="self-start mb-4"
+      class="self-start mb-4 shrink-0"
       @click="router.push('/')"
     >
       {{ i18n.text["Back"] }}
     </UButton>
 
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center justify-between mb-4 shrink-0">
       <h1 class="text-2xl font-bold">{{ i18n.text["Badges"] }}</h1>
       <NuxtLink
         v-if="activeMainTab === 'badges'"
@@ -25,14 +25,14 @@
     </div>
 
     <!-- 主标签切换：徽章 和 NFTs -->
-    <div class="flex gap-2 mb-4 border-b border-gray-200">
+    <div class="flex gap-2 mb-4 border-b border-gray-200 shrink-0">
       <button
         @click="updateMainTab('badges')"
         :class="[
           'px-4 py-2 font-medium transition-colors',
           activeMainTab === 'badges'
             ? 'text-primary border-b-2 border-primary'
-            : 'text-gray-500 hover:text-gray-700'
+            : 'text-gray-500 hover:text-gray-700',
         ]"
       >
         {{ i18n.text["Badges"] }}
@@ -43,14 +43,14 @@
           'px-4 py-2 font-medium transition-colors',
           activeMainTab === 'nfts'
             ? 'text-primary border-b-2 border-primary'
-            : 'text-gray-500 hover:text-gray-700'
+            : 'text-gray-500 hover:text-gray-700',
         ]"
       >
         {{ i18n.text["NFTs"] }}
       </button>
     </div>
 
-    <div v-if="currentTabLoading" class="flex flex-col gap-4">
+    <div v-if="currentTabLoading" class="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto">
       <div class="w-full h-10 rounded-lg loading-bg"></div>
       <div class="w-80 h-10 rounded-lg loading-bg"></div>
       <div class="w-full h-10 rounded-lg loading-bg"></div>
@@ -59,45 +59,51 @@
     </div>
 
     <!-- 徽章内容 -->
-    <div v-else-if="activeMainTab === 'badges'">
+    <div v-else-if="activeMainTab === 'badges'" class="flex-1 min-h-0 flex flex-col">
       <UTabs
         :items="badgeTabs"
         v-model="activeSubTab"
         :unmount-on-hide="false"
-        class="w-full overflow-auto"
+        class="w-full flex-1 min-h-0 flex flex-col overflow-hidden"
       >
         <template #owned="{ item }">
-          <NoBadge v-if="ownedBadges.length === 0" />
-          <div class="grid grid-cols-3 gap-3 py-4" v-else>
-            <BadgeItem :badge="badge" v-for="(badge, index) in ownedBadges" :key="index" />
+          <div class="flex-1 min-h-0 overflow-y-auto">
+            <NoBadge v-if="ownedBadges.length === 0" />
+            <div class="grid grid-cols-3 gap-3 py-4" v-else>
+              <BadgeItem :badge="badge" v-for="(badge, index) in ownedBadges" :key="index" />
+            </div>
           </div>
         </template>
         <template #created="{ item }">
-          <NoBadge v-if="badgeClasses.length === 0" />
-          <div class="grid grid-cols-3 gap-3 py-4" v-else>
-            <BadgeClass
-              :badge-class="badgeClass"
-              v-for="(badgeClass, index) in badgeClasses"
-              :key="index"
-            />
+          <div class="flex-1 min-h-0 overflow-y-auto">
+            <NoBadge v-if="badgeClasses.length === 0" />
+            <div class="grid grid-cols-3 gap-3 py-4" v-else>
+              <BadgeClass
+                :badge-class="badgeClass"
+                v-for="(badgeClass, index) in badgeClasses"
+                :key="index"
+              />
+            </div>
           </div>
         </template>
         <template #pending="{ item }">
-          <NoBadge v-if="pendingBadges.length === 0" />
-          <div class="grid grid-cols-3 gap-3 py-4" v-else>
-            <BadgeItem
-              @update="fetchBadges"
-              :badge="badge"
-              v-for="(badge, index) in pendingBadges"
-              :key="index"
-            />
+          <div class="flex-1 min-h-0 overflow-y-auto">
+            <NoBadge v-if="pendingBadges.length === 0" />
+            <div class="grid grid-cols-3 gap-3 py-4" v-else>
+              <BadgeItem
+                @update="fetchBadges"
+                :badge="badge"
+                v-for="(badge, index) in pendingBadges"
+                :key="index"
+              />
+            </div>
           </div>
         </template>
       </UTabs>
     </div>
 
     <!-- NFTs内容 -->
-    <div v-else-if="activeMainTab === 'nfts'">
+    <div v-else-if="activeMainTab === 'nfts'" class="flex-1 min-h-0 overflow-y-auto">
       <NoNFT v-if="nfts.length === 0" />
       <div class="grid grid-cols-3 gap-3 py-4" v-else>
         <NFTItem :nft="nft" v-for="(nft, index) in nfts" :key="index" />

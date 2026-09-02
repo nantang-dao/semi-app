@@ -1,130 +1,146 @@
 <template>
-    <UModal :title="i18n.text['NFT Details']" :dismissible="false" v-model:open="showModal">
+  <UModal :title="i18n.text['NFT Details']" :dismissible="false" v-model:open="showModal">
+    <div
+      @click="showModal = true"
+      class="flex flex-col items-center justify-center bg-muted rounded-lg p-4 overflow-hidden gap-2 relative cursor-pointer hover:bg-muted/80 transition-colors"
+    >
       <div
-        @click="showModal = true"
-        class="flex flex-col items-center justify-center bg-muted rounded-lg p-4 overflow-hidden gap-2 relative cursor-pointer hover:bg-muted/80 transition-colors"
+        class="flex items-center justify-center bg-gray-500 rounded-lg overflow-hidden w-full aspect-square"
       >
-        <div class="flex items-center justify-center bg-gray-500 rounded-lg overflow-hidden w-full aspect-square">
-          <img 
-            :src="nft.image || '/images/placeholder.png'" 
-            class="w-full h-full object-cover" 
-            :alt="nft.name"
-            @error="handleImageError"
-          />
+        <img
+          :src="displayImage"
+          class="w-full h-full object-cover"
+          :alt="nft.name"
+          @error="handleImageError"
+        />
+      </div>
+      <div
+        class="max-w-full text-xs font-bold whitespace-nowrap overflow-hidden text-ellipsis text-center"
+      >
+        {{ nft.name }}
+      </div>
+    </div>
+
+    <template #body>
+      <div class="flex flex-col gap-4 w-full">
+        <!-- 基础信息 -->
+        <div class="flex flex-col items-center gap-4">
+          <div
+            class="w-32 h-32 rounded-lg overflow-hidden bg-gray-500 my-2 flex items-center justify-center"
+          >
+            <img
+              :src="displayImage"
+              alt="NFT image"
+              class="object-cover w-full h-full"
+              @error="handleImageError"
+            />
+          </div>
+          <div class="text-2xl font-bold text-center">{{ nft.name }}</div>
+          <div class="text-sm text-gray-500 text-center" v-if="nft.description">
+            {{ nft.description }}
+          </div>
         </div>
-        <div class="max-w-full text-xs font-bold whitespace-nowrap overflow-hidden text-ellipsis text-center">
-          {{ nft.name }}
+
+        <UButton
+          v-if="nft.playUrl"
+          color="primary"
+          size="lg"
+          class="w-full justify-center"
+          @click="openExternalPlay"
+        >
+          {{ i18n.text["Play on Ripples"] }}
+        </UButton>
+
+        <!-- 基础信息 -->
+        <div class="flex flex-col gap-2 w-full bg-muted p-2 rounded-lg">
+          <div class="flex flex-row items-start justify-between gap-2">
+            <div class="font-bold text-xs text-gray-500 whitespace-nowrap min-w-22">
+              {{ i18n.text["Contract Address"] }}
+            </div>
+            <div class="break-all text-xs text-right">
+              {{ nft.contractAddress }}
+              <div>
+                <span
+                  class="py-0 p-1 inline-flex items-center ml-2 flex-1 justify-center text-blue-500 text-xs cursor-pointer hover:underline"
+                  @click="toExplorer(nft.contractAddress, 'address')"
+                >
+                  {{ i18n.text["Block Explorer"] }}
+                </span>
+                <span
+                  class="py-0 p-1 inline-flex items-center ml-2 flex-1 justify-center text-blue-500 text-xs cursor-pointer hover:underline"
+                  @click="handleCopy(nft.contractAddress)"
+                >
+                  {{ i18n.text["Copy"] }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-row items-start justify-between gap-2">
+            <div class="font-bold text-xs text-gray-500 whitespace-nowrap min-w-22">
+              {{ i18n.text["Token ID"] }}
+            </div>
+            <div class="text-xs break-all text-right">
+              {{ nft.tokenId }}
+            </div>
+          </div>
+          <div class="flex flex-row items-start justify-between gap-2">
+            <div class="font-bold text-xs text-gray-500 whitespace-nowrap min-w-22">
+              {{ i18n.text["Token Standard"] }}
+            </div>
+            <div class="text-xs text-right">
+              {{ nft.tokenType }}
+            </div>
+          </div>
+          <div class="flex flex-row items-start justify-between gap-2" v-if="nft.collectionName">
+            <div class="font-bold text-xs text-gray-500 whitespace-nowrap min-w-22">
+              {{ i18n.text["Collection"] }}
+            </div>
+            <div class="text-xs text-right">
+              {{ nft.collectionName }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Attributes -->
+        <div v-if="nft.attributes && Object.keys(nft.attributes).length > 0" class="w-full mt-4">
+          <h3 class="text-lg font-bold mb-3">{{ i18n.text["Attributes"] }}</h3>
+          <div class="grid grid-cols-1 gap-2 bg-muted p-3 rounded-lg">
+            <div
+              v-for="(value, key) in nft.attributes"
+              :key="key"
+              class="flex flex-row items-start justify-between gap-2 p-2 bg-background rounded"
+            >
+              <div class="font-bold text-xs text-gray-500 min-w-24">{{ key }}</div>
+              <div class="text-sm text-right break-all flex-1">
+                <a
+                  v-if="
+                    typeof value === 'string' &&
+                    (value.startsWith('http://') || value.startsWith('https://'))
+                  "
+                  :href="value"
+                  target="_blank"
+                  class="text-blue-500 hover:underline"
+                >
+                  {{ value }}
+                </a>
+                <span v-else>{{ value }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-  
-      <template #body>
-        <div class="flex flex-col gap-4 w-full">
-          <!-- 基础信息 -->
-          <div class="flex flex-col items-center gap-4">
-            <div
-              class="w-32 h-32 rounded-lg overflow-hidden bg-gray-500 my-2 flex items-center justify-center"
-            >
-              <img
-                :src="nft.image || '/images/placeholder.png'"
-                alt="NFT image"
-                class="object-cover w-full h-full"
-                @error="handleImageError"
-              />
-            </div>
-            <div class="text-2xl font-bold text-center">{{ nft.name }}</div>
-            <div class="text-sm text-gray-500 text-center" v-if="nft.description">
-              {{ nft.description }}
-            </div>
-          </div>
+    </template>
 
-          <!-- 基础信息 -->
-          <div class="flex flex-col gap-2 w-full bg-muted p-2 rounded-lg">
-            <div class="flex flex-row items-start justify-between gap-2">
-              <div class="font-bold text-xs text-gray-500 whitespace-nowrap min-w-22">
-                {{ i18n.text["Contract Address"] }}
-              </div>
-              <div class="break-all text-xs text-right">
-                {{ nft.contractAddress }}
-                <div>
-                  <span
-                    class="py-0 p-1 inline-flex items-center ml-2 flex-1 justify-center text-blue-500 text-xs cursor-pointer hover:underline"
-                    @click="toExplorer(nft.contractAddress, 'address')"
-                  >
-                    {{ i18n.text["Block Explorer"] }}
-                  </span>
-                  <span
-                    class="py-0 p-1 inline-flex items-center ml-2 flex-1 justify-center text-blue-500 text-xs cursor-pointer hover:underline"
-                    @click="handleCopy(nft.contractAddress)"
-                  >
-                    {{ i18n.text["Copy"] }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div class="flex flex-row items-start justify-between gap-2">
-              <div class="font-bold text-xs text-gray-500 whitespace-nowrap min-w-22">
-                {{ i18n.text["Token ID"] }}
-              </div>
-              <div class="text-xs break-all text-right">
-                {{ nft.tokenId }}
-              </div>
-            </div>
-            <div class="flex flex-row items-start justify-between gap-2">
-              <div class="font-bold text-xs text-gray-500 whitespace-nowrap min-w-22">
-                {{ i18n.text["Token Standard"] }}
-              </div>
-              <div class="text-xs text-right">
-                {{ nft.tokenType }}
-              </div>
-            </div>
-            <div class="flex flex-row items-start justify-between gap-2" v-if="nft.collectionName">
-              <div class="font-bold text-xs text-gray-500 whitespace-nowrap min-w-22">
-                {{ i18n.text["Collection"] }}
-              </div>
-              <div class="text-xs text-right">
-                {{ nft.collectionName }}
-              </div>
-            </div>
-          </div>
+    <template #footer>
+      <div class="flex justify-center gap-4 w-full">
+        <UButton color="neutral" size="xl" class="flex-1 justify-center" @click="showModal = false">
+          {{ i18n.text["Close"] }}
+        </UButton>
+      </div>
+    </template>
+  </UModal>
+</template>
 
-          <!-- Attributes -->
-          <div v-if="nft.attributes && Object.keys(nft.attributes).length > 0" class="w-full mt-4">
-            <h3 class="text-lg font-bold mb-3">{{ i18n.text["Attributes"] }}</h3>
-            <div class="grid grid-cols-1 gap-2 bg-muted p-3 rounded-lg">
-              <div 
-                v-for="(value, key) in nft.attributes" 
-                :key="key"
-                class="flex flex-row items-start justify-between gap-2 p-2 bg-background rounded"
-              >
-                <div class="font-bold text-xs text-gray-500 min-w-24">{{ key }}</div>
-                <div class="text-sm text-right break-all flex-1">
-                  <a 
-                    v-if="typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))"
-                    :href="value"
-                    target="_blank"
-                    class="text-blue-500 hover:underline"
-                  >
-                    {{ value }}
-                  </a>
-                  <span v-else>{{ value }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </template>
-  
-      <template #footer>
-        <div class="flex justify-center gap-4 w-full">
-          <UButton color="neutral" size="xl" class="flex-1 justify-center" @click="showModal = false">
-            {{ i18n.text["Close"] }}
-          </UButton>
-        </div>
-      </template>
-    </UModal>
-  </template>
-  
 <script setup lang="ts">
 import type { NFT } from "@/server/utils/nft";
 
@@ -135,8 +151,22 @@ const props = defineProps<{
 const i18n = useI18n();
 const useChain = useChainStore();
 const toast = useToast();
+const PLACEHOLDER = "/images/placeholder.png";
+
 const showModal = ref(false);
 const imageError = ref(false);
+
+watch(
+  () => `${props.nft.contractAddress}:${props.nft.tokenId}`,
+  () => {
+    imageError.value = false;
+  }
+);
+
+const displayImage = computed(() => {
+  if (imageError.value || !props.nft.image) return PLACEHOLDER;
+  return props.nft.image;
+});
 
 const handleImageError = () => {
   imageError.value = true;
@@ -154,6 +184,12 @@ const handleCopy = (text: string) => {
     description: "",
     color: "success",
   });
+};
+
+const openExternalPlay = () => {
+  const url = props.nft.playUrl;
+  if (!url) return;
+  window.open(url, "_blank", "noopener,noreferrer");
 };
 </script>
 
