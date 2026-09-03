@@ -148,6 +148,31 @@ export async function getNftsForOwner(
   );
 }
 
+/**
+ * 单个 NFT 的 metadata。`refreshCache=true` 会让 Alchemy 重新去抓 tokenURI 并
+ * 回填自己的 CDN——这是让 Alchemy 代我们解析任意 tokenURI 的正路，服务端因此
+ * 不必直连合约作者填的地址（见 server/utils/nft/resolveMetadataUri.ts）。
+ * 注意 refresh 是异步的，返回的这一份未必已经填全。
+ */
+export async function getNftMetadata(
+  chainId: number,
+  contractAddress: string,
+  tokenId: string,
+  opts: { refreshCache?: boolean } = {},
+  apiKey?: string
+): Promise<any> {
+  return nftApi(
+    chainId,
+    "getNFTMetadata",
+    {
+      contractAddress,
+      tokenId,
+      refreshCache: opts.refreshCache ? "true" : undefined,
+    },
+    apiKey
+  );
+}
+
 export async function getOwnersForNft(
   chainId: number,
   contractAddress: string,

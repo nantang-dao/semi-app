@@ -1,6 +1,7 @@
 import type { Chain } from "viem";
 import { getNftsForOwner, isAlchemySupportedChain } from "@/utils/alchemy";
-import { fetchChainMetadata } from "./nft/fetchChainMetadata";
+import { fetchChainMetadata, type FetchedChainMetadata } from "./nft/fetchChainMetadata";
+import { getCachedMetadata, setCachedMetadata } from "./nft/metadataCache";
 import { isMetadataIncomplete } from "./nft/isMetadataIncomplete";
 import { normalizeAttributes, parseHttpExternalUrl } from "./nft/metadataHelpers";
 import { getMusicCollection, resolveMusicPlayUrl } from "./nft/musicCollections";
@@ -31,7 +32,11 @@ export function resolveNftExternalUrl(rawMetadata: unknown): string | undefined 
 // Safety valve: 100 NFTs per page, so this caps a single request at 2000 NFTs.
 // Without it a whale wallet would hold the Nitro handler open indefinitely.
 const MAX_PAGES = 20;
-const CHAIN_ENRICH_CONCURRENCY = 2;
+const ENRICH_CONCURRENCY = 2;
+/** 补全最多覆盖这么多个 token，且整体不超过这个耗时——否则一个装满残缺 NFT
+ *  的钱包就能把 /api/nft/owned 拖成分钟级请求。超出的按 Alchemy 原样返回。 */
+const MAX_ENRICHED = 24;
+const ENRICH_BUDGET_MS = 12_000;
 
 interface AlchemyOwnedNft {
   contract: { address: string; name?: string | null };
@@ -44,7 +49,7 @@ interface AlchemyOwnedNft {
     cachedUrl?: string | null;
   } | null;
   tokenType?: string | null;
-  raw?: { metadata?: Record<string, unknown> | null } | null;
+  raw?: { metadata?: Record<string, unknown> | null; tokenUri?: string | null } | null;
 }
 
 type PendingNft = { nft: NFT; alchemyNft: AlchemyOwnedNft };
@@ -84,31 +89,50 @@ function mapAlchemyNft(alchemyNft: AlchemyOwnedNft): NFT {
   };
 }
 
-async function enrichFromChain(pending: PendingNft[], chain: Chain): Promise<void> {
-  const toEnrich = pending.filter(
-    ({ nft, alchemyNft }) => nft.tokenType === "ERC721" && isMetadataIncomplete(alchemyNft)
-  );
+async function enrichOne(
+  chainId: number,
+  nft: NFT,
+  tokenUri?: string
+): Promise<FetchedChainMetadata | null> {
+  const cached = getCachedMetadata<FetchedChainMetadata>(chainId, nft.contractAddress, nft.tokenId);
+  if (cached.hit) return cached.value;
 
-  // Music NFTs first — their Arweave metadata is what play/image UX depends on.
-  toEnrich.sort((a, b) => {
-    const am = a.nft.isMusicNft || getMusicCollection(chain.id, a.nft.contractAddress) ? 0 : 1;
-    const bm = b.nft.isMusicNft || getMusicCollection(chain.id, b.nft.contractAddress) ? 0 : 1;
-    return am - bm;
-  });
+  const meta = await fetchChainMetadata(chainId, nft.contractAddress, nft.tokenId, tokenUri);
+  setCachedMetadata(chainId, nft.contractAddress, nft.tokenId, meta);
+  return meta;
+}
 
-  await runWithConcurrency(toEnrich, CHAIN_ENRICH_CONCURRENCY, async ({ nft }) => {
+/**
+ * 只有注册在 musicCollections 里的合约才做补全：播放入口和封面是这些 NFT 的
+ * 核心 UX，值得多花一次 Alchemy refresh；其余 NFT 缺图就缺图，走 placeholder，
+ * 不值得让整个列表请求为它们等待。
+ */
+async function enrichMetadata(pending: PendingNft[], chainId: number): Promise<void> {
+  const toEnrich = pending
+    .filter(
+      ({ nft, alchemyNft }) =>
+        nft.tokenType === "ERC721" &&
+        getMusicCollection(chainId, nft.contractAddress) &&
+        isMetadataIncomplete(alchemyNft)
+    )
+    .slice(0, MAX_ENRICHED);
+
+  const deadline = Date.now() + ENRICH_BUDGET_MS;
+
+  await runWithConcurrency(toEnrich, ENRICH_CONCURRENCY, async ({ nft, alchemyNft }) => {
+    if (Date.now() >= deadline) return;
     try {
-      const chainMeta = await fetchChainMetadata(chain, nft.contractAddress, nft.tokenId);
-      if (!chainMeta) return;
+      const meta = await enrichOne(chainId, nft, alchemyNft.raw?.tokenUri ?? undefined);
+      if (!meta) return;
 
-      if (chainMeta.name) nft.name = chainMeta.name;
-      if (chainMeta.description) nft.description = chainMeta.description;
-      if (chainMeta.image) nft.image = chainMeta.image;
-      if (chainMeta.externalUrl) nft.externalUrl = chainMeta.externalUrl;
-      if (chainMeta.attributes) nft.attributes = chainMeta.attributes;
+      if (meta.name) nft.name = meta.name;
+      if (meta.description) nft.description = meta.description;
+      if (meta.image) nft.image = meta.image;
+      if (meta.externalUrl) nft.externalUrl = meta.externalUrl;
+      if (meta.attributes) nft.attributes = meta.attributes;
     } catch (err) {
       console.warn(
-        `[getOwnedNFTs] chain metadata enrichment failed for ${nft.contractAddress}#${nft.tokenId}:`,
+        `[getOwnedNFTs] metadata enrichment failed for ${nft.contractAddress}#${nft.tokenId}:`,
         err
       );
     }
@@ -168,7 +192,7 @@ export async function getOwnedNFTs(walletAddress: string, chain: Chain): Promise
       pageKey = response.pageKey;
     }
 
-    await enrichFromChain(pending, chain);
+    await enrichMetadata(pending, chain.id);
 
     for (const { nft } of pending) {
       applyMusicFields(nft, chain.id);
