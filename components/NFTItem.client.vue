@@ -119,6 +119,7 @@
                   "
                   :href="value"
                   target="_blank"
+                  rel="noopener noreferrer"
                   class="text-blue-500 hover:underline"
                 >
                   {{ value }}

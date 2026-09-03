@@ -1,4 +1,4 @@
-export type MusicNftKind = "ripples-score" | string;
+export type MusicNftKind = "ripples-score";
 
 export interface MusicNftCollection {
   chainId: number;
