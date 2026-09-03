@@ -40,7 +40,7 @@ async function fetchJson(url: string, timeoutMs: number): Promise<unknown | null
   }
 }
 
-/** Race gateways — first successful JSON wins (Arweave CDNs are flaky). */
+/** 多网关时竞速，第一个拿到 JSON 的赢；目前每种协议各只有一个网关。 */
 async function fetchJsonFromUri(tokenUri: string): Promise<unknown | null> {
   const candidates = resolveMetadataUriCandidates(tokenUri);
   if (candidates.length === 0) return null;

@@ -4,11 +4,9 @@
  * 就能把 /api/nft/owned 变成内网探针。所以这里只放行已知的去中心化网关主机，
  * 其余一律不解析——白名单外的 metadata 交给 Alchemy 去抓（见 fetchChainMetadata）。
  */
-const ARWEAVE_GATEWAYS = [
-  "https://arweave.net",
-  "https://ar-io.dev",
-  "https://ario.permagate.io",
-] as const;
+// 只留 arweave.net：ar-io.dev 和 ario.permagate.io 从 homepod 的容器里都不可达
+// （前者连接失败，后者挂到超时），留着只是每次兜底都白等一轮。
+const ARWEAVE_GATEWAYS = ["https://arweave.net"] as const;
 
 const IPFS_GATEWAYS = ["https://ipfs.io"] as const;
 
