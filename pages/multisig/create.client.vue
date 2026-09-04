@@ -11,10 +11,11 @@
       >
         {{ i18n.text["Back"] }}
       </UButton>
-      <h1 class="text-lg font-bold text-gray-800">{{ i18n.text['multisig.createTeamWallet'] }}</h1>
+      <h1 class="text-lg font-bold text-gray-800 flex-1">{{ i18n.text['multisig.createTeamWallet'] }}</h1>
+      <NetworkSwitch />
     </div>
 
-    <div class="space-y-5 w-[80%] mx-auto">
+    <div class="space-y-5 w-[80%] mx-auto flex-1 min-h-0 overflow-y-auto">
       <!-- Wallet name -->
       <div class="bg-white rounded-xl p-4 space-y-2">
         <label class="text-sm font-medium text-gray-700">{{ i18n.text['multisig.walletName'] }}</label>
@@ -82,6 +83,9 @@
               <span>👤</span>
               <div class="text-left">
                 <p class="text-sm font-medium">{{ result.handle || result.name }}</p>
+                <p v-if="result.renamed_from" class="text-xs text-amber-600">
+                  {{ (i18n.text['User renamed notice'] || '').replace('{handle}', result.handle || '') }}
+                </p>
                 <CopyableAddress :address="result.evm_chain_active_key" text-class="text-xs text-gray-400" />
               </div>
             </div>
@@ -134,6 +138,22 @@
       >
         {{ i18n.text['multisig.createWallet'] }}
       </UButton>
+
+      <!-- Chain scope info -->
+      <div class="flex gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <span class="text-blue-500 text-base leading-tight">ⓘ</span>
+        <p class="text-xs text-blue-700 leading-relaxed">
+          {{ i18n.text['multisig.createChainScopeHint'] || `当前仅在 ${chainStore.chain.name} 上创建多签钱包。同一组签名人在其他链上可计算出相同地址，但需要切换到该链后发起一笔交易才能自动部署合约并激活。部署需要消耗该链的 Gas 费。` }}
+        </p>
+      </div>
+
+      <!-- Mainnet gas warning -->
+      <div v-if="chainStore.chain.id === 1" class="flex gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+        <span class="text-amber-500 text-base leading-tight">⚠️</span>
+        <p class="text-xs text-amber-700 leading-relaxed">
+          {{ i18n.text['multisig.mainnetGasWarning'] || '主网无 Gas 代付。首次部署和后续转账的 Gas 费将从你的多签钱包余额中扣除（Safe 自付模式）。请确保主网上该地址有足够的 ETH。' }}
+        </p>
+      </div>
     </div>
 
     <!-- Passcode modal -->
@@ -152,7 +172,7 @@ import { useI18n } from '~/stores/i18n'
 import { predictSafeAccountAddress } from '~/utils/SafeSmartAccount/account'
 import { useChainStore, chainMap } from '~/stores/chain'
 import { createMultisigWallet } from '~/utils/multisig_api'
-import { keystoreToPrivateKey } from '~/utils/encryption'
+import { keystoreToPrivateKey } from 'semi-core/keys'
 import { getUserByHandle } from '~/utils/semi_api'
 
 const router = useRouter()
@@ -243,8 +263,11 @@ async function searchUser() {
   try {
     // Search by handle or address
     const u = await getUserByHandle(q)
-    if (u?.evm_chain_active_key) {
-      searchResults.value = [u]
+    const ownerAddress = u?.evm_chain_active_key || u?.evm_chain_address
+    if (u?.id && ownerAddress) {
+      searchResults.value = [{ ...u, evm_chain_active_key: ownerAddress }]
+    } else if (u?.id) {
+      searchError.value = i18n.text['multisig.userNoWallet'] || '该用户尚未设置数字身份地址'
     } else {
       searchError.value = i18n.text['multisig.userNotFound'] || 'User not found'
     }
@@ -310,7 +333,10 @@ async function onPasscodeConfirm(passcode: string) {
 
     // Refresh and navigate
     await multisigStore.fetchWallets()
-    const newWallet = multisigStore.wallets.find((w) => w.safe_address.toLowerCase() === safeAddress.toLowerCase())
+    // for the same Safe address on different chain， (safe_address, chain_id) 
+    const newWallet = multisigStore.wallets.find(
+      (w) => w.safe_address.toLowerCase() === safeAddress.toLowerCase() && w.chain_id === chainId
+    )
     if (newWallet) {
       multisigStore.setActiveWallet(newWallet.id)
     }

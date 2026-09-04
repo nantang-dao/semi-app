@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col container-size h-[100vh] rounded-xl bg-[var(--ui-bg)] shadow-lg px-4 py-6 banner">
+  <div class="flex flex-col container-size min-h-[100vh] rounded-xl bg-[var(--ui-bg)] shadow-lg px-4 py-6 banner">
     <!-- Top bar (matches Profile.client.vue) -->
     <div class="w-full flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
@@ -13,7 +13,7 @@
     </div>
 
     <!-- Wallet name + threshold badge -->
-    <div class="flex items-center justify-between gap-2 mb-2">
+    <div v-if="activeWallet" class="flex items-center justify-between gap-2 mb-2">
       <div class="flex items-center gap-2">
         <span class="text-lg font-semibold text-gray-800">{{ activeWallet?.name }}</span>
         <span class="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full font-medium">
@@ -31,13 +31,23 @@
     </div>
 
     <!-- Balance -->
-    <div class="mb-4 space-y-3">
+    <div v-if="activeWallet" class="mb-4 space-y-3">
       <div class="bg-white rounded-xl border border-gray-100 p-4">
         <p class="text-xs text-gray-400 mb-1">ETH</p>
         <p class="text-2xl font-bold text-gray-800">
           {{ displayBalance(ethBalance, 6, 18) }}
         </p>
         <p class="text-xs text-gray-400 font-mono mt-2">{{ activeWallet?.safe_address }}</p>
+        <div class="mt-4">
+          <UButton
+            icon="i-heroicons-paper-airplane"
+            size="sm"
+            class="w-full justify-center"
+            @click="router.push('/transfer')"
+          >
+            {{ i18n.text['multisig.proposeSend'] || '发起转账' }}
+          </UButton>
+        </div>
       </div>
 
       <div v-if="tokenBalances.length" class="bg-white rounded-xl border border-gray-100 divide-y divide-gray-100">
@@ -61,8 +71,18 @@
       </div>
     </div>
 
+    <!-- No wallet on this chain -->
+    <div v-if="!activeWallet && !loading" class="flex flex-col items-center gap-4 py-16">
+      <img :src="chainStore.chain.icon" class="w-16 h-16" />
+      <p class="text-lg font-semibold text-gray-700">{{ i18n.text['multisig.noWalletOnChainTitle'] || '当前链上尚未激活多签钱包' }}</p>
+      <p class="text-sm text-gray-500 text-center max-w-xs">
+        {{ i18n.text['multisig.noWalletOnChainDesc'] || '你的多签钱包地址在其他链上可能相同，但在当前链上需要首次激活（部署合约）。激活需消耗 Gas 费。' }}
+      </p>
+      <UButton to="/multisig/create">{{ i18n.text['multisig.createWallet'] || '创建多签钱包' }}</UButton>
+    </div>
+
     <!-- Tabs -->
-    <div class="flex gap-1 border-b border-gray-100 mb-3">
+    <div v-if="activeWallet" class="flex gap-1 border-b border-gray-100 mb-3">
       <button
         class="px-4 py-2 text-sm font-medium transition-colors border-b-2"
         :class="tab === 'queue' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500'"
@@ -105,6 +125,13 @@
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-lg">{{ txIcon(tx) }}</span>
                 <span class="text-sm font-semibold text-gray-800">{{ txLabel(tx) }}</span>
+                <img
+                  v-if="chainMap[tx.chain_id]"
+                  :src="chainMap[tx.chain_id].icon"
+                  class="w-3 h-3 inline-block"
+                  :alt="chainMap[tx.chain_id].name"
+                  :title="chainMap[tx.chain_id].name"
+                />
                 <span
                   v-if="isCompeting(tx)"
                   class="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium"
@@ -202,8 +229,14 @@
           <div class="flex items-center gap-2">
             <span class="text-lg">{{ item._type === 'incoming' ? '📥' : txIcon(item as any) }}</span>
             <div>
-              <p class="text-sm font-medium text-gray-800">
+              <p class="text-sm font-medium text-gray-800 flex items-center gap-1">
                 {{ item._type === 'incoming' ? (i18n.text['multisig.incomingTransfer'] || '收款') : txLabel(item as any) }}
+                <img
+                  v-if="item._type !== 'incoming' && chainMap[(item as MultisigTx).chain_id]"
+                  :src="chainMap[(item as MultisigTx).chain_id].icon"
+                  class="w-3 h-3 inline-block"
+                  :alt="chainMap[(item as MultisigTx).chain_id].name"
+                />
               </p>
               <p class="text-xs text-gray-400">
                 <template v-if="item._type === 'incoming'">
@@ -235,7 +268,7 @@
             {{ (item as MultisigTx).memo }}
           </p>
           <p v-if="(item as MultisigTx).sender_note" class="text-xs text-blue-500 flex items-center gap-1">
-            <UIcon name="ci:chat-alt-check" size="12" />
+            <UIcon name="ci:chat-check" size="12" />
             {{ (item as MultisigTx).sender_note }}
           </p>
         </div>
@@ -260,6 +293,7 @@
 
     <!-- Floating propose button -->
     <button
+      v-if="activeWallet"
       class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary-500 text-white shadow-lg flex items-center justify-center text-2xl hover:bg-primary-600 transition-colors z-10"
       @click="router.push('/transfer')"
     >
@@ -267,9 +301,9 @@
     </button>
 
     <!-- Incoming transfer detail modal -->
-    <div v-if="showIncomingDetail && selectedIncoming" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @click.self="showIncomingDetail = false">
+    <div v-if="showIncomingDetail && selectedIncoming" class="fixed inset-0 z-50 flex items-center justify-center" @click.self="showIncomingDetail = false">
       <div class="absolute inset-0 bg-black/40" @click="showIncomingDetail = false" />
-      <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 m-0 sm:m-4">
+      <div class="relative w-full max-w-sm mx-4 bg-white rounded-2xl shadow-xl p-5 max-h-[85vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-base font-semibold text-gray-800">
             {{ i18n.text['multisig.incomingTransfer'] || '收款' }}
@@ -334,7 +368,7 @@ import { useChainStore } from '~/stores/chain'
 import { useI18n } from '~/stores/i18n'
 import { getMultisigWalletOwners, getMultisigTxs, executeMultisigTx, confirmMultisigTx, failMultisigTx, resetExecutingMultisigTx, syncMultisigWallet, lookupMultisigTxMemos } from '~/utils/multisig_api'
 import { executeMultisigUserOp, getSafeOwnersAndThreshold } from '~/utils/SafeSmartAccount/multisig'
-import { keystoreToPrivateKey } from '~/utils/encryption'
+import { keystoreToPrivateKey } from 'semi-core/keys'
 import { chainMap } from '~/stores/chain'
 import type { MultisigTx, MultisigOwner } from '~/utils/multisig_api'
 import { getBalance, getPopularERC20Balance, type ERC20Balance } from '~/utils/balance'
@@ -438,7 +472,7 @@ async function fetchBalances() {
 
 onMounted(async () => {
   if (!activeWallet.value) {
-    router.push('/')
+    // if no multisign wallet on the current chain, recommend to create
     return
   }
   await Promise.all([fetchQueue(), fetchOwners(), fetchBalances()])
@@ -507,7 +541,7 @@ async function fetchIncomingTxs() {
     const chain = chainStore.chain
     const { token_classes } = await getTokenClass()
     const currentTokenClasses = token_classes.filter((t) => t.chain_id === chain.id)
-    const actions = await getReceiveActions(activeWallet.value.safe_address, chain, currentTokenClasses)
+    const { actions } = await getReceiveActions(activeWallet.value.safe_address, chain, currentTokenClasses)
     incomingTxs.value = actions.map((a: any) => ({
       id: `incoming-${a.txHex || Math.random().toString(36).slice(2)}`,
       _type: 'incoming' as const,
@@ -607,6 +641,8 @@ async function onExecutePasscode(passcode: string) {
   if (!executingTx) return
   const tx = executingTx
   executing.value = true
+  // 一旦拿到 txHash，链上已提交成功，无论后续 confirm/上传是否失败都不能再标记为 failed
+  let submittedTxHash: string | undefined
 
   try {
     // 1. 先验证支付码是否正确（不锁定后端状态）
@@ -637,14 +673,34 @@ async function onExecutePasscode(passcode: string) {
       )
     }
 
-    const { txHash } = await executeMultisigUserOp(
+    const { txHash, userOpHash, actualGasCost } = await executeMultisigUserOp(
       lockedTx.user_op_snapshot,
       eligibleSignatures,
       execThreshold,
       chain
     )
+    submittedTxHash = txHash // 链上已提交，越过此处不可再标记为 failed
 
-    await confirmMultisigTx({ multisig_tx_id: tx.id, tx_hash: txHash })
+    // gas 由 paymaster 代付，但实际成本记账给执行者（"最后一个用户"）
+    // confirm 失败属于可恢复状态：交易已上链，绝不能因此把它标记为 failed
+    try {
+      await confirmMultisigTx({
+        multisig_tx_id: tx.id,
+        tx_hash: txHash,
+        gas_used: actualGasCost,
+        user_op_hash: userOpHash,
+      })
+    } catch (confirmErr: any) {
+      console.error('[execute] confirm failed after on-chain success:', confirmErr)
+      showPasscode.value = false
+      toast.add({
+        title: i18n.text['multisig.confirmPending'] || '交易已上链，正在同步…',
+        description: i18n.text['multisig.confirmPendingDesc'] || '稍后刷新即可，无需重新发起',
+        color: 'warning',
+      })
+      await fetchQueue()
+      return
+    }
 
     // 与单签一致：执行成功后上传交易记录到常规交易表，使收款方能查到备注
     try {
@@ -655,6 +711,7 @@ async function onExecutePasscode(passcode: string) {
         gas_used: '0',
         status: 'success',
         chain: chain.name.toLowerCase(),
+        chain_id: chain.id,
         data: '',
         memo: tx.memo || '',
         sender_note: tx.sender_note || '',
@@ -705,9 +762,23 @@ async function onExecutePasscode(passcode: string) {
       // 密码错误时后端状态不会被锁定，无需重置
     } else {
       showPasscode.value = false
-      // 只有后端已锁定状态才标记失败
-      await failMultisigTx(tx.id).catch(() => {})
-      toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
+      // 仅当链上从未提交（无 txHash）时才标记失败；
+      // 已上链的交易即使后续步骤失败也绝不能标记为 failed（否则会诱导重复发起 → 双花）
+      //
+      // 内层 revert 是这条规则的一个特例，而且落在「标记失败」这一侧：UserOp
+      // 上链了，但调用回滚了，钱没动、nonce 已消耗。这笔提案再也执行不了，
+      // 必须重新发起 —— 所以 semi-core 抛错时不设 submittedTxHash，正好走这里。
+      if (!submittedTxHash) {
+        await failMultisigTx(tx.id).catch(() => {})
+      }
+      const reverted = err?.code === 'USER_OP_FAILED' && err?.txHash
+      toast.add({
+        title: i18n.text['Error'] || 'Error',
+        description: reverted
+          ? `${i18n.text['multisig.executionReverted'] || '链上执行失败，资金未转出，请重新发起'}（${err.txHash}）`
+          : err.message,
+        color: 'error',
+      })
     }
     await fetchQueue()
   } finally {

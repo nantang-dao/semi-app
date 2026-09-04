@@ -59,7 +59,15 @@
           <div class="flex items-center gap-2.5">
             <span class="text-base">👥</span>
             <div class="text-left">
-              <p class="text-sm font-medium text-gray-800">{{ wallet.name }}</p>
+              <p class="text-sm font-medium text-gray-800 flex items-center gap-1">
+                {{ wallet.name }}
+                <img
+                  v-if="chainMap[wallet.chain_id]"
+                  :src="chainMap[wallet.chain_id].icon"
+                  class="w-3 h-3 inline-block"
+                  :title="chainMap[wallet.chain_id].name"
+                />
+              </p>
               <CopyableAddress :address="wallet.safe_address" text-class="text-xs text-gray-400" />
             </div>
           </div>
@@ -87,6 +95,16 @@
         <!-- Divider -->
         <div class="border-t border-gray-100 mx-3" />
 
+        <!-- Rename username -->
+        <button
+          v-if="userStore.user?.handle"
+          class="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-gray-50 transition-colors"
+          @click="goRenameHandle"
+        >
+          <UIcon name="ci:user" size="16" class="text-gray-500" />
+          <span class="text-sm text-gray-700">{{ i18n.text['Rename Username'] }}</span>
+        </button>
+
         <!-- Export -->
         <button
           class="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-gray-50 transition-colors"
@@ -112,11 +130,13 @@
 <script setup lang="ts">
 import { useUserStore } from "~/stores/user";
 import { useMultisigStore } from "~/stores/multisig";
+import { useChainStore, chainMap } from "~/stores/chain";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "~/stores/i18n";
 
 const userStore = useUserStore();
 const multisigStore = useMultisigStore();
+const chainStore = useChainStore();
 const toast = useToast();
 const router = useRouter();
 const route = useRoute();
@@ -176,6 +196,10 @@ async function switchToMultisigWallet(wallet: any) {
     const confirmed = window.confirm(i18n.text['multisig.switchWalletConfirm'] || 'Switch wallet? Unsaved content will be lost.')
     if (!confirmed) return
   }
+  // switch to the chain of target wallet
+  if (wallet.chain_id && wallet.chain_id !== chainStore.chain.id) {
+    await chainStore.switch(wallet.chain_id)
+  }
   multisigStore.setActiveWallet(wallet.id)
   menuOpen.value = false
   // Fetch queue for badge update
@@ -187,6 +211,11 @@ async function switchToMultisigWallet(wallet: any) {
 function goCreateMultisig() {
   menuOpen.value = false
   router.push('/multisig/create')
+}
+
+function goRenameHandle() {
+  menuOpen.value = false
+  router.push('/rename-handle')
 }
 
 const handleExportKeyStore = () => {

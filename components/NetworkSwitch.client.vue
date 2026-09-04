@@ -6,9 +6,11 @@
 
 <script setup lang="ts">
 import { useChainStore, chainMap } from "../stores/chain";
+import { useMultisigStore } from "../stores/multisig";
 import { type Chain } from "viem/chains";
 
 const chainStore = useChainStore();
+const multisigStore = useMultisigStore();
 const toast = useToast();
 
 const networkItems = computed(() =>
@@ -30,6 +32,7 @@ const currentNetworkIcon = computed(() => chainStore.chain.icon);
 const handleNetworkSwitch = async (chain: Chain) => {
   try {
     await chainStore.switch(chain.id);
+    multisigStore.onChainSwitched();
     toast.add({
       title: "切换成功",
       description: `已切换到 ${chain.name} 网络`,

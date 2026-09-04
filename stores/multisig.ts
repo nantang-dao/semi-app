@@ -5,6 +5,7 @@ import {
   type MultisigWallet,
   type MultisigTx,
 } from "~/utils/multisig_api";
+import { useChainStore } from "./chain";
 
 interface MultisigState {
   wallets: MultisigWallet[];
@@ -28,8 +29,20 @@ export const useMultisigStore = defineStore("multisig", {
   }),
 
   getters: {
-    activeWallet(state): MultisigWallet | null {
-      return state.wallets.find((w) => w.id === state.activeWalletId) ?? null;
+    /** all multisig wallet on this chain */
+    walletsOnCurrentChain(state): MultisigWallet[] {
+      const chainStore = useChainStore();
+      return state.wallets.filter((w) => w.chain_id === chainStore.chain.id);
+    },
+
+    /** active wallets on the current chain */
+    activeWallet(): MultisigWallet | null {
+      const found = this.walletsOnCurrentChain.find(
+        (w) => w.id === this.activeWalletId
+      );
+      if (found) return found;
+      // activeWalletId not on current chain, choose the first wallet
+      return this.walletsOnCurrentChain[0] ?? null;
     },
 
     /** Badge count keyed by wallet ID: 0 or 1 */
@@ -69,6 +82,16 @@ export const useMultisigStore = defineStore("multisig", {
       this.activeWalletId = walletId;
       this.queueTxs = [];
       this.pendingSignatureCount = 0;
+    },
+
+    /** auto choose the wallet on the new chain */
+    onChainSwitched() {
+      const chainStore = useChainStore();
+      const current = this.wallets.find((w) => w.id === this.activeWalletId);
+      if (!current || current.chain_id !== chainStore.chain.id) {
+        const first = this.walletsOnCurrentChain[0];
+        this.setActiveWallet(first?.id ?? null);
+      }
     },
 
     async fetchQueue(walletId?: string) {
