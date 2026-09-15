@@ -64,12 +64,12 @@ app 侧的组装在 `utils/semi_core.ts`，那是整个应用**唯一**读环境
 ## 测试
 
 ```bash
-pnpm test        # 113 个单元测试，全部不需要网络
-pnpm test:fork   # 4 个 fork 测试，需要 anvil，见 test/fork/README.md
+pnpm test        # 单元测试，全部不需要网络
+pnpm test:fork   # fork 测试，需要 anvil，见 test/fork/README.md
 ```
 
 单元测试能验签名和编码，验不了「这串字节被真实合约接受」。fork 测试跑在
-fork Optimism 主网的 anvil 上，Safe 1.4.1 / Safe4337Module / EntryPoint 0.7
+fork Optimism（或 `FORK_CHAIN_ID=42161` 时 Arbitrum）主网的 anvil 上，Safe 1.4.1 / Safe4337Module / EntryPoint 0.7
 都是链上真合约，验的是预测地址等于实际 CREATE2 部署地址、UserOperation 真的
 通过 `EntryPoint.handleOps` 执行、钱真的转出去。
 

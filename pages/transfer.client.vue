@@ -9,7 +9,7 @@
     >
       {{ i18n.text["Back"] }}
     </UButton>
-    <div class="flex flex-col items-center justify-center h-full gap-4 pb-8 w-[80%] mx-auto">
+    <div class="flex flex-col items-center justify-center-safe gap-4 pb-8 w-[80%] mx-auto flex-1 min-h-0 overflow-y-auto">
       <h1 class="text-2xl font-bold">{{ i18n.text["Send Tokens"] }}</h1>
 
       <!-- 步骤1：输入转账信息 -->

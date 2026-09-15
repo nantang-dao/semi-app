@@ -309,7 +309,7 @@ import {
 import { keystoreToPrivateKey } from 'semi-core/keys'
 import { chainMap } from '~/stores/chain'
 import { uploadTransaction } from '~/utils/semi_api'
-import { chainName } from '~/utils/multisig_chains'
+import { chainName, isSafeActivated } from '~/utils/multisig_chains'
 import { getBalance } from '~/utils/balance'
 import { parseEther, type Address, type Hex } from 'viem'
 
@@ -688,6 +688,8 @@ async function executeOne(t: MultisigTx): Promise<ExecuteOutcome> {
       chain
     )
     submittedTxHash = txHash // 链上已提交，越过此处不可再标记为 failed
+    // 第一笔交易会顺带部署 Safe：刷新「已激活」状态的缓存
+    isSafeActivated(wallet.safe_address, t.chain_id, true).catch(() => {})
 
     // gas 由 paymaster 代付，但实际成本记账给执行者（"最后一个用户"）
     // confirm 失败属于可恢复状态：交易已上链，绝不能因此把它标记为 failed

@@ -30,6 +30,9 @@
       </UButton>
     </div>
 
+    <!-- 各链激活状态：点击切换网络 -->
+    <MultisigChainStatus v-if="activeWallet" :wallet="activeWallet" :refresh-key="chainStatusKey" class="mb-4" />
+
     <!-- Balance -->
     <div class="mb-4 space-y-3">
       <div class="bg-white rounded-xl border border-gray-100 p-4">
@@ -391,6 +394,8 @@ const showIncomingDetail = ref(false)
 const selectedIncoming = ref<IncomingTx | null>(null)
 
 const activeWallet = computed(() => multisigStore.activeWallet)
+/** 执行交易后递增，让链激活状态重新读链上（第一笔交易会顺带部署） */
+const chainStatusKey = ref(0)
 const currentUserAddress = computed(() => userStore.user?.evm_chain_active_key?.toLowerCase() || '')
 
 // Balances
@@ -456,6 +461,7 @@ onMounted(async () => {
 
 onActivated(async () => {
   if (!activeWallet.value) return
+  chainStatusKey.value++
   await fetchQueue()
 })
 
@@ -735,6 +741,7 @@ async function onExecutePasscode(passcode: string) {
     }
     showPasscode.value = false
     toast.add({ title: i18n.text['Transfer Success'] || 'Success', description: txHash, color: 'success' })
+    chainStatusKey.value++
     await fetchQueue()
   } catch (err: any) {
     if (isWrongPasscodeError(err)) {

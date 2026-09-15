@@ -44,7 +44,7 @@ Get token balances for whitelisted tokens of a selected network for a specific a
 
 **Query Parameters:**
 - `wallet_address` (required): The wallet address to query balances for
-- `chain_id` (required): The chain ID (1 for Mainnet, 10 for Optimism, 11155111 for Sepolia)
+- `chain_id` (required): The chain ID (1 for Mainnet, 10 for Optimism, 42161 for Arbitrum One, 11155111 for Sepolia)
 
 **Example:**
 ```

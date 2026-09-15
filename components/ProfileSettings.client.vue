@@ -61,6 +61,7 @@
             <div class="text-left">
               <p class="text-sm font-medium text-gray-800">{{ wallet.name }}</p>
               <CopyableAddress :address="wallet.safe_address" text-class="text-xs text-gray-400" />
+              <MultisigChainStatus :wallet="wallet" compact />
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -123,6 +124,7 @@
 import { useUserStore } from "~/stores/user";
 import { useMultisigStore } from "~/stores/multisig";
 import { useChainStore } from "~/stores/chain";
+import { chainName, preferredActivatedChain } from "~/utils/multisig_chains";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "~/stores/i18n";
 
@@ -188,10 +190,28 @@ async function switchToMultisigWallet(wallet: any) {
     const confirmed = window.confirm(i18n.text['multisig.switchWalletConfirm'] || 'Switch wallet? Unsaved content will be lost.')
     if (!confirmed) return
   }
-  multisigStore.setActiveWallet(wallet.id)
   menuOpen.value = false
+
+  // 当前链上还没激活时，默认跳到它已经激活的链，免得用户记不住在哪条链上用过
+  let target = wallet
+  try {
+    const activated = await preferredActivatedChain(wallet, multisigStore.wallets, chainStore.chain.id)
+    if (activated) {
+      await chainStore.switch(activated.chain_id)
+      target = activated
+      toast.add({
+        title: (i18n.text['multisig.switchedToActivatedChain'] || '已切换到 {chain}（该数字身份已在此链激活）')
+          .replace('{chain}', chainName(activated.chain_id)),
+        color: 'info',
+      })
+    }
+  } catch {
+    // 读链上状态失败就留在当前链
+  }
+
+  multisigStore.setActiveWallet(target.id)
   // Fetch queue for badge update
-  await multisigStore.fetchQueue(wallet.id)
+  await multisigStore.fetchQueue(target.id)
   multisigStore.updateBadge(personalWalletAddress.value)
   router.push('/multisig/queue')
 }

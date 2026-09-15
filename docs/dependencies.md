@@ -26,7 +26,7 @@ VITE_SEPOLIA_BUNDLER_URL  │
 VITE_OP_PAYMASTER         ┘
 ```
 
-代付关系没变：`paymasterUrl` 只给 `sponsored: true` 的链（目前只有 Optimism），
+代付关系没变：`paymasterUrl` 只给 `sponsored: true` 的链（目前是 Optimism 和 Arbitrum），
 `ctx.canSponsorGas` 仍由它决定。**代价**是开关从「删环境变量」变成「改一行
 代码」——影响不大，因为 `VITE_*` 是构建期内联的，改环境变量本来也要重新构建。
 

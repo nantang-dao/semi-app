@@ -195,3 +195,45 @@ export async function addMissingChainRows(allWallets: MultisigWallet[]): Promise
 
   return added;
 }
+
+const DEPLOYED_TTL_MS = 60_000;
+const deployedCache = new Map<string, { at: number; value: Promise<boolean> }>();
+
+/**
+ * Safe 在这条链上是否已「激活」（合约已部署）。未激活的链上地址照样能收款，
+ * 第一笔多签交易执行时会顺带部署。结果缓存一分钟；执行完交易后传 fresh 刷新。
+ */
+export function isSafeActivated(address: string, chainId: number, fresh = false): Promise<boolean> {
+  const key = `${chainId}:${address.toLowerCase()}`;
+  const hit = deployedCache.get(key);
+  if (!fresh && hit && Date.now() - hit.at < DEPLOYED_TTL_MS) return hit.value;
+  const value = isDeployed(chainContext(chainId), address as Address).catch((e) => {
+    deployedCache.delete(key);
+    throw e;
+  });
+  deployedCache.set(key, { at: Date.now(), value });
+  return value;
+}
+
+/**
+ * 打开多签钱包时该用哪条链：当前链已激活就留在当前链；否则按链组顺序
+ * （OP → Arbitrum → 主网）找第一条已激活、且当前用户在那条链上是签名人的链。
+ * 哪条都没激活（新钱包）或读不到链上状态时返回 null，留在当前链。
+ */
+export async function preferredActivatedChain(
+  wallet: MultisigWallet,
+  allWallets: MultisigWallet[],
+  currentChainId: number
+): Promise<MultisigWallet | null> {
+  const rows = walletRowsOf(wallet, allWallets);
+  const byChain = new Map(rows.map((r) => [r.chain_id, r]));
+  const safeCheck = (id: number) => isSafeActivated(wallet.safe_address, id).catch(() => null);
+
+  if (byChain.has(currentChainId) && (await safeCheck(currentChainId)) !== false) return null;
+
+  for (const id of multisigChainIdsFor(wallet.chain_id)) {
+    if (id === currentChainId || !byChain.has(id)) continue;
+    if ((await safeCheck(id)) === true) return byChain.get(id)!;
+  }
+  return null;
+}
