@@ -1,0 +1,52 @@
+stores/multisig.ts
+  s_9865a8e1d3b42a::t_e90231f2ed1557 8,36-41,63-67,79-89
+  s_9865a8e1d3b42a::t_b0fb8a27ead1ae 90-91
+pages/multisig/[id].client.vue
+  s_9865a8e1d3b42a::t_ba4d7b08dca326 153,165,334-335,806,844
+  s_9865a8e1d3b42a::t_3d205b55b1e776 505-506,510-512
+  s_9865a8e1d3b42a::t_6e8ced6307b630 121-152,154-164,166-173
+  s_9865a8e1d3b42a::t_35fb2cd17a0797 655
+  s_9865a8e1d3b42a::t_55a462579d0131 312-314,333,337-346,568,570-573,577-580,583-587,589-594,596-600,602-622,624-632,635-642,644,646-654,656-662,669,671,695,697-698,709-712,715-756,758-761,763-769,771-782,798-805,807-843,845-872,928-929,935,1009-1023,1025-1027,1031-1033,1035,1037,1039,1042,1063
+  s_9865a8e1d3b42a::t_37b02d9fed20eb 336,513-514
+packages/semi-core/test/fork/deploy-and-execute.test.ts
+  s_9865a8e1d3b42a::t_972df980960608 223-317
+  s_9865a8e1d3b42a::t_0f595493826595 24
+pages/multisig/owners.client.vue
+  s_9865a8e1d3b42a::t_3608f0cbd36190 321-322,523-538,540,542,546,553,608,610
+pages/multisig/create.client.vue
+  s_9865a8e1d3b42a::t_3608f0cbd36190 154,311-312,316
+components/ProfileSettings.client.vue
+  s_9865a8e1d3b42a::t_69580f93a95037 125,131
+  s_9865a8e1d3b42a::t_e90231f2ed1557 144
+utils/multisig_chains.ts
+  s_9865a8e1d3b42a::t_76414c93effc54 14
+  s_9865a8e1d3b42a::t_6c4d0e541090ec 1-13,15-197
+utils/multisig_api.ts
+  s_9865a8e1d3b42a::t_13a0e699d27f00 19-21,25-33,93-95,121-122,126,132,146,158-159,163,172-184,240-245,251
+  s_9865a8e1d3b42a::t_5c1e7ce524f2f4 246-250,252
+pages/multisig/queue.client.vue
+  s_9865a8e1d3b42a::t_2a48efda9936cb 463-467
+components/NetworkSwitch.client.vue
+  s_9865a8e1d3b42a::t_e90231f2ed1557 9,13,35
+packages/semi-core/test/paymaster-validity.test.ts
+  s_9865a8e1d3b42a::t_0aa0ce9a00298e 1,59-67
+  s_9865a8e1d3b42a::t_0437391bcc4198 68
+pages/transfer.client.vue
+  s_9865a8e1d3b42a::t_2a48efda9936cb 602
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4db076466e98203eb729fcd4fd20063c8811346b",
+  "prompts": {},
+  "sessions": {
+    "s_9865a8e1d3b42a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d88730f8-9d18-4f98-9a1d-1f109d89c325",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
