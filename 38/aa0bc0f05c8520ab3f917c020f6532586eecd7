@@ -1,0 +1,70 @@
+packages/semi-core/src/chains/deployments.ts
+  s_9865a8e1d3b42a::t_d9d60e33dc8a6b 52-56
+server/api/nft/owned.get.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 2,4
+packages/semi-core/test/fork/deploy-and-execute.test.ts
+  s_9865a8e1d3b42a::t_d9d60e33dc8a6b 16,27-28,78,80-83,86-87,163
+pages/contacts.client.vue
+  s_9865a8e1d3b42a::t_69c2d6794804e4 127,182-183
+  s_9865a8e1d3b42a::t_014b164da83f64 184
+utils/actions.ts
+  s_9865a8e1d3b42a::t_69c2d6794804e4 31-32
+server/utils/chains.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 1-15
+components/ContactsButton.client.vue
+  s_9865a8e1d3b42a::t_69c2d6794804e4 71,102-103
+  s_9865a8e1d3b42a::t_22b4a91cf01d74 104
+utils/semi_core.ts
+  s_9865a8e1d3b42a::t_712e48776525f3 1,15,33,40
+pages/deploy.client.vue
+  s_9865a8e1d3b42a::t_0f5ad9819fc7a3 379-382
+stores/chain.ts
+  s_9865a8e1d3b42a::t_712e48776525f3 2,16-18
+  s_9865a8e1d3b42a::t_eb2e65c02c158d 19
+server/api/badge/summary.get.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 9
+public/images/arb_logo.svg
+  s_9865a8e1d3b42a::t_69c2d6794804e4 1
+server/api/profile/index.get.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 2,4
+server/api/badge/accept-badge.post.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 13,15
+server/api/badge/reject-badge.post.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 10,12
+server/api/profile/create.post.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 8,10
+server/api/token/balances.get.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 1,4,6
+server/api/badge/create-class.post.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 8,10
+server/api/badge/create-badges.post.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 7,9
+server/api/badge/pending.get.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 3,5
+server/api/nft/[contractAddress]/[tokenId]/holders.get.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 2,4
+utils/alchemy.ts
+  s_9865a8e1d3b42a::t_712e48776525f3 19
+utils/config.ts
+  s_9865a8e1d3b42a::t_712e48776525f3 14
+server/api/badge/owned.get.ts
+  s_9865a8e1d3b42a::t_b2e167dd9a5254 3,5
+server/utils/badge_wallet.ts
+  s_9865a8e1d3b42a::t_712e48776525f3 3,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "38aa0bc0f05c8520ab3f917c020f6532586eecd7",
+  "prompts": {},
+  "sessions": {
+    "s_9865a8e1d3b42a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d88730f8-9d18-4f98-9a1d-1f109d89c325",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
