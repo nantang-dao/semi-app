@@ -21,7 +21,7 @@ import {
   EIP712_SAFE_OPERATION_TYPE_V07,
 } from "../../src/index";
 import { getSafeAccount, predictAddress } from "../../src/account";
-import { packMultisigSignatures } from "../../src/multisig";
+import { encodeRemoveOwner, packMultisigSignatures } from "../../src/multisig";
 
 const RPC = process.env.ANVIL_RPC;
 /** 被 fork 的链：FORK_CHAIN_ID=42161 测 Arbitrum，默认 Optimism */
@@ -220,4 +220,99 @@ describe.skipIf(!RPC)("fork 上的部署与执行", () => {
       expect(version).toBe("1.4.1");
     }, 120_000);
   }
+
+  // 多链多签：在一条还没部署的链上执行 owner 变更。第一笔 UserOp 用初始 owner
+  // 部署，同时执行 removeOwner——prevOwner 按「排序后的初始 owner」推算，
+  // 因为 Safe 按 initializer 里的顺序建 owner 链表，而 semi-core 会先排序。
+  it("未部署的链上：部署与 removeOwner 在同一笔 UserOp 里完成，prevOwner 按排序后的初始 owner 推算", async () => {
+    const signers = Array.from({ length: 3 }, (_, i) => privateKeyToAccount(ownerKey(20 + i)));
+    const owners = signers.map((s) => s.address);
+    const threshold = 2;
+    const sorted = [...owners].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+    const predicted = await predictAddress(ctx, { owners, threshold });
+    const account = await getSafeAccount(ctx, { privateKey: ownerKey(20), owners, threshold });
+    await pub.waitForTransactionReceipt({
+      hash: await funder.sendTransaction({ to: predicted, value: parseEther("1") }),
+    });
+
+    // 移除排序后的第二个 owner，它的 prevOwner 是排序后的第一个
+    const removed = sorted[1]!;
+    const callData = (await account.encodeCalls([
+      { to: predicted, value: 0n, data: encodeRemoveOwner(sorted[0]!, removed, 1) },
+    ])) as Hex;
+    const nonce = await account.getNonce();
+    const { factory, factoryData } = await account.getFactoryArgs();
+    const initCode = concatHex([factory as Hex, factoryData as Hex]);
+
+    const block = await pub.getBlock();
+    const maxFeePerGas = (block.baseFeePerGas ?? 1_000_000n) * 2n + 1_000_000n;
+    const maxPriorityFeePerGas = 1_000_000n;
+    const verificationGasLimit = 700_000n;
+    const callGasLimit = 300_000n;
+    const preVerificationGas = 100_000n;
+
+    const message = {
+      safe: predicted,
+      callData,
+      nonce,
+      initCode,
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+      preVerificationGas,
+      verificationGasLimit,
+      callGasLimit,
+      paymasterAndData: "0x" as Hex,
+      validAfter: 0,
+      validUntil: 0,
+      entryPoint: entryPoint07Address,
+    };
+    const collected = [];
+    for (const s of signers.slice(0, threshold)) {
+      collected.push({
+        signer_address: s.address,
+        signature: await s.signTypedData({
+          domain: { chainId: CHAIN.id, verifyingContract: SAFE_4337_MODULE_ADDRESS },
+          types: EIP712_SAFE_OPERATION_TYPE_V07,
+          primaryType: "SafeOp",
+          message,
+        }),
+      });
+    }
+
+    const hash = await bundler.writeContract({
+      address: entryPoint07Address,
+      abi: entryPoint07Abi,
+      functionName: "handleOps",
+      args: [
+        [
+          {
+            sender: predicted,
+            nonce,
+            initCode,
+            callData,
+            accountGasLimits: packGas(verificationGasLimit, callGasLimit),
+            preVerificationGas,
+            gasFees: packGas(maxPriorityFeePerGas, maxFeePerGas),
+            paymasterAndData: "0x",
+            signature: packMultisigSignatures(collected, threshold),
+          },
+        ],
+        BUNDLER.address,
+      ],
+    });
+    const receipt = await pub.waitForTransactionReceipt({ hash });
+    expect(receipt.status).toBe("success");
+
+    const [onOwners, onThreshold] = await Promise.all([
+      pub.readContract({ address: predicted, abi: safeReadAbi, functionName: "getOwners" }),
+      pub.readContract({ address: predicted, abi: safeReadAbi, functionName: "getThreshold" }),
+    ]);
+    // removeOwner 成功才会少一个 owner：prevOwner 推错时它会 revert（GS205），
+    // 而 EntryPoint 吞掉内层 revert，所以要看状态而不是看回执
+    expect([...onOwners].map((o) => o.toLowerCase())).toEqual(
+      sorted.filter((o) => o !== removed).map((o) => o.toLowerCase())
+    );
+    expect(Number(onThreshold)).toBe(1);
+  }, 120_000);
 });

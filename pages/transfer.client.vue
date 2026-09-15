@@ -599,6 +599,7 @@ const initForm = async () => {
     const numChainId = Number(chain_id);
     if (numChainId in chainMap) {
       await useChain.switch(numChainId);
+      multisigStore.alignActiveWalletToChain(numChainId);
     } else {
       handleError(
         new Error(i18n.text["Invalid chain ID"]),

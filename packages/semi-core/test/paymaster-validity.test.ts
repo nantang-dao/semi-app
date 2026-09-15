@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Hex } from "viem";
 import { parsePaymasterValidity } from "../src/multisig";
 
@@ -55,6 +55,16 @@ import {
 } from "../src/index";
 import { optimism } from "viem/chains";
 import type { UserOpSnapshot } from "../src/multisig";
+
+// 过了本地检查之后的第一次网络请求必须立刻失败。`.example` 是保留域名，
+// 但解析失败要多久取决于本机 DNS，加上 viem 的重试，会超过测试的 5 秒超时。
+// 直接让 fetch 拒绝，测试就不依赖网络了。
+beforeAll(() => {
+  vi.stubGlobal("fetch", () => Promise.reject(new TypeError("network disabled in unit tests")));
+});
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 const core = createSemiCore({
   chains: [

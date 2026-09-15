@@ -122,11 +122,13 @@
 <script setup lang="ts">
 import { useUserStore } from "~/stores/user";
 import { useMultisigStore } from "~/stores/multisig";
+import { useChainStore } from "~/stores/chain";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "~/stores/i18n";
 
 const userStore = useUserStore();
 const multisigStore = useMultisigStore();
+const chainStore = useChainStore();
 const toast = useToast();
 const router = useRouter();
 const route = useRoute();
@@ -139,7 +141,7 @@ const containerRef = ref<HTMLElement | null>(null);
 
 const personalWalletName = computed(() => userStore.user?.handle || userStore.user?.name || i18n.text['multisig.personalWallet'] || 'Personal Wallet')
 const personalWalletAddress = computed(() => userStore.user?.evm_chain_address || '')
-const multisigWallets = computed(() => multisigStore.wallets)
+const multisigWallets = computed(() => multisigStore.walletsOnChain(chainStore.chain.id))
 const activeMultisigId = computed(() => multisigStore.activeWalletId)
 
 const badgeCount = computed(() => {

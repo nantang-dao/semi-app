@@ -460,6 +460,11 @@ onActivated(async () => {
 })
 
 watch([activeWallet, () => chainStore.chain], () => {
+  // 切到一条当前用户不是 owner 的链时，这个多签钱包在该链上没有行
+  if (!activeWallet.value) {
+    router.push('/')
+    return
+  }
   fetchBalances()
   fetchQueue()
   fetchOwners()

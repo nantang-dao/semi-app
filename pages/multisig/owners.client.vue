@@ -315,17 +315,11 @@ import { useMultisigStore } from '~/stores/multisig'
 import { useI18n } from '~/stores/i18n'
 import {
   getMultisigWalletOwners,
-  proposeMultisigTx,
   syncMultisigWallet,
   type MultisigOwner,
 } from '~/utils/multisig_api'
-import {
-  encodeAddOwnerCall,
-  encodeRemoveOwnerCall,
-  encodeChangeThresholdCall,
-  encodeSwapOwnerCall,
-  getSafeOwners,
-} from '~/utils/SafeSmartAccount/multisig'
+import { getSafeOwners } from '~/utils/SafeSmartAccount/multisig'
+import { proposeOwnerChangeOnAllChains, type OwnerChange } from '~/utils/multisig_chains'
 import { getUserByHandle } from '~/utils/semi_api'
 import { chainMap } from '~/stores/chain'
 
@@ -526,58 +520,38 @@ async function submitOwnerChange() {
   }
 }
 
-async function submitAddProposal(newT: number) {
-  if (!addOwnerResult.value || !activeWallet.value) return
-  const newOwner = addOwnerResult.value.evm_chain_active_key as `0x${string}`
-  const callData = encodeAddOwnerCall(newOwner, newT)
-
-  const { tx } = await proposeMultisigTx({
-    wallet_id: activeWallet.value.id,
-    tx_type: 'add_owner',
-    call_detail: { new_owner: newOwner, new_threshold: newT },
-    evm_call_data: callData,
-  })
-
-  toast.add({ title: i18n.text['multisig.proposalCreated'] || 'Proposal created', color: 'success' })
+/**
+ * owner 变更一次发到该 Safe 的所有链（各链各一笔，calldata 按链编码），
+ * 然后打开当前链上的那一笔。
+ */
+async function proposeOnAllChains(change: OwnerChange) {
+  if (!activeWallet.value) return
+  const tx = await proposeOwnerChangeOnAllChains(
+    activeWallet.value,
+    multisigStore.wallets,
+    currentUserAddress.value,
+    change
+  )
+  toast.add({ title: i18n.text['multisig.proposalCreatedAllChains'] || '已在所有链上发起提案', color: 'success' })
   router.push(`/multisig/${tx.id}`)
 }
 
+async function submitAddProposal(newT: number) {
+  if (!addOwnerResult.value) return
+  const newOwner = addOwnerResult.value.evm_chain_active_key as `0x${string}`
+  await proposeOnAllChains({ type: 'add_owner', newOwner, newThreshold: newT })
+}
+
 async function submitRemoveProposal(owner: MultisigOwner, newT: number) {
-  if (!activeWallet.value) return
-  const chain = chainMap[activeWallet.value.chain_id]
-  if (!chain) throw new Error('Unsupported chain')
-
-  const { getPrevOwner } = await getSafeOwners(activeWallet.value.safe_address, chain)
-  const prevOwner = getPrevOwner(owner.owner_address)
-  const callData = encodeRemoveOwnerCall(prevOwner, owner.owner_address, newT)
-
-  const { tx } = await proposeMultisigTx({
-    wallet_id: activeWallet.value.id,
-    tx_type: 'remove_owner',
-    call_detail: { owner: owner.owner_address, prev_owner: prevOwner, new_threshold: newT },
-    evm_call_data: callData,
-  })
-
-  toast.add({ title: i18n.text['multisig.proposalCreated'] || 'Proposal created', color: 'success' })
-  router.push(`/multisig/${tx.id}`)
+  await proposeOnAllChains({ type: 'remove_owner', owner: owner.owner_address, newThreshold: newT })
 }
 
 async function proposeChangeThreshold() {
   if (!activeWallet.value) return
   changingThreshold.value = true
   try {
-    const callData = encodeChangeThresholdCall(newThreshold.value)
-
-    const { tx } = await proposeMultisigTx({
-      wallet_id: activeWallet.value.id,
-      tx_type: 'change_threshold',
-      call_detail: { new_threshold: newThreshold.value },
-      evm_call_data: callData,
-    })
-
+    await proposeOnAllChains({ type: 'change_threshold', newThreshold: newThreshold.value })
     showChangeThreshold.value = false
-    toast.add({ title: i18n.text['multisig.proposalCreated'] || 'Proposal created', color: 'success' })
-    router.push(`/multisig/${tx.id}`)
   } catch (e: any) {
     toast.add({ title: i18n.text['Error'] || 'Error', description: e.message, color: 'error' })
   } finally {
@@ -630,29 +604,10 @@ async function submitReplaceProposal() {
 
   submittingReplace.value = true
   try {
-    const chain = chainMap[activeWallet.value.chain_id]
-    if (!chain) throw new Error('Unsupported chain')
-
-    const { getPrevOwner } = await getSafeOwners(activeWallet.value.safe_address, chain)
-    const prevOwner = getPrevOwner(replaceTarget.value.owner_address)
     const newOwner = replaceOwnerResult.value.evm_chain_active_key as `0x${string}`
-
-    const callData = encodeSwapOwnerCall(prevOwner, replaceTarget.value.owner_address, newOwner)
-
-    const { tx } = await proposeMultisigTx({
-      wallet_id: activeWallet.value.id,
-      tx_type: 'replace_owner',
-      call_detail: {
-        old_owner: replaceTarget.value.owner_address,
-        new_owner: newOwner,
-        prev_owner: prevOwner,
-      },
-      evm_call_data: callData,
-    })
-
+    const oldOwner = replaceTarget.value.owner_address
     closeReplaceModal()
-    toast.add({ title: i18n.text['multisig.proposalCreated'] || 'Proposal created', color: 'success' })
-    router.push(`/multisig/${tx.id}`)
+    await proposeOnAllChains({ type: 'replace_owner', oldOwner, newOwner })
   } catch (e: any) {
     toast.add({ title: i18n.text['Error'] || 'Error', description: e.message, color: 'error' })
   } finally {

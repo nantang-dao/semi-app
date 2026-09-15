@@ -151,6 +151,7 @@
 
 <script setup lang="ts">
 import { useUserStore } from '~/stores/user'
+import { multisigChainIdsFor } from '~/utils/multisig_chains'
 import { useMultisigStore } from '~/stores/multisig'
 import { useI18n } from '~/stores/i18n'
 import { predictSafeAccountAddress } from '~/utils/SafeSmartAccount/account'
@@ -307,9 +308,12 @@ async function onPasscodeConfirm(passcode: string) {
       }
     })
 
+    // 同一地址在同组每条链上都建一行（CREATE2 地址各链相同），
+    // 之后切换网络时直接切到对应链的那一行
     await createMultisigWallet({
       name: walletName.value.trim(),
       chain_id: chainId,
+      chain_ids: multisigChainIdsFor(chainId),
       owners: ownersPayload,
       threshold: threshold.value,
       safe_address: safeAddress,

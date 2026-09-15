@@ -5,6 +5,7 @@ import {
   type MultisigWallet,
   type MultisigTx,
 } from "~/utils/multisig_api";
+import { addMissingChainRows } from "~/utils/multisig_chains";
 
 interface MultisigState {
   wallets: MultisigWallet[];
@@ -32,6 +33,12 @@ export const useMultisigStore = defineStore("multisig", {
       return state.wallets.find((w) => w.id === state.activeWalletId) ?? null;
     },
 
+    /** 某条链上的钱包行。同一 Safe 在每条链上各一行，列表只显示当前网络的。 */
+    walletsOnChain:
+      (state) =>
+      (chainId: number): MultisigWallet[] =>
+        state.wallets.filter((w) => w.chain_id === chainId),
+
     /** Badge count keyed by wallet ID: 0 or 1 */
     walletBadge:
       (state) =>
@@ -53,7 +60,11 @@ export const useMultisigStore = defineStore("multisig", {
     async fetchWallets() {
       try {
         this.loading = true;
-        const { wallets, pending_signature_counts } = await getMultisigWallets();
+        let { wallets, pending_signature_counts } = await getMultisigWallets();
+        // 老钱包只有创建时那条链的行，补齐同组其他链后重新拉一次
+        if (await addMissingChainRows(wallets)) {
+          ({ wallets, pending_signature_counts } = await getMultisigWallets());
+        }
         this.wallets = wallets;
         if (pending_signature_counts) {
           this.pendingSignatureCounts = pending_signature_counts;
@@ -63,6 +74,19 @@ export const useMultisigStore = defineStore("multisig", {
       } finally {
         this.loading = false;
       }
+    },
+
+    /**
+     * 切换网络后，把当前多签钱包换成同一 Safe 在新链上的那一行；
+     * 当前用户在新链上不是 owner（没有这一行）时退回个人钱包。
+     */
+    alignActiveWalletToChain(chainId: number) {
+      const current = this.activeWallet;
+      if (!current || current.chain_id === chainId) return;
+      const sibling = this.wallets.find(
+        (w) => w.chain_id === chainId && w.safe_address.toLowerCase() === current.safe_address.toLowerCase()
+      );
+      this.setActiveWallet(sibling?.id ?? null);
     },
 
     setActiveWallet(walletId: string | null) {

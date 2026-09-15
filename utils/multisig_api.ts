@@ -16,7 +16,19 @@ export interface MultisigWallet {
   chain_id: number;
   safe_address: Address;
   threshold: number;
+  /** Safe 部署时的 owner（排序后）。在还没部署的链上，这就是它的有效 owner。老钱包可能为空。 */
+  initial_owners?: Address[] | null;
+  initial_threshold?: number | null;
   created_at: string;
+}
+
+/** 同组（一次 owner 变更）在各条链上的交易 */
+export interface MultisigGroupTx {
+  id: string;
+  wallet_id: string;
+  chain_id: number;
+  status: string;
+  tx_hash: string | null;
 }
 
 export interface MultisigOwner {
@@ -78,6 +90,9 @@ export interface MultisigTx {
   owner_snapshot?: OwnerSnapshot | null;
   /** 发起人信息（实时） */
   proposer?: ProposerInfo | null;
+  /** owner 变更会在每条链上各发一笔，用 group_id 关联 */
+  group_id?: string | null;
+  group_txs?: MultisigGroupTx[];
 }
 
 export interface OwnerSnapshot {
@@ -103,15 +118,18 @@ export interface ProposerInfo {
 export class MultisigApiError extends Error {
   code?: string;
   reject_tx_id?: string;
+  /** group_required 时后端给出还缺哪些链 */
+  chain_ids?: number[];
 
   constructor(
     message: string,
-    opts?: { code?: string; reject_tx_id?: string }
+    opts?: { code?: string; reject_tx_id?: string; chain_ids?: number[] }
   ) {
     super(message);
     this.name = "MultisigApiError";
     this.code = opts?.code;
     this.reject_tx_id = opts?.reject_tx_id;
+    this.chain_ids = opts?.chain_ids;
   }
 }
 
@@ -125,6 +143,7 @@ async function handleRequest<T>(response: Response): Promise<T> {
     throw new MultisigApiError(data.message || data.error || "Request failed", {
       code: data.code,
       reject_tx_id: data.reject_tx_id,
+      chain_ids: data.chain_ids,
     });
   }
   return data as T;
@@ -136,11 +155,26 @@ async function handleRequest<T>(response: Response): Promise<T> {
 export async function createMultisigWallet(params: {
   name: string;
   chain_id: number;
+  /** 在这些链上各建一行，地址相同。须包含 chain_id。 */
+  chain_ids?: number[];
   owners: { address: string; user_id?: string }[];
   threshold: number;
   safe_address: string;
-}): Promise<{ result: string; wallet: MultisigWallet }> {
+}): Promise<{ result: string; wallet: MultisigWallet; wallets: MultisigWallet[] }> {
   const resp = await fetch(`${base()}/create_multisig_wallet`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(params),
+  });
+  return handleRequest(resp);
+}
+
+/** 给老钱包补上其他链的行（按初始配置建）。调用前须先验证初始配置能预测出该地址。 */
+export async function addMultisigWalletChains(params: {
+  wallet_id: string;
+  chain_ids: number[];
+}): Promise<{ result: string; wallets: MultisigWallet[] }> {
+  const resp = await fetch(`${base()}/add_multisig_wallet_chains`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(params),
@@ -196,6 +230,19 @@ export async function proposeMultisigTx(params: {
   sender_note?: string;
 }): Promise<{ result: string; tx: MultisigTx }> {
   const resp = await fetch(`${base()}/propose_multisig_tx`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(params),
+  });
+  return handleRequest(resp);
+}
+
+/** 一次 owner 变更在同一 Safe 的每条链上各发一笔，calldata 按链分别编码 */
+export async function proposeMultisigTxGroup(params: {
+  txs: { wallet_id: string; tx_type: string; call_detail: Record<string, any>; evm_call_data: string }[];
+  memo?: string;
+}): Promise<{ result: string; group_id: string; txs: MultisigTx[] }> {
+  const resp = await fetch(`${base()}/propose_multisig_tx_group`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(params),
