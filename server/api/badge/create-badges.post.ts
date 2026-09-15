@@ -1,16 +1,12 @@
 import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
-import { sepolia, mainnet, optimism } from "viem/chains";
 import { getBadgeId, getProfileId } from "@/server/utils";
 import { normalizeAddress } from "@/server/utils/badge_address";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
 import { badgeGet, badgePost, type BadgeClassRow } from "@/server/utils/badge_backend";
+import { SERVER_CHAINS } from "@/server/utils/chains";
 
-const chains = {
-  "11155111": sepolia,
-  "1": mainnet,
-  "10": optimism,
-} as const;
+const chains = SERVER_CHAINS;
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);

@@ -13,7 +13,7 @@ import {
   type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { optimism } from "viem/chains";
+import { arbitrum, optimism } from "viem/chains";
 import { entryPoint07Abi, entryPoint07Address } from "viem/account-abstraction";
 import {
   createSemiCore,
@@ -24,6 +24,8 @@ import { getSafeAccount, predictAddress } from "../../src/account";
 import { packMultisigSignatures } from "../../src/multisig";
 
 const RPC = process.env.ANVIL_RPC;
+/** 被 fork 的链：FORK_CHAIN_ID=42161 测 Arbitrum，默认 Optimism */
+const CHAIN = process.env.FORK_CHAIN_ID === "42161" ? arbitrum : optimism;
 
 /** anvil 的默认账户：一个出资部署，一个扮演 bundler 调 handleOps */
 const FUNDER = privateKeyToAccount(
@@ -73,16 +75,16 @@ const packGas = (hi: bigint, lo: bigint): Hex =>
 
 describe.skipIf(!RPC)("fork 上的部署与执行", () => {
   const core = createSemiCore({
-    chains: [{ chain: optimism, rpcUrl: RPC ?? "http://127.0.0.1:8545" }],
+    chains: [{ chain: CHAIN, rpcUrl: RPC ?? "http://127.0.0.1:8545" }],
   });
-  const ctx = core.chain(10);
-  const pub = createPublicClient({ chain: optimism, transport: http(RPC) });
-  const funder = createWalletClient({ account: FUNDER, chain: optimism, transport: http(RPC) });
-  const bundler = createWalletClient({ account: BUNDLER, chain: optimism, transport: http(RPC) });
+  const ctx = core.chain(CHAIN.id);
+  const pub = createPublicClient({ chain: CHAIN, transport: http(RPC) });
+  const funder = createWalletClient({ account: FUNDER, chain: CHAIN, transport: http(RPC) });
+  const bundler = createWalletClient({ account: BUNDLER, chain: CHAIN, transport: http(RPC) });
 
   beforeAll(async () => {
-    // fork 必须是 Optimism，否则下面的地址全都对不上
-    expect(await pub.getChainId()).toBe(10);
+    // fork 的链必须与 FORK_CHAIN_ID 一致，否则下面的地址和签名域都对不上
+    expect(await pub.getChainId()).toBe(CHAIN.id);
     for (const addr of [
       "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67", // ProxyFactory
       "0x41675C099F32341bf84BFc5382aF534df5C7461a", // Safe singleton
@@ -158,7 +160,7 @@ describe.skipIf(!RPC)("fork 上的部署与执行", () => {
         collected.push({
           signer_address: s.address,
           signature: await s.signTypedData({
-            domain: { chainId: 10, verifyingContract: SAFE_4337_MODULE_ADDRESS },
+            domain: { chainId: CHAIN.id, verifyingContract: SAFE_4337_MODULE_ADDRESS },
             types: EIP712_SAFE_OPERATION_TYPE_V07,
             primaryType: "SafeOp",
             message,

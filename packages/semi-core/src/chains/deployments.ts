@@ -49,6 +49,11 @@ export const SAFE_V1_4_1_DEPLOYMENTS: Record<number, SafeDeployment> = {
   },
   // sepolia
   11155111: SAFE_V1_4_1_CANONICAL,
+  // arbitrum one（与 OP 一样，SafeToL2Setup 在 0xBD89…，已链上核实）
+  42161: {
+    ...SAFE_V1_4_1_CANONICAL,
+    safe_to_l2_setup: "0xBD89A1CE4DDe368FFAB0eC35506eEcE0b1fFdc54",
+  },
 };
 
 export const getSafeDeployment = (chainId: number): SafeDeployment => {

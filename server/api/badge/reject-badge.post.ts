@@ -1,19 +1,15 @@
 import { verifyBadgeAuth, BadgeAuthError } from "@/server/utils/badge_auth";
 import { predictSafeAccountAddress } from "@/utils/SafeSmartAccount";
 import { sameAddress } from "@/server/utils/badge_address";
-import { sepolia, mainnet, optimism } from "viem/chains";
 import {
   badgeGet,
   badgePost,
   BadgeBackendError,
   type BadgeRow,
 } from "@/server/utils/badge_backend";
+import { SERVER_CHAINS } from "@/server/utils/chains";
 
-const chains = {
-  "11155111": sepolia,
-  "1": mainnet,
-  "10": optimism,
-} as const;
+const chains = SERVER_CHAINS;
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);

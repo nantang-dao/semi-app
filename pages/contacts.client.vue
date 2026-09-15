@@ -124,7 +124,7 @@ import { useI18n } from "~/stores/i18n";
 import { useRouter } from "vue-router";
 import { getContacts, setContacts, type Contact } from "~/utils/semi_api";
 import { useChainStore, chainMap } from "~/stores/chain";
-import { sepolia, optimism, mainnet } from "viem/chains";
+import { sepolia, optimism, mainnet, arbitrum } from "viem/chains";
 import { isAddress } from "viem";
 
 const router = useRouter();
@@ -178,6 +178,9 @@ const getChainIcon = (chain: string): string => {
   }
   if (chainName.includes("ethereum") && chainName.includes("mainnet")) {
     return chainMap[mainnet.id].icon;
+  }
+  if (chainName.includes("arbitrum")) {
+    return chainMap[arbitrum.id].icon;
   }
   if (chainName.includes("sepolia")) {
     return chainMap[sepolia.id].icon;

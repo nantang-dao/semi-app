@@ -376,6 +376,10 @@ const resetForm = () => {
 const HandleDeployToken = async () => {
   loading.value = true;
   try {
+    // TokenFactory 只部署在 OP 和 Sepolia，其他链直接拦下，避免交易发出后才崩
+    if (!TOKEN_FACTORY_CONTRACT[useChain.chain.id]) {
+      throw new Error(`${useChain.chain.name} 暂不支持发行代币`);
+    }
     const privateKey = await keystoreToPrivateKey(
       JSON.parse(useUser.user?.encrypted_keys as string),
       formState.code.join("")

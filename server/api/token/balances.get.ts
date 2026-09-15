@@ -1,12 +1,9 @@
-import { sepolia, mainnet, optimism, type Chain } from "viem/chains";
+import type { Chain } from "viem/chains";
 import { getPopularERC20Balance, getBalance, type ERC20Balance } from "@/utils/balance";
 import type { TokenClass } from "@/utils/semi_api";
+import { SERVER_CHAINS } from "@/server/utils/chains";
 
-const chains = {
-  "11155111": sepolia,
-  "1": mainnet,
-  "10": optimism,
-} as const;
+const chains = SERVER_CHAINS;
 
 interface TokenClassResponse {
   result?: "ok";

@@ -16,6 +16,7 @@ const ALCHEMY_NETWORK: Record<number, string> = {
   1: "eth-mainnet",
   10: "opt-mainnet",
   11155111: "eth-sepolia",
+  42161: "arb-mainnet",
 };
 
 /** 这条链是否有 Alchemy 索引服务。取代此前散在三个文件里的重复映射表。 */

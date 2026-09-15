@@ -1,6 +1,6 @@
 import { createWalletClient, createPublicClient, http, type Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { mainnet, sepolia, optimism } from "viem/chains";
+import { mainnet, sepolia, optimism, arbitrum } from "viem/chains";
 import { rpcUrlFor } from "~/utils/semi_core";
 
 /**
@@ -19,6 +19,7 @@ const CHAINS: Record<number, Chain> = {
   [mainnet.id]: mainnet,
   [sepolia.id]: sepolia,
   [optimism.id]: optimism,
+  [arbitrum.id]: arbitrum,
 };
 
 export const admin_account = (chain_id: number) => {

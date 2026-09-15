@@ -6,8 +6,8 @@ import {
   type BadgeRow,
   type BadgeClassRow,
 } from "@/server/utils/badge_backend";
+import { SUPPORTED_CHAIN_IDS } from "@/server/utils/chains";
 
-const SUPPORTED_CHAIN_IDS = new Set([1, 10, 11155111]);
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);

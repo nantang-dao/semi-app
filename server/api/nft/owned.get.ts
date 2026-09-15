@@ -1,11 +1,7 @@
-import { sepolia, optimism, mainnet } from "viem/chains";
 import { getOwnedNFTs } from "@/server/utils/nft";
+import { SERVER_CHAINS } from "@/server/utils/chains";
 
-const chains = {
-  "11155111": sepolia,
-  "1": mainnet,
-  "10": optimism,
-} as const;
+const chains = SERVER_CHAINS;
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);

@@ -1,12 +1,8 @@
-import { sepolia, mainnet, optimism } from "viem/chains";
 import { sola_badge_contract_address } from "@/server/utils/solar_badge/contracts";
 import { badgeGet, BadgeBackendError, type BadgeRow } from "@/server/utils/badge_backend";
+import { SERVER_CHAINS } from "@/server/utils/chains";
 
-const chains = {
-  "11155111": sepolia,
-  "1": mainnet,
-  "10": optimism,
-} as const;
+const chains = SERVER_CHAINS;
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);

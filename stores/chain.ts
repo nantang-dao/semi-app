@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { sepolia, optimism, mainnet, type Chain } from "viem/chains";
+import { sepolia, optimism, mainnet, arbitrum, type Chain } from "viem/chains";
 
 const STORAGE_KEY = "semit-selected-chain";
 
@@ -12,6 +12,10 @@ export const chainMap: Record<number, ChainWithIcon> = {
   [optimism.id]: {
     ...optimism,
     icon: "/images/op_logo.svg",
+  },
+  [arbitrum.id]: {
+    ...arbitrum,
+    icon: "/images/arb_logo.svg",
   },
   [mainnet.id]: {
     ...mainnet,

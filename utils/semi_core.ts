@@ -1,4 +1,4 @@
-import { mainnet, optimism, sepolia, type Chain } from "viem/chains";
+import { arbitrum, mainnet, optimism, sepolia, type Chain } from "viem/chains";
 import { createSemiCore, type ChainConfig } from "semi-core";
 import { env } from "./env";
 
@@ -12,6 +12,7 @@ const ALCHEMY_NETWORK: Record<number, string> = {
   [mainnet.id]: "eth-mainnet",
   [optimism.id]: "opt-mainnet",
   [sepolia.id]: "eth-sepolia",
+  [arbitrum.id]: "arb-mainnet",
 };
 
 const alchemyRpcUrl = (chainId: number, apiKey: string): string =>
@@ -29,13 +30,14 @@ const zeroDevUrl = (chainId: number, projectId: string): string =>
 
 interface ChainCandidate {
   chain: Chain;
-  /** 是否为这条链代付 gas。只有 Optimism 充了 paymaster 存款。 */
+  /** 是否为这条链代付 gas。Optimism 和 Arbitrum 充了 paymaster 存款。 */
   sponsored: boolean;
 }
 
 const CANDIDATES: ChainCandidate[] = [
   { chain: mainnet, sponsored: false },
   { chain: optimism, sponsored: true },
+  { chain: arbitrum, sponsored: true },
   { chain: sepolia, sponsored: false },
 ];
 

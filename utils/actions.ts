@@ -28,8 +28,8 @@ const getAssetTransfers = async (
 ) => {
   try {
     const category: AssetTransferCategory[] = ["erc20", "external"];
-    if (chain.id !== 10) {
-      // optimism do not support internal transfer history indexing in alchemy api
+    if (chain.id !== 10 && chain.id !== 42161) {
+      // optimism / arbitrum do not support internal transfer history indexing in alchemy api
       category.push("internal");
     }
 
