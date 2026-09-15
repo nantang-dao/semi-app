@@ -1,0 +1,42 @@
+pages/transfer.client.vue
+  s_9865a8e1d3b42a::t_06bf46fdabe4cd 12
+docs/manual-test-multichain.md
+  s_9865a8e1d3b42a::t_7280b4cba3382b 1-283
+components/MultisigChainStatus.client.vue
+  s_9865a8e1d3b42a::t_6d69d89619f3c0 1-106
+pages/multisig/queue.client.vue
+  s_9865a8e1d3b42a::t_95b6544c24d6a9 397-398,464,744
+  s_9865a8e1d3b42a::t_6d69d89619f3c0 33-35
+utils/multisig_chains.ts
+  s_9865a8e1d3b42a::t_a8b85ee34d0547 217-239
+  s_9865a8e1d3b42a::t_6d69d89619f3c0 198-216
+components/ProfileSettings.client.vue
+  s_9865a8e1d3b42a::t_a8b85ee34d0547 127,194-212,214
+  s_9865a8e1d3b42a::t_6d69d89619f3c0 64
+pages/multisig/[id].client.vue
+  s_9865a8e1d3b42a::t_95b6544c24d6a9 312,691-692
+README.md
+  s_9865a8e1d3b42a::t_7c9cfc2b2e384f 47
+docs/dependencies.md
+  s_9865a8e1d3b42a::t_74b81058a13d81 29
+docs/semi-core.md
+  s_9865a8e1d3b42a::t_b818efa7e9834f 67-68,72
+packages/semi-core/test/fork/README.md
+  s_9865a8e1d3b42a::t_fd016fc9e56587 3-4,13-21,33-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "80a0b2ed24e0fee68ebc0d9194703e6586d391e5",
+  "prompts": {},
+  "sessions": {
+    "s_9865a8e1d3b42a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d88730f8-9d18-4f98-9a1d-1f109d89c325",
+        "model": "claude-opus-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
