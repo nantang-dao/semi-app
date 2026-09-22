@@ -106,16 +106,6 @@ async function assertCanPrefund(ctx: ChainContext, address: Address, gas: GasEst
   if (balance < required) throw new InsufficientFundsError(balance, required);
 }
 
-/** 账户没部署且没有 paymaster 时，userOp 无法自举 */
-async function assertDeployedOrSponsored(ctx: ChainContext, address: Address) {
-  const code = await ctx.publicClient.getCode({ address });
-  if (!code || code === "0x") {
-    throw new UserOpFailedError(
-      `Smart account ${address} is not deployed on chain ${ctx.chainId} and gas sponsorship is off, so it cannot pay for its own deployment.`
-    );
-  }
-}
-
 /**
  * 上链 ≠ 成功。
  *
@@ -160,8 +150,10 @@ export async function sendUserOperation(
 
   const gas = await estimate(ctx, bundlerClient, account, calls);
 
+  // 自付时只检查余额。未部署也可以发：toSafeSmartAccount 会带上 initCode，
+  // 首笔顺带部署。以前用 assertDeployedOrSponsored 把「没代付」当成「未部署
+  // 就不能发」，主网自付首笔会被误拦；真正该拦的是余额不够。
   if (!sponsorFee) {
-    await assertDeployedOrSponsored(ctx, account.address);
     await assertCanPrefund(ctx, account.address, gas);
   }
 
