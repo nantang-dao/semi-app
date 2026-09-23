@@ -128,6 +128,10 @@
         </div>
       </div>
 
+      <p class="text-xs text-gray-500 px-1">
+        {{ (i18n.text['multisig.createOnChainHint'] || '将在 {chain} 上启用。其他网络之后可在钱包页手动启用；成员或门槛变更过后就不能再启用新网络。').replace('{chain}', chainMap[chainStore.chain.id]?.name ?? '') }}
+      </p>
+
       <!-- Create button -->
       <UButton
         block
@@ -151,7 +155,6 @@
 
 <script setup lang="ts">
 import { useUserStore } from '~/stores/user'
-import { multisigChainIdsFor } from '~/utils/multisig_chains'
 import { useMultisigStore } from '~/stores/multisig'
 import { useI18n } from '~/stores/i18n'
 import { predictSafeAccountAddress } from '~/utils/SafeSmartAccount/account'
@@ -308,12 +311,11 @@ async function onPasscodeConfirm(passcode: string) {
       }
     })
 
-    // 同一地址在同组每条链上都建一行（CREATE2 地址各链相同），
-    // 之后切换网络时直接切到对应链的那一行
+    // 只在当前链上启用。地址在同组各链相同，其他链由成员之后在钱包页手动启用
     await createMultisigWallet({
       name: walletName.value.trim(),
       chain_id: chainId,
-      chain_ids: multisigChainIdsFor(chainId),
+      chain_ids: [chainId],
       owners: ownersPayload,
       threshold: threshold.value,
       safe_address: safeAddress,

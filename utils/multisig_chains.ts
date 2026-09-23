@@ -25,6 +25,7 @@ import {
 import {
   addMultisigWalletChains,
   getMultisigWalletOwners,
+  MultisigApiError,
   proposeMultisigTxGroup,
   type MultisigTx,
   type MultisigWallet,
@@ -147,53 +148,52 @@ export async function proposeOwnerChangeOnAllChains(
   return txs.find((t) => t.wallet_id === activeWallet.id) ?? txs[0]!;
 }
 
-const triedAddChains = new Set<string>();
-
 /**
- * 老钱包只有创建时那条链的行，这里补上同组其他链。
+ * 为多签钱包启用同组的另一条链（钱包默认只在创建时那条链上）。任一成员都可以启用。
  *
- * 新行按初始配置建。初始配置是后端从历史记录还原的，可能不对（例如在 Semi
- * 之外改过 owner）——所以先用它预测地址，与 Safe 地址一致才补。每个地址每次
- * 会话只试一次。返回是否新建了行。
+ * 新行按初始配置建：没部署的链上，Safe 的有效成员就是初始成员。所以后端只在
+ * 成员和门槛从没变过、也没有进行中的成员变更时才允许（否则新链上生效的会是
+ * 旧成员）。初始配置是后端从历史记录还原的，这里先用它预测地址，对得上才启用。
  */
-export async function addMissingChainRows(allWallets: MultisigWallet[]): Promise<boolean> {
-  let added = false;
-  const seen = new Set<string>();
-
-  for (const wallet of allWallets) {
-    const key = `${wallet.safe_address.toLowerCase()}:${multisigChainIdsFor(wallet.chain_id).join(",")}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    if (triedAddChains.has(key)) continue;
-
-    const rows = walletRowsOf(wallet, allWallets);
-    const missing = multisigChainIdsFor(wallet.chain_id).filter((id) => !rows.some((r) => r.chain_id === id));
-    if (missing.length === 0) continue;
-
-    const source = rows.find((r) => r.initial_owners?.length && r.initial_threshold);
-    if (!source) continue;
-    triedAddChains.add(key);
-
-    try {
-      const chain = chainMap[source.chain_id];
-      if (!chain) continue;
-      const predicted = await predictSafeAccountAddress({
-        owners: source.initial_owners as Address[],
-        threshold: source.initial_threshold!,
-        chain,
-      });
-      if (predicted.toLowerCase() !== source.safe_address.toLowerCase()) {
-        console.warn("[multisig] initial config does not predict the Safe address, skip adding chains", source.safe_address);
-        continue;
-      }
-      const { wallets } = await addMultisigWalletChains({ wallet_id: source.id, chain_ids: missing });
-      if (wallets.length) added = true;
-    } catch (e) {
-      console.warn("[multisig] failed to add chain rows", source.safe_address, e);
-    }
+export async function enableMultisigChain(
+  wallet: MultisigWallet,
+  allWallets: MultisigWallet[],
+  chainId: number
+): Promise<MultisigWallet> {
+  const rows = walletRowsOf(wallet, allWallets);
+  const existing = rows.find((r) => r.chain_id === chainId);
+  if (existing) return existing;
+  if (!multisigChainIdsFor(wallet.chain_id).includes(chainId)) {
+    throw new Error(`该数字身份不能在 ${chainName(chainId)} 上启用`);
   }
 
-  return added;
+  const source = rows.find((r) => r.initial_owners?.length && r.initial_threshold);
+  const chain = source && chainMap[source.chain_id];
+  if (!source || !chain) throw new Error("缺少该数字身份的初始配置，无法启用新链");
+
+  const predicted = await predictSafeAccountAddress({
+    owners: source.initial_owners as Address[],
+    threshold: source.initial_threshold!,
+    chain,
+  });
+  if (predicted.toLowerCase() !== source.safe_address.toLowerCase()) {
+    throw new Error("初始配置与数字身份地址不一致，无法启用新链");
+  }
+
+  try {
+    const { wallets } = await addMultisigWalletChains({ wallet_id: source.id, chain_ids: [chainId] });
+    const created = wallets.find((w) => w.chain_id === chainId);
+    if (!created) throw new Error(`在 ${chainName(chainId)} 上启用失败，请刷新后重试`);
+    return created;
+  } catch (e) {
+    if (e instanceof MultisigApiError && e.code === "config_changed") {
+      throw new Error("该数字身份的成员或门槛已经变更过，不能再启用新链");
+    }
+    if (e instanceof MultisigApiError && e.code === "config_change_pending") {
+      throw new Error("该数字身份有进行中的成员变更，完成或撤回后才能启用新链");
+    }
+    throw e;
+  }
 }
 
 const DEPLOYED_TTL_MS = 60_000;

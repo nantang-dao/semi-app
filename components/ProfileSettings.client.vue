@@ -124,7 +124,8 @@
 import { useUserStore } from "~/stores/user";
 import { useMultisigStore } from "~/stores/multisig";
 import { useChainStore } from "~/stores/chain";
-import { chainName, preferredActivatedChain } from "~/utils/multisig_chains";
+import { chainName, multisigChainIdsFor, preferredActivatedChain, walletRowsOf } from "~/utils/multisig_chains";
+import type { MultisigWallet } from "~/utils/multisig_api";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "~/stores/i18n";
 
@@ -143,7 +144,20 @@ const containerRef = ref<HTMLElement | null>(null);
 
 const personalWalletName = computed(() => userStore.user?.handle || userStore.user?.name || i18n.text['multisig.personalWallet'] || 'Personal Wallet')
 const personalWalletAddress = computed(() => userStore.user?.evm_chain_address || '')
-const multisigWallets = computed(() => multisigStore.walletsOnChain(chainStore.chain.id))
+// 同一 Safe 各链一行，列表里只显示一次：优先当前链那一行，没在当前链启用的也列出来，
+// 点击时切到它启用过的链
+const multisigWallets = computed(() => {
+  const chainId = chainStore.chain.id
+  const group = multisigChainIdsFor(chainId)
+  const byAddress = new Map<string, MultisigWallet>()
+  for (const w of multisigStore.wallets) {
+    if (!group.includes(w.chain_id)) continue
+    const key = w.safe_address.toLowerCase()
+    const prev = byAddress.get(key)
+    if (!prev || (w.chain_id === chainId && prev.chain_id !== chainId)) byAddress.set(key, w)
+  }
+  return [...byAddress.values()]
+})
 const activeMultisigId = computed(() => multisigStore.activeWalletId)
 
 const badgeCount = computed(() => {
@@ -153,6 +167,13 @@ const badgeCount = computed(() => {
 })
 
 function multisigBadge(walletId: string): number {
+  // 同一 Safe 各链的待签名数合在一起
+  const wallet = multisigStore.wallets.find((w) => w.id === walletId)
+  const rows = wallet ? walletRowsOf(wallet, multisigStore.wallets) : []
+  return rows.reduce((sum, w) => sum + rowBadge(w.id), 0)
+}
+
+function rowBadge(walletId: string): number {
   // Use server-provided pending counts for all wallets
   const count = multisigStore.pendingSignatureCounts[walletId]
   if (count !== undefined) return count
@@ -207,6 +228,16 @@ async function switchToMultisigWallet(wallet: any) {
     }
   } catch {
     // 读链上状态失败就留在当前链
+  }
+
+  // 没在当前链启用（也没找到已激活的链）：切到它启用过的链
+  if (target.chain_id !== chainStore.chain.id) {
+    await chainStore.switch(target.chain_id)
+    toast.add({
+      title: (i18n.text['multisig.switchedToEnabledChain'] || '已切换到 {chain}（该数字身份未在原网络启用）')
+        .replace('{chain}', chainName(target.chain_id)),
+      color: 'info',
+    })
   }
 
   multisigStore.setActiveWallet(target.id)

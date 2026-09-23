@@ -32,11 +32,13 @@ const currentNetworkIcon = computed(() => chainStore.chain.icon);
 const handleNetworkSwitch = async (chain: Chain) => {
   try {
     await chainStore.switch(chain.id);
-    multisigStore.alignActiveWalletToChain(chain.id);
+    const left = multisigStore.alignActiveWalletToChain(chain.id);
     toast.add({
       title: "切换成功",
-      description: `已切换到 ${chain.name} 网络`,
-      color: "success",
+      description: left
+        ? `已切换到 ${chain.name} 网络。「${left.name}」未在该网络启用，已切回个人钱包；可在该数字身份的主页启用。`
+        : `已切换到 ${chain.name} 网络`,
+      color: left ? "warning" : "success",
     });
   } catch (error) {
     console.error(error);
