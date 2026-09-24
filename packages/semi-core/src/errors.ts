@@ -141,6 +141,35 @@ export class BundlerError extends SemiCoreError {
   }
 }
 
+/**
+ * eth_sendUserOperation 被 bundler 当场拒收：UserOp **没有进入内存池、不会上链**，
+ * nonce 也没消耗。出价低于 bundler 当前最低价、预付余额不足这类原因，换个时机
+ * 或补钱后同一份快照仍可能执行成功，不该把提案判死。
+ */
+export class UserOpRejectedError extends BundlerError {
+  /** 签名/nonce 这类同一份快照永远不可能通过的拒绝 */
+  readonly permanent: boolean;
+  /** bundler 要求的最低 maxFeePerGas（出价过低时才有） */
+  readonly minMaxFeePerGas: bigint | undefined;
+  constructor(message: string, aaCode?: string, minMaxFeePerGas?: bigint) {
+    super(message, aaCode);
+    this.permanent = aaCode === "AA24" || aaCode === "AA25";
+    this.minMaxFeePerGas = minMaxFeePerGas;
+  }
+}
+
+/**
+ * UserOp 已经提交给 bundler，但在等待时间内没拿到回执。它仍可能上链，
+ * 所以既不能当成功，也不能当失败（当失败会诱导重新发起 → 重复执行）。
+ */
+export class UserOpPendingError extends BundlerError {
+  readonly userOpHash: string;
+  constructor(message: string, userOpHash: string) {
+    super(message);
+    this.userOpHash = userOpHash;
+  }
+}
+
 /** Safe 还停留在预测地址上，链上没有代码，读不了 owner */
 export class SafeNotDeployedError extends SemiCoreError {
   readonly address: string;

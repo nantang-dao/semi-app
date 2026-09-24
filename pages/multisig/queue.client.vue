@@ -345,13 +345,11 @@ import { useMultisigStore } from '~/stores/multisig'
 import { useUserStore } from '~/stores/user'
 import { useChainStore } from '~/stores/chain'
 import { useI18n } from '~/stores/i18n'
-import { getMultisigWalletOwners, getMultisigTxs, executeMultisigTx, confirmMultisigTx, failMultisigTx, resetExecutingMultisigTx, syncMultisigWallet, lookupMultisigTxMemos } from '~/utils/multisig_api'
-import { executeMultisigUserOp, getSafeOwnersAndThreshold } from '~/utils/SafeSmartAccount/multisig'
+import { getMultisigWalletOwners, getMultisigTxs, lookupMultisigTxMemos } from '~/utils/multisig_api'
+import { CONFIG_TX_TYPES, executeMultisigTransaction, ExecutionNotSubmittedError } from '~/utils/multisig_execute'
 import { keystoreToPrivateKey } from 'semi-core/keys'
-import { chainMap } from '~/stores/chain'
 import type { MultisigTx, MultisigOwner } from '~/utils/multisig_api'
 import { getBalance, getPopularERC20Balance, type ERC20Balance } from '~/utils/balance'
-import { uploadTransaction } from '~/utils/semi_api'
 import { displayBalance } from '~/utils/display'
 import { getTokenClass } from '~/utils/semi_api'
 import { getReceiveActions } from '~/utils/actions'
@@ -625,11 +623,10 @@ function isWrongPasscodeError(err: any): boolean {
 
 async function onExecutePasscode(passcode: string) {
   passcodeError.value = ''
-  if (!executingTx) return
+  // 防重复提交：第二次请求会被后端以 not ready 拒绝
+  if (!executingTx || executing.value) return
   const tx = executingTx
   executing.value = true
-  // 一旦拿到 txHash，链上已提交成功，无论后续 confirm/上传是否失败都不能再标记为 failed
-  let submittedTxHash: string | undefined
 
   try {
     // 1. 先验证支付码是否正确（不锁定后端状态）
@@ -638,48 +635,13 @@ async function onExecutePasscode(passcode: string) {
     const keystore = typeof encryptedKeys === 'string' ? JSON.parse(encryptedKeys) : encryptedKeys
     await keystoreToPrivateKey(keystore, passcode)
 
-    // 2. 支付码正确，锁定后端状态
-    const { tx: lockedTx } = await executeMultisigTx(tx.id)
-    if (!lockedTx.user_op_snapshot || !lockedTx.signatures) throw new Error('Missing snapshot or signatures')
+    // 2. 余额检查、锁定、提交、回写：与详情页共用 utils/multisig_execute.ts
+    const wallet = multisigStore.wallets.find((w) => w.id === tx.wallet_id) ?? multisigStore.activeWallet
+    if (!wallet) throw new Error('Wallet not found')
+    const outcome = await executeMultisigTransaction(tx, wallet)
+    showPasscode.value = false
 
-    const chain = chainMap[lockedTx.user_op_snapshot.chainId]
-    if (!chain) throw new Error('Unsupported chain')
-
-    // 以当前 owner 集合 + 当前门限打包签名（与链上 checkSignatures 一致）
-    const currentOwnerSet = new Set(
-      (lockedTx.current_owners || owners.value.map((o) => o.owner_address)).map((a) => a.toLowerCase())
-    )
-    const eligibleSignatures = lockedTx.signatures.filter((s) =>
-      currentOwnerSet.has(s.signer_address.toLowerCase())
-    )
-    const execThreshold = lockedTx.current_threshold ?? lockedTx.threshold_at_creation
-    if (eligibleSignatures.length < execThreshold) {
-      throw new Error(
-        i18n.text['multisig.notEnoughCurrentSignatures'] ||
-          '当前有效签名数不足（成员或门限已变更），请重新收集签名'
-      )
-    }
-
-    const { txHash, userOpHash, actualGasCost } = await executeMultisigUserOp(
-      lockedTx.user_op_snapshot,
-      eligibleSignatures,
-      execThreshold,
-      chain
-    )
-    submittedTxHash = txHash // 链上已提交，越过此处不可再标记为 failed
-
-    // gas 由 paymaster 代付，但实际成本记账给执行者（"最后一个用户"）
-    // confirm 失败属于可恢复状态：交易已上链，绝不能因此把它标记为 failed
-    try {
-      await confirmMultisigTx({
-        multisig_tx_id: tx.id,
-        tx_hash: txHash,
-        gas_used: actualGasCost,
-        user_op_hash: userOpHash,
-      })
-    } catch (confirmErr: any) {
-      console.error('[execute] confirm failed after on-chain success:', confirmErr)
-      showPasscode.value = false
+    if ('confirmPending' in outcome) {
       toast.add({
         title: i18n.text['multisig.confirmPending'] || '交易已上链，正在同步…',
         description: i18n.text['multisig.confirmPendingDesc'] || '稍后刷新即可，无需重新发起',
@@ -689,58 +651,20 @@ async function onExecutePasscode(passcode: string) {
       return
     }
 
-    // 与单签一致：执行成功后上传交易记录到常规交易表，使收款方能查到备注
-    try {
-      const safeAddress = multisigStore.activeWallet?.safe_address || ''
-      console.log('[execute] Uploading transaction with memo:', tx.memo, 'sender_note:', tx.sender_note, 'tx_hash:', txHash)
-      await uploadTransaction({
-        tx_hash: txHash,
-        gas_used: '0',
-        status: 'success',
-        chain: chain.name.toLowerCase(),
-        data: '',
-        memo: tx.memo || '',
-        sender_note: tx.sender_note || '',
-        sender_address: safeAddress,
-        receiver_address: tx.call_detail?.to || '',
-      })
-      console.log('[execute] Upload transaction success')
-    } catch (e) {
-      console.error('[execute] Upload transaction failed:', e)
-    }
-
-    if (['add_owner', 'remove_owner', 'change_threshold', 'replace_owner'].includes(tx.tx_type)) {
+    if (CONFIG_TX_TYPES.includes(tx.tx_type)) {
       const walletId = multisigStore.activeWalletId
-      // 配置类交易执行后，以链上真实状态刷新后端 DB 镜像，保证队列门限即时一致
-      try {
-        const safeAddress = multisigStore.activeWallet?.safe_address
-        if (safeAddress) {
-          const { owners: chainOwners, threshold: chainThreshold } =
-            await getSafeOwnersAndThreshold(safeAddress as `0x${string}`, chain)
-          await syncMultisigWallet({
-            wallet_id: tx.wallet_id,
-            owners: chainOwners,
-            threshold: chainThreshold,
-          })
-        }
-      } catch {
-        // 链上读取失败不阻断；后端已基于 call_detail 更新镜像，可手动「从链上同步」兜底
-      }
       await multisigStore.fetchWallets()
       const removedAddr = tx.call_detail?.owner?.toLowerCase?.()
-      if (tx.tx_type === 'remove_owner' && removedAddr === currentUserAddress.value) {
-        multisigStore.setActiveWallet(null)
-        router.push('/')
-        return
-      }
-      if (walletId && !multisigStore.wallets.some((w) => w.id === walletId)) {
+      if (
+        (tx.tx_type === 'remove_owner' && removedAddr === currentUserAddress.value) ||
+        (walletId && !multisigStore.wallets.some((w) => w.id === walletId))
+      ) {
         multisigStore.setActiveWallet(null)
         router.push('/')
         return
       }
     }
-    showPasscode.value = false
-    toast.add({ title: i18n.text['Transfer Success'] || 'Success', description: txHash, color: 'success' })
+    toast.add({ title: i18n.text['Transfer Success'] || 'Success', description: outcome.txHash, color: 'success' })
     chainStatusKey.value++
     await fetchQueue()
   } catch (err: any) {
@@ -749,22 +673,15 @@ async function onExecutePasscode(passcode: string) {
       // 密码错误时后端状态不会被锁定，无需重置
     } else {
       showPasscode.value = false
-      // 仅当链上从未提交（无 txHash）时才标记失败；
-      // 已上链的交易即使后续步骤失败也绝不能标记为 failed（否则会诱导重复发起 → 双花）
-      //
-      // 内层 revert 是这条规则的一个特例，而且落在「标记失败」这一侧：UserOp
-      // 上链了，但调用回滚了，钱没动、nonce 已消耗。这笔提案再也执行不了，
-      // 必须重新发起 —— 所以 semi-core 抛错时不设 submittedTxHash，正好走这里。
-      if (!submittedTxHash) {
-        await failMultisigTx(tx.id).catch(() => {})
-      }
+      const notSubmitted = err instanceof ExecutionNotSubmittedError
+      // 内层 revert：UserOp 上链了但调用回滚，钱没动、nonce 已消耗，必须重新发起
       const reverted = err?.code === 'USER_OP_FAILED' && err?.txHash
       toast.add({
-        title: i18n.text['Error'] || 'Error',
+        title: notSubmitted ? (i18n.text['multisig.notSubmitted'] || '交易未上链') : (i18n.text['Error'] || 'Error'),
         description: reverted
           ? `${i18n.text['multisig.executionReverted'] || '链上执行失败，资金未转出，请重新发起'}（${err.txHash}）`
           : err.message,
-        color: 'error',
+        color: notSubmitted ? 'warning' : 'error',
       })
     }
     await fetchQueue()

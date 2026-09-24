@@ -438,6 +438,10 @@ function assertValidSnapshot(snapshot: unknown): asserts snapshot is UserOpSnaps
 由**第一个签名者**触发。gas 和 paymaster 数据在这一刻冻结 —— 它们都进 SafeOp 的
 EIP-712 哈希，之后任何一个字节的变化都会让已收集的签名作废。
 
+因为冻结，`maxFeePerGas` 在 bundler 报价上加了余量（`bufferedMaxFeePerGas(chainId, fee)`：
+L1 即主网/Sepolia 1.5 倍，L2 3 倍），否则收签期间行情稍涨，bundler 就会以「maxFeePerGas must
+be at least …」拒收。这只是出价上限，实际按链上价格扣费；自付时预付按上限算。
+
 `UserOpSnapshot` 序列化进后端数据库、再取回来给下一个签名者用，是**跨进程契约**：
 数值一律用字符串存（JSON 没有 bigint），**字段名和形状不能随意改**。
 
@@ -547,9 +551,16 @@ interface ExecuteResult {
 `options` 是等回执的轮询参数，默认 `maxAttempts: 60` / `intervalMs: 3000`（共 3 分钟）。
 
 两道过期检查各查各的，报不同的错：`SnapshotExpiredError`（Semi 的收签窗口）和
-`PaymasterExpiredError`（paymaster 签名的有效期）。其余失败一律是 `BundlerError`
-——没配 bundler、bundler 拒收（带 `aaCode`）、等回执超时。超时的 message 会提示
-「这笔可能仍会上链，重新提案前先查 bundler」。
+`PaymasterExpiredError`（paymaster 签名的有效期）。其余失败是 `BundlerError` 或它的子类：
+
+- `UserOpRejectedError`：`eth_sendUserOperation` 被当场拒收，**没上链、nonce 没消耗**。
+  `permanent` 为 true（AA24 签名、AA25 nonce）时这份快照永远不会成功；否则（出价过低，
+  带 `minMaxFeePerGas`；AA21 预付不足等）换个时机或补钱后可以原样重试。
+- `UserOpPendingError`：已提交但等回执超时，**可能仍会上链**，既不能当成功也不能当失败。
+- 其余 `BundlerError`：没配 bundler、链不匹配。
+
+app 层的处置在 `utils/multisig_execute.ts`：可重试的拒收把交易退回「待执行」，
+永久性失败标记 failed，超时保持「执行中」。
 
 ### owner 管理
 
@@ -619,7 +630,9 @@ interface PaymasterValidity { validUntil: number; validAfter: number }
 | `PaymasterNotConfiguredError` | `PAYMASTER_NOT_CONFIGURED` | 要求代付但该链没配 paymaster | |
 | `GasEstimationError`        | `GAS_ESTIMATION_FAILED`    | 没配 bundler，或 bundler 估算失败 | |
 | `InsufficientFundsError`    | `INSUFFICIENT_FUNDS`       | 自付 gas 但余额不够预付 | `balance`, `required` |
-| `BundlerError`              | `BUNDLER_REJECTED`         | bundler 拒收 | `aaCode` |
+| `BundlerError`              | `BUNDLER_REJECTED`         | bundler 相关失败（基类） | `aaCode` |
+| `UserOpRejectedError`       | `BUNDLER_REJECTED`         | 当场拒收，没上链 | `aaCode`, `permanent`, `minMaxFeePerGas` |
+| `UserOpPendingError`        | `BUNDLER_REJECTED`         | 已提交，等回执超时 | `userOpHash` |
 | `UserOpFailedError`         | `USER_OP_FAILED`           | 提交后链上失败 | `aaCode` |
 | `PaymasterExpiredError`     | `PAYMASTER_EXPIRED`        | paymaster 赞助已过期（技术限制） | `expiredAt` |
 | `SnapshotExpiredError`      | `SNAPSHOT_EXPIRED`         | 提案超过收签窗口（Semi 的策略限制） | `expiredAt` |

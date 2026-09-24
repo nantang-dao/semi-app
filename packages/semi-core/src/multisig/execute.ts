@@ -7,6 +7,8 @@ import {
   SnapshotExpiredError,
   SnapshotHashMismatchError,
   UserOpFailedError,
+  UserOpPendingError,
+  UserOpRejectedError,
 } from "../errors";
 import { packMultisigSignatures, safeOpHash } from "./sign";
 import { assertValidSnapshot, type CollectedSignature, type UserOpSnapshot } from "./types";
@@ -41,6 +43,7 @@ async function bundlerRpc(
 
 /** ERC-4337 错误码 → 说得清原因的提示 */
 const AA_HINTS: Record<string, string> = {
+  AA21: "the Safe cannot prefund this operation — top up its ETH balance on this chain",
   AA33: "paymaster validatePaymasterUserOp reverted — the sponsorship expired or its policy rejected this operation",
   AA25: "invalid nonce — a concurrent transaction changed the Safe's nonce, the transaction must be re-proposed",
   AA23: "the account's validateUserOp reverted — usually a signature that does not match the signed SafeOp hash",
@@ -139,7 +142,12 @@ export async function executeMultisigUserOp(
     const message = sent.error.message || JSON.stringify(sent.error);
     const aaCode = message.match(/\bAA\d{2}\b/)?.[0];
     const hint = aaCode && AA_HINTS[aaCode] ? ` (${aaCode}: ${AA_HINTS[aaCode]})` : "";
-    throw new BundlerError(`Bundler rejected the UserOperation: ${message}${hint}`, aaCode);
+    const minFee = message.match(/maxFeePerGas must be at least (\d+)/)?.[1];
+    throw new UserOpRejectedError(
+      `Bundler rejected the UserOperation: ${message}${hint}`,
+      aaCode,
+      minFee ? BigInt(minFee) : undefined
+    );
   }
 
   const userOpHash = sent.result as Hex;
@@ -189,7 +197,8 @@ async function pollForUserOpReceipt(
     if (data.result) return data.result as UserOpReceipt;
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  throw new BundlerError(
-    `Timed out after ${(maxAttempts * intervalMs) / 1000}s waiting for the receipt of ${userOpHash}. The operation may still land — check the bundler before re-proposing.`
+  throw new UserOpPendingError(
+    `Timed out after ${(maxAttempts * intervalMs) / 1000}s waiting for the receipt of ${userOpHash}. The operation may still land — check the bundler before re-proposing.`,
+    userOpHash
   );
 }

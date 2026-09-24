@@ -44,6 +44,22 @@ const VERIFICATION_BUFFER = { num: 3n, den: 2n };
 const OTHER_BUFFER = { num: 6n, den: 5n };
 
 /**
+ * gas 价格的余量。
+ *
+ * maxFeePerGas 进 SafeOp 哈希，收签期间（可能几天）改不了；而 bundler 只收
+ * 不低于它当前最低价的出价。按报价原样冻结的话，行情涨 0.5% 就会被拒收
+ * （实际发生过：Arbitrum 上提案 15 小时后执行，差 0.5% 被拒）。
+ *
+ * 这只是出价上限：EntryPoint 按 min(maxFee, baseFee + priority) 实际扣费，
+ * 多出的部分不会花掉，只是自付时需要按上限预付（执行前的余额检查同样按上限）。
+ * L1 的 gas 贵、波动也相对可控，取 1.5 倍；L2 的绝对值极低，取 3 倍。
+ */
+const L1_CHAIN_IDS = new Set([1, 11155111]);
+export function bufferedMaxFeePerGas(chainId: number, maxFeePerGas: bigint): bigint {
+  return L1_CHAIN_IDS.has(chainId) ? (maxFeePerGas * 3n) / 2n : maxFeePerGas * 3n;
+}
+
+/**
  * 建立并锁定所有签名者共同承诺的 UserOp 快照。
  *
  * 由第一个签名者触发。gas 和 paymaster 数据都在这一刻冻结——因为它们都进
@@ -72,7 +88,11 @@ export async function buildMultisigUserOpSnapshot(
 
   const nonce = forcedNonce ?? (await account.getNonce());
 
-  const rawGas = await estimateMultisigGas(ctx, bundlerClient, { account, calls, threshold });
+  const estimated = await estimateMultisigGas(ctx, bundlerClient, { account, calls, threshold });
+  const rawGas = {
+    ...estimated,
+    maxFeePerGas: bufferedMaxFeePerGas(ctx.chainId, estimated.maxFeePerGas),
+  };
 
   const verificationGasLimit =
     (rawGas.verificationGasLimit * VERIFICATION_BUFFER.num) / VERIFICATION_BUFFER.den;

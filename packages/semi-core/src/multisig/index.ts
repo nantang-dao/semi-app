@@ -9,6 +9,7 @@ export {
 } from "./sign";
 export {
   buildMultisigUserOpSnapshot,
+  bufferedMaxFeePerGas,
   SNAPSHOT_VALIDITY_SECONDS,
   type BuildSnapshotParams,
 } from "./snapshot";

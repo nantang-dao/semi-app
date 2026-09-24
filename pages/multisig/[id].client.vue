@@ -66,7 +66,7 @@
                   <span
                     v-if="!(isExecuted && actualGasEth !== null)"
                     class="inline-flex items-center cursor-help"
-                    :title="i18n.text['gas.estimatedTooltip'] || '实际费用以链上结算为准'"
+                    :title="i18n.text['multisig.maxFeeTooltip'] || '这是出价上限，实际费用按链上价格结算，通常更低'"
                   >
                     <UIcon name="i-heroicons-question-mark-circle" size="14" class="text-gray-400" />
                   </span>
@@ -288,13 +288,9 @@ import {
   getMultisigTx,
   getMultisigWalletOwners,
   submitMultisigSignature,
-  executeMultisigTx,
-  confirmMultisigTx,
-  failMultisigTx,
   resetExecutingMultisigTx,
   withdrawMultisigTx,
   proposeMultisigTx,
-  syncMultisigWallet,
   MultisigApiError,
   type MultisigTx,
   type MultisigOwner,
@@ -302,15 +298,12 @@ import {
 import {
   signSafeOpSnapshot,
   buildMultisigUserOpSnapshot,
-  executeMultisigUserOp,
   getActualGasFee,
-  getSafeOwnersAndThreshold,
 } from '~/utils/SafeSmartAccount/multisig'
 import { keystoreToPrivateKey } from 'semi-core/keys'
 import { chainMap } from '~/stores/chain'
-import { uploadTransaction } from '~/utils/semi_api'
-import { chainName, isSafeActivated } from '~/utils/multisig_chains'
-import { getBalance } from '~/utils/balance'
+import { chainName } from '~/utils/multisig_chains'
+import { executeMultisigTransaction, ExecutionNotSubmittedError, type ExecuteOutcome } from '~/utils/multisig_execute'
 import { parseEther, type Address, type Hex } from 'viem'
 
 const route = useRoute()
@@ -423,7 +416,8 @@ const displayGasLabel = computed(() => {
   if (isExecuted.value && actualGasEth.value !== null) {
     return i18n.text['Actual Fee'] || '手续费（实际）'
   }
-  return i18n.text['Estimated Fee'] || '手续费（预估）'
+  // 快照里的 maxFeePerGas 留了余量（见 semi-core bufferedMaxFeePerGas），这里算的是上限，实际按链上价格扣
+  return i18n.text['multisig.maxFee'] || '最高手续费'
 })
 
 const displayGasValue = computed(() => {
@@ -632,102 +626,9 @@ async function signOne(t: MultisigTx, privateKey: Hex) {
   })
 }
 
-type ExecuteOutcome = { txHash: string } | { confirmPending: true; txHash: string }
-
-/**
- * 执行一笔已收齐签名的交易并回写后端。拿到 txHash 之后链上已提交，
- * 后续任何失败都不能再把它标记为 failed。
- */
-async function executeOne(t: MultisigTx): Promise<ExecuteOutcome> {
-  const wallet = walletOf(t)
-  let submittedTxHash: string | undefined
-  let locked = false
-  try {
-    // 不代付的链（主网）由 Safe 自付 gas：锁定前先查余额，免得锁住后才失败
-    if (t.user_op_snapshot && t.user_op_snapshot.sponsored === false) {
-      const chain = chainMap[t.chain_id]
-      const snap = t.user_op_snapshot
-      const needWei =
-        (BigInt(snap.verificationGasLimit) + BigInt(snap.callGasLimit) + BigInt(snap.preVerificationGas)) *
-        BigInt(snap.maxFeePerGas)
-      if (chain) {
-        const balance = await getBalance(wallet.safe_address, chain)
-        if (balance < needWei) {
-          throw new Error(`${chainName(t.chain_id)} 不代付 gas，数字身份在该链上的 ETH 余额不足以支付手续费`)
-        }
-      }
-    }
-
-    const { tx: lockedTx } = await executeMultisigTx(t.id)
-    locked = true
-    if (!lockedTx.user_op_snapshot || !lockedTx.signatures) throw new Error('Missing snapshot/signatures')
-
-    const chain = chainMap[lockedTx.user_op_snapshot.chainId]
-    if (!chain) throw new Error('Unsupported chain')
-
-    // 以当前 owner 集合 + 当前门限打包签名（与链上 checkSignatures 一致）
-    const { owners: rowOwners } = await getMultisigWalletOwners(wallet.id)
-    const currentOwnerSet = new Set(
-      (lockedTx.current_owners || rowOwners.map((o) => o.owner_address)).map((a) => a.toLowerCase())
-    )
-    const eligibleSignatures = lockedTx.signatures.filter((s) =>
-      currentOwnerSet.has(s.signer_address.toLowerCase())
-    )
-    const execThreshold = lockedTx.current_threshold ?? lockedTx.threshold_at_creation
-    if (eligibleSignatures.length < execThreshold) {
-      throw new Error(
-        i18n.text['multisig.notEnoughCurrentSignatures'] ||
-          '当前有效签名数不足（成员或门限已变更），请重新收集签名'
-      )
-    }
-
-    const { txHash, actualGasCost } = await executeMultisigUserOp(
-      lockedTx.user_op_snapshot,
-      eligibleSignatures,
-      execThreshold,
-      chain
-    )
-    submittedTxHash = txHash // 链上已提交，越过此处不可再标记为 failed
-    // 第一笔交易会顺带部署 Safe：刷新「已激活」状态的缓存
-    isSafeActivated(wallet.safe_address, t.chain_id, true).catch(() => {})
-
-    // gas 由 paymaster 代付，但实际成本记账给执行者（"最后一个用户"）
-    // confirm 失败属于可恢复状态：交易已上链，绝不能因此把它标记为 failed
-    try {
-      await confirmMultisigTx({ multisig_tx_id: t.id, tx_hash: txHash, gas_used: actualGasCost })
-    } catch (confirmErr: any) {
-      console.error('[executeOne] confirm failed after on-chain success:', confirmErr)
-      return { confirmPending: true, txHash }
-    }
-
-    // 与单签一致：执行成功后上传交易记录到常规交易表，使收款方能查到备注
-    try {
-      await uploadTransaction({
-        tx_hash: txHash,
-        gas_used: '0',
-        status: 'success',
-        chain: chain.name.toLowerCase(),
-        data: '',
-        memo: t.memo || '',
-        sender_note: t.sender_note || '',
-        sender_address: wallet.safe_address,
-        receiver_address: t.call_detail?.to || '',
-      })
-    } catch (e) {
-      console.error('[executeOne] Upload transaction failed:', e)
-    }
-
-    if (CONFIG_TYPES.includes(t.tx_type)) {
-      await syncWalletRowFromChain(t)
-    }
-    return { txHash }
-  } catch (err) {
-    // 仅当链上从未提交（无 txHash）且后端已锁定时才标记失败
-    if (!submittedTxHash && locked) {
-      await failMultisigTx(t.id).catch(() => {})
-    }
-    throw err
-  }
+/** 执行逻辑与队列页共用，见 utils/multisig_execute.ts */
+function executeOne(t: MultisigTx): Promise<ExecuteOutcome> {
+  return executeMultisigTransaction(t, walletOf(t))
 }
 
 /** Check if an error is a passcode decryption failure */
@@ -763,7 +664,8 @@ async function doSign(passcode: string) {
 }
 
 async function doExecute(passcode: string) {
-  if (!tx.value) return
+  // 防重复提交：第二次请求会被后端以 not ready 拒绝，只会多弹一条看不懂的错误
+  if (!tx.value || executing.value) return
   executing.value = true
   try {
     // 先验证支付码（不锁定后端状态），再执行
@@ -789,7 +691,12 @@ async function doExecute(passcode: string) {
       passcodeError.value = i18n.text['multisig.wrongPasscode'] || '支付码错误，请重新输入'
     } else {
       showPasscode.value = false
-      toast.add({ title: i18n.text['Error'] || 'Error', description: err.message, color: 'error' })
+      const notSubmitted = err instanceof ExecutionNotSubmittedError
+      toast.add({
+        title: notSubmitted ? (i18n.text['multisig.notSubmitted'] || '交易未上链') : (i18n.text['Error'] || 'Error'),
+        description: err.message,
+        color: notSubmitted ? 'warning' : 'error',
+      })
       await loadTx()
     }
   } finally {
@@ -804,7 +711,7 @@ async function runOnGroup(
   action: (t: MultisigTx, privateKey: Hex) => Promise<unknown>,
   successTitle: string
 ) {
-  if (!tx.value) return
+  if (!tx.value || groupAction.value) return
   groupAction.value = passcodeAction === 'signGroup' ? 'sign' : 'execute'
   try {
     const privateKey = await decryptPrivateKey(passcode)
@@ -1013,17 +920,6 @@ async function handleResubmit() {
  * 读取失败不阻断：后端 apply_wallet_config 已基于 call_detail 更新，
  * 用户仍可手动「从链上同步」兜底。
  */
-async function syncWalletRowFromChain(t: MultisigTx) {
-  try {
-    const chain = chainMap[t.chain_id]
-    const wallet = multisigStore.wallets.find((w) => w.id === t.wallet_id)
-    if (!chain || !wallet) return
-    const { owners: chainOwners, threshold: chainThreshold } =
-      await getSafeOwnersAndThreshold(wallet.safe_address as Address, chain)
-    await syncMultisigWallet({ wallet_id: t.wallet_id, owners: chainOwners, threshold: chainThreshold })
-  } catch {}
-}
-
 /** 执行配置变更后刷新钱包列表；当前用户已被移出当前钱包时返回首页。返回是否已离开。 */
 async function leaveIfNoLongerOwner(t: MultisigTx): Promise<boolean> {
   if (!CONFIG_TYPES.includes(t.tx_type)) return false
