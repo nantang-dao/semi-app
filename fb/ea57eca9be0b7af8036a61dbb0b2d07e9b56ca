@@ -1,0 +1,42 @@
+packages/semi-core/src/errors.ts
+  s_9865a8e1d3b42a::t_a8e76a386b4246 144-172
+packages/semi-core/src/multisig/snapshot.ts
+  s_9865a8e1d3b42a::t_1452f447478bba 47-61,91-95
+  s_9865a8e1d3b42a::t_d204ae96e47ff9 46
+utils/multisig_execute.ts
+  s_9865a8e1d3b42a::t_b43b253b827816 15
+  s_9865a8e1d3b42a::t_20b849d0b24e8d 1-14,16-173
+packages/semi-core/src/multisig/execute.ts
+  s_9865a8e1d3b42a::t_1452f447478bba 10-11,46
+  s_9865a8e1d3b42a::t_a8e76a386b4246 145-150,200-202
+pages/multisig/queue.client.vue
+  s_9865a8e1d3b42a::t_49a72012382cd2 348-349
+  s_9865a8e1d3b42a::t_604d79d112d55f 626-627,638-642,644,654,658-661,667,676-677,680,684
+packages/semi-core/src/multisig/index.ts
+  s_9865a8e1d3b42a::t_5d5b23ceea2020 12
+packages/semi-core/test/bundler-rejection.test.ts
+  s_9865a8e1d3b42a::t_cb38c32f520a73 1-116
+pages/multisig/[id].client.vue
+  s_9865a8e1d3b42a::t_47c85bd6a637dc 69
+  s_9865a8e1d3b42a::t_b273dcb751c04c 305-306
+  s_9865a8e1d3b42a::t_44ea1ea6a1f029 629-631,667-668,694-699,714
+  s_9865a8e1d3b42a::t_393925033a09d4 419-420
+docs/semi-core-api.md
+  s_9865a8e1d3b42a::t_e116e7a4885c3c 441-444,554-563,633-635
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fbea57eca9be0b7af8036a61dbb0b2d07e9b56ca",
+  "prompts": {},
+  "sessions": {
+    "s_9865a8e1d3b42a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d88730f8-9d18-4f98-9a1d-1f109d89c325",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
