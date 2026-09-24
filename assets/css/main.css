@@ -1,10 +1,11 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+/* 卡片高度随内容伸展，由整页滚动；不再限制 80vh、在卡片里滚动。
+   需要固定高度、在卡片内滚动长列表的页面（actions、徽章页）自己加 max-h-[80vh]。 */
 .container-size {
   width: 100%;
   max-width: 480px;
-  max-height: 80vh;
 }
 
 .loading-bg {

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex flex-col container-size h-[100vh] rounded-xl bg-[var(--ui-bg)] shadow-lg px-4 sm:px-8 py-8 banner overflow-hidden"
+    class="flex flex-col container-size h-[100vh] max-h-[80vh] rounded-xl bg-[var(--ui-bg)] shadow-lg px-4 sm:px-8 py-8 banner overflow-hidden"
   >
     <UButton
       icon="i-heroicons-arrow-left"
