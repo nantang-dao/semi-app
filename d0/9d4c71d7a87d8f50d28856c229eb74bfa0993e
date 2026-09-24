@@ -1,0 +1,29 @@
+pages/badges/create.client.vue
+  s_9865a8e1d3b42a::t_ebb25f0089b3fe 3
+pages/badges/[chain]/send/[badge_class_address]/[receiver_address].vue
+  s_9865a8e1d3b42a::t_ebb25f0089b3fe 3
+pages/badges/index.client.vue
+  s_9865a8e1d3b42a::t_ebb25f0089b3fe 3
+pages/actions.client.vue
+  s_9865a8e1d3b42a::t_ebb25f0089b3fe 2
+pages/badges/send/[class_id].vue
+  s_9865a8e1d3b42a::t_ebb25f0089b3fe 3
+assets/css/main.css
+  s_9865a8e1d3b42a::t_ebb25f0089b3fe 4-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d09d4c71d7a87d8f50d28856c229eb74bfa0993e",
+  "prompts": {},
+  "sessions": {
+    "s_9865a8e1d3b42a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d88730f8-9d18-4f98-9a1d-1f109d89c325",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
