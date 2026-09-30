@@ -202,11 +202,15 @@ export async function getMultisigWalletOwners(walletId: string): Promise<{
   return handleRequest(resp);
 }
 
-/** Sync wallet owners/threshold from on-chain data */
+/**
+ * 让后端按链上状态刷新 owners / 门限（后端自己读链）。
+ * 传了 owners / threshold 时，后端要求它们和链上一致才写入：配置变更刚执行完，
+ * 后端的节点可能落后一个块，这样不会拿旧状态覆盖 confirm 时写好的镜像。
+ */
 export async function syncMultisigWallet(params: {
   wallet_id: string;
-  owners: string[];
-  threshold: number;
+  owners?: string[];
+  threshold?: number;
 }): Promise<{ result: string }> {
   const resp = await fetch(`${base()}/sync_multisig_wallet`, {
     method: "POST",

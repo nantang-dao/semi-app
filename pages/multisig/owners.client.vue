@@ -318,10 +318,8 @@ import {
   syncMultisigWallet,
   type MultisigOwner,
 } from '~/utils/multisig_api'
-import { getSafeOwners } from '~/utils/SafeSmartAccount/multisig'
 import { proposeOwnerChangeOnAllChains, type OwnerChange } from '~/utils/multisig_chains'
 import { getUserByHandle } from '~/utils/semi_api'
-import { chainMap } from '~/stores/chain'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -619,23 +617,8 @@ async function handleSync() {
   if (!activeWallet.value) return
   syncing.value = true
   try {
-    const chain = chainMap[activeWallet.value.chain_id]
-    if (!chain) throw new Error('Unsupported chain')
-
-    const { owners: chainOwners } = await getSafeOwners(activeWallet.value.safe_address, chain)
-    const { chainContext } = await import('~/utils/semi_core')
-    const publicClient = chainContext(chain.id).publicClient
-    const chainThreshold = await publicClient.readContract({
-      address: activeWallet.value.safe_address,
-      abi: [{ name: 'getThreshold', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] }],
-      functionName: 'getThreshold',
-    }) as bigint
-
-    await syncMultisigWallet({
-      wallet_id: activeWallet.value.id,
-      owners: chainOwners,
-      threshold: Number(chainThreshold),
-    })
+    // 后端自己读链（未部署时用初始配置），这里只负责触发
+    await syncMultisigWallet({ wallet_id: activeWallet.value.id })
 
     await multisigStore.fetchWallets()
     await loadOwners()
