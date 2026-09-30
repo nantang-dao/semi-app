@@ -154,7 +154,7 @@ Sets the user's image URL.
 ## `GET /get_user`
 
 **Description:**
-Retrieves user information.
+Retrieves another user's public profile. Phone, email and gas credits are never returned here (only `get_me` returns them, to the user themself).
 
 **Parameters:**
 - `id` (string, required): The user's ID.
@@ -164,9 +164,10 @@ Retrieves user information.
 {
   "id": "string",
   "handle": "string or null",
-  "email": "string or null",
-  "phone": "string",
-  "image_url": "string or null"
+  "image_url": "string or null",
+  "evm_chain_address": "string or null",
+  "evm_chain_active_key": "string or null",
+  "can_send_badge": boolean
 }
 ```
 
@@ -283,16 +284,17 @@ Adds a transaction record for the authenticated user.
 
 **Parameters:**
 - `tx_hash` (string, required): The transaction hash.
-- `gas_used` (integer, required): The amount of gas used.
-- `status` (string, required): The status of the transaction (e.g., "success").
-- `chain` (string, required): The blockchain type (e.g., "evm").
+- `gas_used`, `status`: ignored — both are read from the on-chain receipt (the UserOp's `actualGasCost` and `success`).
+- `chain` (string, required): viem chain name lowercased (`op mainnet`, `arbitrum one`, `ethereum`, `sepolia`) or chain id.
 - `data` (string, required): Additional data related to the transaction.
 - `memo` (string, optional): A memo for the transaction.
 - `sender_note` (string, optional): A note for the sender.
-- `sender_address` (string, optional): The sender's address.
+- `sender_address` (string, required): Your Safe, or a multisig Safe you are a member of. The receipt must contain a UserOperationEvent from it.
 - `receiver_address` (string, optional): The receiver's address.
 - `metadata` (string, optional): Metadata for the transaction.
 - `extra` (string, optional): Extra data for the transaction.
+
+The record is checked against the chain (`TransactionProof`); `receiver_address`, if given, must appear in the transaction input or logs. Errors: `invalid_transaction`, `chain_unavailable` (node not synced yet — retry).
 
 **Response:**
 ```json
@@ -345,7 +347,7 @@ Retrieves all transactions for the authenticated user.
 ## `POST /add_transaction_with_gas_credits`
 
 **Description:**
-Adds a transaction for the authenticated user and increments their used gas credits.
+Same as `add_transaction` (same on-chain checks and errors), and adds the receipt's `actualGasCost` to the user's used gas credits. `gas_used` from the client is ignored.
 
 **Headers:**
 - `Authorization: Bearer <auth_token>`
@@ -398,7 +400,7 @@ Sets the sender or receiver note for a specific transaction. The authenticated u
 ## `GET /get_token_classes`
 
 **Description:**
-Retrieves a list of all token classes, ordered by position descending.
+Retrieves listed token classes plus, when authenticated, the ones the current user added (unlisted tokens are visible only to their publisher). Ordered by position descending.
 
 **Response:**
 ```json
@@ -428,7 +430,7 @@ Retrieves a list of all token classes, ordered by position descending.
 ## `POST /add_token_class`
 
 **Description:**
-Creates a new token class. Requires authentication.
+Creates a new token class. Requires authentication. New tokens are unlisted: visible to the publisher only, until an admin calls `set_token_class_listed`.
 
 **Headers:**
 - `Authorization: Bearer <auth_token>`
@@ -452,6 +454,17 @@ Creates a new token class. Requires authentication.
   "result": "ok"
 }
 ```
+
+---
+
+## `POST /set_token_class_listed`
+
+**Description:**
+Admin only (user ids in `ADMIN_USER_IDS`). Lists or unlists a token class in the global token list.
+
+**Parameters:**
+- `id` (integer, required): The token class ID.
+- `listed` (boolean, required)
 
 ---
 
@@ -565,7 +578,10 @@ Sets the contact list for the authenticated user.
 ## `GET /get_contacts`
 
 **Description:**
-Retrieves the contact list for a user.
+Retrieves the contact list of the authenticated user (only your own).
+
+**Headers:**
+- `Authorization: Bearer <auth_token>`
 
 **Parameters:**
 - `id` (string, required): The user's ID.
