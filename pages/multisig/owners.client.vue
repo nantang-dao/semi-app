@@ -49,7 +49,7 @@
             <div class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-sm">👤</div>
             <div>
               <p class="text-sm font-medium text-gray-800">
-                {{ owner.handle || owner.phone || '' }}
+                {{ owner.handle || '' }}
               </p>
               <CopyableAddress :address="owner.owner_address" text-class="text-xs text-gray-400" />
             </div>
@@ -143,7 +143,7 @@
 
         <div v-if="ownerChangeMode === 'remove' && removeTarget" class="p-3 bg-gray-50 rounded-lg text-sm">
           <p class="text-gray-500 mb-1">{{ i18n.text['multisig.removeTarget'] || 'Remove signer' }}</p>
-          <p class="font-medium">{{ removeTarget.handle || removeTarget.phone || '' }}</p>
+          <p class="font-medium">{{ removeTarget.handle || '' }}</p>
           <CopyableAddress :address="removeTarget.owner_address" text-class="text-xs text-gray-400 mt-1" />
         </div>
 
@@ -244,7 +244,7 @@
 
         <div class="p-3 bg-gray-50 rounded-lg text-sm">
           <p class="text-gray-500 mb-1">{{ i18n.text['multisig.replaceTarget'] || '将替换' }}</p>
-          <p class="font-medium">{{ replaceTarget?.handle || replaceTarget?.phone || '' }}</p>
+          <p class="font-medium">{{ replaceTarget?.handle || '' }}</p>
           <CopyableAddress v-if="replaceTarget?.owner_address" :address="replaceTarget.owner_address" text-class="text-xs text-gray-400 mt-1" />
         </div>
 
@@ -285,7 +285,7 @@
         <div class="p-3 bg-gray-50 rounded-lg text-sm space-y-2">
           <div>
             <p class="text-gray-500 mb-1">{{ i18n.text['multisig.replaceTarget'] || '将替换' }}</p>
-            <p class="font-medium">{{ replaceTarget?.handle || replaceTarget?.phone || '' }}</p>
+            <p class="font-medium">{{ replaceTarget?.handle || '' }}</p>
             <CopyableAddress v-if="replaceTarget?.owner_address" :address="replaceTarget.owner_address" text-class="text-xs text-gray-400 mt-1" />
           </div>
           <div class="border-t border-gray-200 pt-2">

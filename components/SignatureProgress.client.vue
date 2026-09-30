@@ -63,7 +63,7 @@
             </div>
             <div>
               <p class="text-sm font-medium text-gray-800">
-                {{ owner.handle || owner.phone || '' }}
+                {{ owner.handle || '' }}
               </p>
               <CopyableAddress :address="owner.owner_address" text-class="text-xs text-gray-400" />
             </div>

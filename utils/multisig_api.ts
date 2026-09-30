@@ -37,7 +37,6 @@ export interface MultisigOwner {
   position: number;
   user_id: string | null;
   handle: string | null;
-  phone?: string | null;
   image_url?: string | null;
 }
 
@@ -45,7 +44,6 @@ export interface MultisigSignatureData {
   signer_address: Address;
   signature: Hex;
   signer_handle?: string;
-  signer_phone?: string;
   signer_image_url?: string;
 }
 

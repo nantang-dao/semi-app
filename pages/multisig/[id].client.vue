@@ -482,7 +482,7 @@ const configChangeDescription = computed(() => {
     const lower = addr.toLowerCase()
     // 1. 从当前 owner 列表找
     const o = owners.value.find((o) => o.owner_address?.toLowerCase() === lower)
-    if (o?.handle || o?.phone) return o.handle || o.phone
+    if (o?.handle) return o.handle
     // 2. 从该交易的 owner_snapshot 中找（覆盖已被移除的 owner）
     const snapshotOwners = tx.value.owner_snapshot
       ? (Array.isArray(tx.value.owner_snapshot) ? tx.value.owner_snapshot : tx.value.owner_snapshot.owners || [])

@@ -724,7 +724,7 @@ function txLabel(tx: MultisigTx): string {
     const lower = addr.toLowerCase()
     // 1. 从当前 owner 列表找
     const o = owners.value.find((o) => o.owner_address?.toLowerCase() === lower)
-    if (o?.handle || o?.phone) return o.handle || o.phone
+    if (o?.handle) return o.handle
     // 2. 从所有已加载交易的 owner_snapshot 中找（覆盖已被移除的 owner）
     const allTxs = [...queueTxs.value, ...historyTxs.value]
     for (const t of allTxs) {
