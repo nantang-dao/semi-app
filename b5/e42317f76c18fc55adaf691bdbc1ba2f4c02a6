@@ -1,0 +1,30 @@
+pages/verifyphone.client.vue
+  s_21c523732de41d::t_e272f1a47879f1 65,114,170
+pages/login.client.vue
+  s_21c523732de41d::t_85bbf626d65578 51,83-96
+utils/semi_api.ts
+  s_21c523732de41d::t_ba49d1d7a437cf 77-93,96-97
+api.md
+  s_21c523732de41d::t_2276ebf63c3b27 29-31,48-50,82-84,107-108
+  s_21c523732de41d::t_de2b6b403709df 109
+pages/email-login.client.vue
+  s_21c523732de41d::t_85bbf626d65578 50,82-95
+pages/verifyemail.client.vue
+  s_21c523732de41d::t_e272f1a47879f1 63,112,168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b5e42317f76c18fc55adaf691bdbc1ba2f4c02a6",
+  "prompts": {},
+  "sessions": {
+    "s_21c523732de41d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7cce0af7-aa66-434c-92bc-b50481bff78b",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
