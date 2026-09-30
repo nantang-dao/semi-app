@@ -57,13 +57,11 @@
 <script setup lang="ts">
 import { useUserStore } from "~/stores/user";
 import { useChainStore } from "~/stores/chain";
-import {
-  generateMnemonicPhrase,
-  mnemonicToAddress,
-  encryptToKeystore,
-} from "semi-core/keys";
+import { mnemonicToAccount } from "viem/accounts";
+import { generateMnemonicPhrase, encryptToKeystore } from "semi-core/keys";
 import { predictSafeAccountAddress } from "~/utils/SafeSmartAccount";
 import { setEncryptedKeys } from "~/utils/semi_api";
+import { signWalletBinding } from "~/utils/wallet_binding";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -96,7 +94,8 @@ const createManagerWallet = async (pin: string) => {
 
     // 第一步：生成助记词和钱包地址
     const mnemonic = generateMnemonicPhrase();
-    const evm_chain_active_key = mnemonicToAddress(mnemonic);
+    const account = mnemonicToAccount(mnemonic);
+    const evm_chain_active_key = account.address;
 
     // 第二步：生成EVM链地址
     const evm_chain_address = await predictSafeAccountAddress({
@@ -107,12 +106,14 @@ const createManagerWallet = async (pin: string) => {
     // 第二步：使用pin加密助记词
     const encrypted_keys = await encryptToKeystore(mnemonic, pin);
 
-    // 第三步：上传加密后的密钥
+    // 第三步：上传加密后的密钥，附上持有私钥的证明（后端验签，并核对 Safe 地址由它推出）
+    const proof = await signWalletBinding(account, userStore.user.id, evm_chain_address);
     const response = await setEncryptedKeys({
       id: userStore.user.id,
       encrypted_keys: JSON.stringify(encrypted_keys),
       evm_chain_active_key,
       evm_chain_address,
+      ...proof,
     });
 
     if (response.result === "ok") {
@@ -158,7 +159,7 @@ const onSubmit = async () => {
     console.error("设置支付码失败:", error);
     toast.add({
       title: i18n.text["Setup Failed"],
-      description: i18n.text["Please try again later"],
+      description: (error as Error)?.message || i18n.text["Please try again later"],
       color: "error",
     });
   } finally {

@@ -238,16 +238,19 @@ Retrieves the user's encrypted keys.
 ## `POST /set_encrypted_keys`
 
 **Description:**
-Sets the user's encrypted keys.
+Binds the user's signing key, Safe address and encrypted keystore. **Once per account** — a bound key cannot be replaced (`key_already_bound`). The caller must prove it holds the key, and the Safe address must be the one derived from it (single owner, threshold 1, saltNonce 0). A key or Safe address can belong to only one account (`key_in_use`).
 
 **Headers:**
 - `Authorization: Bearer <auth_token>`
 
 **Parameters:**
 - `id` (string, required): The user's ID.
-- `encrypted_keys` (string, required): The encrypted keys.
-- `evm_chain_address` (string, optional): The user's EVM chain contract address.
-- `evm_chain_active_key` (string, optional): The user's EVM chain active key.
+- `encrypted_keys` (string, required): The encrypted keystore.
+- `evm_chain_active_key` (string, required): Address of the signing key.
+- `evm_chain_address` (string, required): The Safe address derived from the signing key.
+- `public_key` (string, required): Uncompressed secp256k1 public key of the signing key (`0x04…`).
+- `signature` (string, required): EIP-191 `personal_sign` by the signing key of
+  `Semi: bind signing key <active_key lowercase> and wallet <safe address lowercase> to account <id>`.
 
 **Response:**
 ```json
@@ -256,23 +259,7 @@ Sets the user's encrypted keys.
 }
 ```
 
----
-
-## `POST /set_evm_chain_address`
-**Description:**
-Sets the user's EVM chain address.
-**Headers:**
-- `Authorization: Bearer <auth_token>`
-**Parameters:**
-- `id` (string, required): The user's ID.
-- `evm_chain_address` (string, required): evm chain contract address
-- `evm_chain_active_key` (string, required): evm chain active_key.
-**Response:**
-```json
-{
-  "result": "ok"
-}
-```
+Errors (400, with `code`): `key_already_bound`, `invalid_key_proof`, `key_in_use`.
 
 ---
 

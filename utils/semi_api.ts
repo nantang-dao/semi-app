@@ -228,14 +228,23 @@ export async function setImageUrl(id: string, image_url: string): Promise<BaseRe
   return handleRequest<BaseResponse>(response);
 }
 
-// 6. 设置加密密钥
+// 6. 绑定签名私钥、Safe 地址和加密 keystore（每个账户一次，不能更换）
+// public_key / signature 是持有私钥的证明，用 utils/wallet_binding.ts 的 signWalletBinding 生成
 
 export interface SetEncryptedKeysProps {
   id: string;
   encrypted_keys: string;
   evm_chain_address: string;
   evm_chain_active_key: string;
+  public_key: string;
+  signature: string;
 }
+
+const KEY_BINDING_ERRORS: Record<string, string> = {
+  key_in_use: "这把私钥已绑定在其他账户，不能重复导入",
+  key_already_bound: "该账户已绑定私钥，不能更换",
+  invalid_key_proof: "私钥校验失败，请重试",
+};
 
 export async function setEncryptedKeys(props: SetEncryptedKeysProps): Promise<BaseResponse> {
   const response = await fetch(`${requireSemiRestBaseUrl()}/set_encrypted_keys`, {
@@ -243,7 +252,11 @@ export async function setEncryptedKeys(props: SetEncryptedKeysProps): Promise<Ba
     headers: getAuthHeaders(),
     body: JSON.stringify(props),
   });
-  return handleRequest<BaseResponse>(response);
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(KEY_BINDING_ERRORS[error.code] ?? error.message ?? "请求失败");
+  }
+  return response.json();
 }
 
 // 7. 获取加密密钥
@@ -280,20 +293,6 @@ export async function getMe(): Promise<UserInfo> {
     headers: getAuthHeaders(),
   });
   return handleRequest<UserInfo>(response);
-}
-
-// 9. 设置EVM链地址
-export async function setEvmChainAddress(
-  id: string,
-  evm_chain_address: string,
-  evm_chain_active_key: string
-): Promise<BaseResponse> {
-  const response = await fetch(`${requireSemiRestBaseUrl()}/set_evm_chain_address`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ id, evm_chain_address, evm_chain_active_key }),
-  });
-  return handleRequest<BaseResponse>(response);
 }
 
 // 查询剩余免手续费交易次数
