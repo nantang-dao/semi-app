@@ -1,0 +1,25 @@
+components/SignatureProgress.client.vue
+  s_21c523732de41d::t_6cfab85ec111fc 66
+pages/multisig/[id].client.vue
+  s_21c523732de41d::t_6cfab85ec111fc 485
+pages/multisig/queue.client.vue
+  s_21c523732de41d::t_6cfab85ec111fc 727
+pages/multisig/owners.client.vue
+  s_21c523732de41d::t_6cfab85ec111fc 52,146,247,288
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "be25ffa8fdd9363ad9c52082b0e61b1b4f2a7327",
+  "prompts": {},
+  "sessions": {
+    "s_21c523732de41d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7cce0af7-aa66-434c-92bc-b50481bff78b",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
