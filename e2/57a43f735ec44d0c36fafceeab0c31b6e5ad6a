@@ -1,0 +1,39 @@
+utils/multisig_calls.ts
+  s_21c523732de41d::t_56b5e648488717 1
+  s_21c523732de41d::t_3c9a65b3e404ae 2-105
+docs/semi-core-api.md
+  s_21c523732de41d::t_18894eba593474 530-558,657,707-708
+packages/semi-core/src/multisig/index.ts
+  s_21c523732de41d::t_d6ab404362a5ac 18-22
+  s_21c523732de41d::t_3ce725066e5726 17
+packages/semi-core/test/snapshot-intent.test.ts
+  s_21c523732de41d::t_6ae05b3e2d2a7f 115
+  s_21c523732de41d::t_0d72be34d4a5d9 1-114,116-123
+pages/multisig/[id].client.vue
+  s_21c523732de41d::t_98c0edbdf9eed3 62-71
+  s_21c523732de41d::t_f7a3b0fec93d3d 314,319,636-647
+  s_21c523732de41d::t_8205cc9c6c61f0 315,611-613,617-618,627,631
+  s_21c523732de41d::t_dbe4568f860ec2 648-649
+packages/semi-core/src/multisig/intent.ts
+  s_21c523732de41d::t_d6ab404362a5ac 1-72
+packages/semi-core/src/errors.ts
+  s_21c523732de41d::t_d6ab404362a5ac 222-240
+pages/transfer.client.vue
+  s_21c523732de41d::t_bd9f64b99fd3b9 725-728,744-745
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e257a43f735ec44d0c36fafceeab0c31b6e5ad6a",
+  "prompts": {},
+  "sessions": {
+    "s_21c523732de41d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7cce0af7-aa66-434c-92bc-b50481bff78b",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
