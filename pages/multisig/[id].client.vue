@@ -612,7 +612,7 @@ function walletOf(t: MultisigTx) {
  * 快照不管是自己建的还是别人上传的，签名前都要和页面展示的内容核对：后面的
  * 签名人签的是第一个签名人上传的快照，不核对就等于盲签。
  */
-async function signOne(t: MultisigTx, privateKey: Hex) {
+async function signOne(t: MultisigTx, privateKey: Hex, retried = false): Promise<void> {
   const wallet = walletOf(t)
   const safe = wallet.safe_address as Address
   const call = await callFromTx(t, safe)
@@ -648,13 +648,22 @@ async function signOne(t: MultisigTx, privateKey: Hex) {
   }
 
   const { signer, signature } = await signSafeOpSnapshot(privateKey, snapshot)
-  await submitMultisigSignature({
-    multisig_tx_id: t.id,
-    signer_address: signer,
-    signature,
-    nonce,
-    user_op_snapshot: nonce ? snapshot : undefined,
-  })
+  try {
+    await submitMultisigSignature({
+      multisig_tx_id: t.id,
+      signer_address: signer,
+      signature,
+      nonce,
+      user_op_snapshot: nonce ? snapshot : undefined,
+    })
+  } catch (err) {
+    if (!(err instanceof MultisigApiError && err.code === 'invalid_signature')) throw err
+    // 页面打开时还没有快照，自己建了一份来签；而别人已经先上传了快照，后端按那一份验签。
+    // 取回那一份重签一次（照样先和页面展示的内容核对）。
+    const { tx: fresh } = await getMultisigTx(t.id)
+    if (!retried && nonce && fresh.user_op_snapshot) return signOne(fresh, privateKey, true)
+    throw new Error('签名与待签内容不一致，请刷新页面后重新签名')
+  }
 }
 
 /** 执行逻辑与队列页共用，见 utils/multisig_execute.ts */
