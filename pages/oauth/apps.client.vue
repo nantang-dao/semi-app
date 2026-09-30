@@ -70,8 +70,10 @@
             <UInput v-model="form.name" placeholder="我的应用" class="w-full" variant="subtle" />
           </UFormField>
 
-          <UFormField label="Redirect URIs" description="每行一个回调地址" required>
-            <UTextarea v-model="form.redirectUrisText" placeholder="https://myapp.com/callback" :rows="3"
+          <UFormField label="Redirect URIs" :description="`每行一个回调地址，最多 ${MAX_REDIRECT_URIS} 个，须以 https:// 或 http:// 开头`"
+            :error="redirectUriErrors.length ? redirectUriErrors.join('\n') : undefined" required>
+            <UTextarea v-model="form.redirectUrisText"
+              :placeholder="'https://myapp.com/callback\nhttp://localhost:3000/callback'" :rows="4"
               class="w-full" variant="subtle" />
           </UFormField>
 
@@ -160,6 +162,8 @@
 </template>
 
 <script setup lang="ts">
+import { MAX_REDIRECT_URIS, redirectUriError } from "~/utils/oauth_redirect"
+
 definePageMeta({ layout: "default" })
 
 const router = useRouter()
@@ -194,7 +198,7 @@ const form = reactive({
   name: "",
   redirectUrisText: "",
   scopes: ["openid", "profile"] as string[],
-  status: "draft",
+  status: "active",
 })
 
 const showSecretModal = ref(false)
@@ -225,7 +229,7 @@ function openCreateModal() {
   form.name = ""
   form.redirectUrisText = ""
   form.scopes = ["openid", "profile"]
-  form.status = "draft"
+  form.status = "active"
   showFormModal.value = true
 }
 
@@ -239,6 +243,20 @@ function openEditModal(app: OAuthApp) {
   showFormModal.value = true
 }
 
+// 每行一个；去空白、去空行、去重（与后端一致）
+const parsedRedirectUris = computed(() => [
+  ...new Set(form.redirectUrisText.split(/\r?\n/).map((u) => u.trim()).filter(Boolean)),
+])
+
+const redirectUriErrors = computed(() => {
+  const errors = parsedRedirectUris.value.flatMap((uri) => {
+    const reason = redirectUriError(uri)
+    return reason ? [`${uri}：${reason}`] : []
+  })
+  if (parsedRedirectUris.value.length > MAX_REDIRECT_URIS) errors.unshift(`最多 ${MAX_REDIRECT_URIS} 个地址`)
+  return errors
+})
+
 function toggleScope(scope: string) {
   const idx = form.scopes.indexOf(scope)
   if (idx === -1) form.scopes.push(scope)
@@ -250,12 +268,13 @@ async function saveApp() {
     toast.add({ title: "请填写应用名称", color: "warning" })
     return
   }
-  const redirect_uris = form.redirectUrisText
-    .split("\n")
-    .map((u) => u.trim())
-    .filter(Boolean)
+  const redirect_uris = parsedRedirectUris.value
   if (redirect_uris.length === 0) {
     toast.add({ title: "请填写至少一个 Redirect URI", color: "warning" })
+    return
+  }
+  if (redirectUriErrors.value.length) {
+    toast.add({ title: "Redirect URI 不合法", description: redirectUriErrors.value.join("\n"), color: "warning" })
     return
   }
 
@@ -283,7 +302,8 @@ async function saveApp() {
     showFormModal.value = false
     await fetchApps()
   } catch (err: any) {
-    toast.add({ title: "操作失败", description: err?.data?.message ?? err?.message, color: "error" })
+    // 后端的原因在代理转发的 data.data 里
+    toast.add({ title: "操作失败", description: err?.data?.data?.message ?? err?.data?.message ?? err?.message, color: "error" })
   } finally {
     saving.value = false
   }

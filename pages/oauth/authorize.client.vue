@@ -86,6 +86,7 @@ import {
 } from "~/utils/oauth"
 import { getCookie } from "~/utils/semi_api"
 import { useI18n } from "~/stores/i18n"
+import { isSafeRedirect } from "~/utils/oauth_redirect"
 
 definePageMeta({ layout: "unauth" })
 
@@ -223,6 +224,8 @@ const onAccept = async () => {
 
     clearOAuthParams()
 
+    // 后端已按登记的地址精确匹配；跳转前再确认一次协议，旧记录里可能有 javascript: 之类
+    if (!isSafeRedirect(result.redirect_uri)) throw new Error("Invalid redirect_uri")
     const uri = new URL(result.redirect_uri)
     uri.searchParams.set("code", result.code)
     if (result.state) uri.searchParams.set("state", result.state)
@@ -238,6 +241,11 @@ const onAccept = async () => {
 
 const onDeny = () => {
   if (!oauthParams.value) return
+  if (!isSafeRedirect(oauthParams.value.redirect_uri)) {
+    errorMessage.value = t("oauth.authFailed", "Authorization failed.")
+    status.value = "error"
+    return
+  }
   const uri = new URL(oauthParams.value.redirect_uri)
   uri.searchParams.set("error", "access_denied")
   if (oauthParams.value.state) uri.searchParams.set("state", oauthParams.value.state)
