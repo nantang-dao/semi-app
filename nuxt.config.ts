@@ -73,6 +73,25 @@ export default defineNuxtConfig({
     "/metadata/**": {
       cors: true,
     },
+    // 安全头。semi.im 曾经一个都没有，OAuth 同意页可以被嵌进 iframe 点击劫持。
+    // - frame-ancestors / X-Frame-Options：不允许被任何页面嵌入（没有需要被嵌入的场景）。
+    // - HSTS 不带 includeSubDomains：semi.im 下其他子域是否全是 https 没核实过。
+    // - 限制脚本和连接来源的 CSP 先 Report-Only：页面要连按链拼出的 Alchemy / ZeroDev
+    //   域名、Iconify、arweave / ipfs 和任意头像地址，直接拦截容易把页面弄坏。违规报告
+    //   进 /api/csp-report（服务端日志），据此收紧后再改成强制。
+    "/**": {
+      headers: {
+        "Strict-Transport-Security": "max-age=31536000",
+        "X-Frame-Options": "DENY",
+        "Content-Security-Policy": "frame-ancestors 'none'",
+        "Content-Security-Policy-Report-Only":
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+          "img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; " +
+          "object-src 'none'; base-uri 'self'; form-action 'self'; report-uri /api/csp-report",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+      },
+    },
   },
   app: {
     head: {

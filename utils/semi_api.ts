@@ -122,11 +122,18 @@ export function clearAuthToken() {
 }
 
 // Cookie 操作辅助函数
+/**
+ * SameSite=Lax：跨站 POST 不带这个 cookie。Nitro 的 OAuth 路由靠它认人，曾经没有这一项，
+ * Safari / Firefox 会在别的网站提交的表单里带上它，替用户批准 OAuth 授权（CSRF）。
+ * Secure 只在 https 下加，本地 http 开发照常可用。
+ * 还不能 HttpOnly：前端要读它拼 Authorization 头去调 api.semi.im。
+ */
 export function setCookie(name: string, value: string, days: number) {
   const date = new Date();
   date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
   const expires = `expires=${date.toUTCString()}`;
-  document.cookie = `${name}=${value};${expires};path=/`;
+  const secure = location.protocol === "https:" ? ";Secure" : "";
+  document.cookie = `${name}=${value};${expires};path=/;SameSite=Lax${secure}`;
 }
 
 export function getCookie(name: string): string | null {
