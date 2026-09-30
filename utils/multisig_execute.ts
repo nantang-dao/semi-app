@@ -27,7 +27,7 @@ import {
   type MultisigWallet,
 } from "~/utils/multisig_api";
 import { executeMultisigUserOp, getSafeOwnersAndThreshold } from "~/utils/SafeSmartAccount/multisig";
-import { uploadTransaction } from "~/utils/semi_api";
+import { recordTransaction } from "~/utils/semi_api";
 
 export const CONFIG_TX_TYPES = ["add_owner", "remove_owner", "change_threshold", "replace_owner"];
 
@@ -137,22 +137,18 @@ export async function executeMultisigTransaction(t: MultisigTx, wallet: Multisig
       return { confirmPending: true, txHash };
     }
 
-    // 与单签一致：上传到常规交易表，使收款方能查到备注
-    try {
-      await uploadTransaction({
-        tx_hash: txHash,
-        gas_used: "0",
-        status: "success",
-        chain: chain.name.toLowerCase(),
-        data: "",
-        memo: t.memo || "",
-        sender_note: t.sender_note || "",
-        sender_address: wallet.safe_address,
-        receiver_address: t.call_detail?.to || "",
-      });
-    } catch (e) {
-      console.error("[multisig execute] upload transaction failed:", e);
-    }
+    // 与单签一致：上传到常规交易表，使收款方能查到备注（失败不影响执行结果）
+    await recordTransaction({
+      tx_hash: txHash,
+      gas_used: "0",
+      status: "success",
+      chain: chain.name.toLowerCase(),
+      data: "",
+      memo: t.memo || "",
+      sender_note: t.sender_note || "",
+      sender_address: wallet.safe_address,
+      receiver_address: t.call_detail?.to || "",
+    });
 
     if (CONFIG_TX_TYPES.includes(t.tx_type)) await syncWalletRowFromChain(t, wallet);
     return { txHash };

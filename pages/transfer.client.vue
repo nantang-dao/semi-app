@@ -231,8 +231,7 @@ import { keystoreToPrivateKey } from "semi-core/keys";
 import {
   getUserByHandleOrPhone,
   getRemainingGasCredits,
-  uploadTransaction,
-  uploadTransactionWithGasCredits,
+  recordTransaction,
 } from "~/utils/semi_api";
 import { isGasSponsorshipChain } from "~/utils/gas_sponsorship";
 import { isPhoneNumber } from "~/utils";
@@ -571,10 +570,9 @@ const handleTokenTransfer = async () => {
       metadata: formState.metadata || undefined,
     };
 
-    if (transferParams.sponsorFee) {
-      await uploadTransactionWithGasCredits(uploadData);
-    } else {
-      await uploadTransaction(uploadData);
+    const recorded = await recordTransaction(uploadData, { withGasCredits: !!transferParams.sponsorFee });
+    if (!recorded) {
+      toast.add({ title: "转账已完成", description: "交易记录同步失败，不影响到账", color: "warning" });
     }
 
     toast.add({

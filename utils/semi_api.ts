@@ -368,6 +368,31 @@ export async function uploadTransaction(transaction: TransactionRecord): Promise
   return handleRequest<BaseResponse>(response);
 }
 
+/**
+ * 链上已经成功后上传交易记录。后端要按链上回执核对，节点可能还没同步到这笔交易
+ * （chain_unavailable），稍等重试。失败不抛错：钱已经转出去了，不能提示「转账失败」，
+ * 返回 false 由调用方提示记录同步失败。
+ */
+export async function recordTransaction(
+  transaction: TransactionRecord,
+  { withGasCredits = false } = {}
+): Promise<boolean> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      if (withGasCredits) await uploadTransactionWithGasCredits(transaction);
+      else await uploadTransaction(transaction);
+      return true;
+    } catch (error) {
+      if (!(error instanceof ApiError && error.code === "chain_unavailable")) {
+        console.error("上传交易记录失败:", error);
+        return false;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+  }
+  return false;
+}
+
 // 设置交易备注
 export async function setTransactionNote(props: {
   id: number;

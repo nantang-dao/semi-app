@@ -275,7 +275,7 @@ import { useUserStore } from "@/stores/user";
 import { isAddress, zeroAddress, parseEther } from "viem";
 import { keystoreToPrivateKey } from "semi-core/keys";
 import { deployToken } from "~/utils/SafeSmartAccount/operation";
-import { addTokenClass } from "~/utils/semi_api";
+import { addTokenClass, recordTransaction } from "~/utils/semi_api";
 import { TOKEN_FACTORY_CONTRACT } from "~/utils/config";
 
 // 类型定义
@@ -429,16 +429,26 @@ const HandleDeployToken = async () => {
     };
 
     // 上传部署记录
-    await uploadTransactionWithGasCredits({
-      tx_hash: receipt.receipt.transactionHash,
-      gas_used: receipt.actualGasCost.toString(),
-      status: receipt.success ? "success" : "failed",
-      chain: useChain.chain.name.toLowerCase(),
-      data: JSON.stringify(receipt) as any,
-      memo: "",
-      sender_address: useUser.user?.evm_chain_address || "",
-      receiver_address: TOKEN_FACTORY_CONTRACT[useChain.chain.id],
-    });
+    const recorded = await recordTransaction(
+      {
+        tx_hash: receipt.receipt.transactionHash,
+        gas_used: receipt.actualGasCost.toString(),
+        status: receipt.success ? "success" : "failed",
+        chain: useChain.chain.name.toLowerCase(),
+        data: JSON.stringify(receipt) as any,
+        memo: "",
+        sender_address: useUser.user?.evm_chain_address || "",
+        receiver_address: TOKEN_FACTORY_CONTRACT[useChain.chain.id],
+      },
+      { withGasCredits: true }
+    );
+    if (!recorded) {
+      toast.add({
+        title: "部署已完成",
+        description: "交易记录同步失败，不影响合约",
+        color: "warning",
+      });
+    }
 
     step.value = 3;
     toast.add({
