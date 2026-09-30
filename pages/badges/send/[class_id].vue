@@ -470,8 +470,6 @@ const handleNext = () => {
 };
 
 const handleCreate = async () => {
-  console.log(pinCode.value);
-  console.log(formState);
   isSubmitting.value = true;
 
   // 本地解密 + 签名。PIN 错在这里就抛，不再由服务端判断。

@@ -53,6 +53,17 @@ export default defineNuxtConfig({
       options: { target: "es2020" },
     },
   },
+  // 生产构建去掉 console.log / console.debug（保留 warn / error）。钱包页面经手私钥和
+  // 支付码，调试日志曾把它们打进浏览器控制台，扩展、错误上报、共用电脑都读得到。
+  $production: {
+    vite: {
+      build: {
+        rolldownOptions: {
+          treeshake: { manualPureFunctions: ["console.log", "console.debug"] },
+        },
+      },
+    },
+  },
   modules: ["@nuxt/icon", "@nuxt/ui", "@pinia/nuxt"],
   css: ["~/assets/css/main.css"],
   routeRules: {

@@ -133,7 +133,6 @@ const onSubmit = async () => {
       JSON.parse(user.encrypted_keys),
       formState.pin.join("")
     );
-    console.log("privateKey", privateKey.value);
     showPrivateKey.value = true;
   } catch (error) {
     console.error("验证失败:", error);
