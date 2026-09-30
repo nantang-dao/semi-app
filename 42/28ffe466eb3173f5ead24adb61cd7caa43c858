@@ -1,0 +1,27 @@
+utils/wallet_binding.ts
+  s_21c523732de41d::t_50dd1df2c228b5 1-24
+pages/import.client.vue
+  s_21c523732de41d::t_167be3db43b7ca 161,163,261-264,267,269-270,288
+api.md
+  s_21c523732de41d::t_e01e5ec33d49f6 241,248-253,262
+utils/semi_api.ts
+  s_21c523732de41d::t_167be3db43b7ca 231-232,239-240,243-248,255-259
+pages/paymentcode.client.vue
+  s_21c523732de41d::t_167be3db43b7ca 60-61,64,97-98,109-110,116,162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4228ffe466eb3173f5ead24adb61cd7caa43c858",
+  "prompts": {},
+  "sessions": {
+    "s_21c523732de41d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7cce0af7-aa66-434c-92bc-b50481bff78b",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
