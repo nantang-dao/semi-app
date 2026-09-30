@@ -1,4 +1,3 @@
-import { sha256 } from "viem/utils";
 import type { TransactionReceipt } from "./SafeSmartAccount/operation";
 
 // API 响应的基础接口
@@ -295,27 +294,6 @@ export async function setEvmChainAddress(
     body: JSON.stringify({ id, evm_chain_address, evm_chain_active_key }),
   });
   return handleRequest<BaseResponse>(response);
-}
-
-export async function signinWithPassword(phone: string, password: string) {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(password);
-  const hax = sha256(bytes);
-  console.log("password_hash", hax);
-
-  const response = await fetch(`${requireSemiRestBaseUrl()}/signin_with_password`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ phone, password: hax }),
-  });
-
-  const data = await handleRequest<SignInResponse>(response);
-
-  if (data.auth_token) {
-    setAuthToken(data.auth_token);
-  }
-
-  return data;
 }
 
 // 查询剩余免手续费交易次数

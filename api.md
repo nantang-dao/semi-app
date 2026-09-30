@@ -99,28 +99,6 @@ Signs in a user using email and verification code. Creates a user if not exists.
 
 ---
 
-## `POST /signin_with_password`
-
-**Description:**
-Signs in a user using phone and password. If the user does not exist, creates a new user with the provided phone and password.
-
-**Parameters:**
-- `phone` (string, required): The user's phone number.
-- `password` (string, required): The user's password.
-
-**Response:**
-```json
-{
-  "result": "ok",
-  "auth_token": "string",
-  "phone": "string",
-  "id": "string",
-  "address_type": "phone"
-}
-```
-
----
-
 ## `POST /set_handle`
 
 **Description:**
