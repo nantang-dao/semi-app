@@ -527,6 +527,35 @@ function remainingSigners(owners: Address[], signatures: CollectedSignature[]): 
 `checkSignatures` 依赖这个顺序线性扫描 owner 链表，顺序错了会判定为无效签名。
 多收的签名按序取前 `threshold` 个。
 
+### 核对待签内容
+
+```ts
+interface MultisigCall { to: Address; value?: bigint; data?: Hex }
+
+function encodeSafeCallData(call: MultisigCall): Hex
+function assertSnapshotMatchesCall(
+  snapshot: UserOpSnapshot,
+  expected: { safeAddress: Address; chainId: number; call: MultisigCall; nonce?: string | bigint }
+): void
+```
+
+哈希比对只能证明快照没被**改过**，证明不了它签的是页面展示的那笔交易：快照由第一个
+签名人上传，他完全可以在「转 0.01 给 Bob」的提案上传一份「转走全部」的快照，哈希照样
+自洽。所以签名前还要用 `assertSnapshotMatchesCall` 核对 `sender`、`chainId`、`nonce`
+（传了才查）和 `callData`，不一致抛 `SnapshotMismatchError`（`field` 指出哪一项）。
+
+`expected.call` 必须由调用方从**展示给用户的字段**重新推出来（app 里是
+`utils/multisig_calls.ts` 的 `callFromTx`），不能取自快照或后端给的 calldata——否则比
+对的是攻击者提供的两份东西。
+
+- 多签交易只执行**一个** CALL（operation 0）。DELEGATECALL 和附加调用都会让 callData
+  对不上。
+- `encodeSafeCallData` 与 permissionless `encodeCalls([call])` 逐字节相同，由
+  `test/snapshot-intent.test.ts` 锁住；后端 `MultisigIntent` 用同一组向量
+  （`semi-backend/test/services/multisig_intent_test.rb`）。升级 permissionless 后这里失败
+  就不能升。
+- gas / paymaster 字段不在核对范围内：它们决定谁付费、付多少，不改变 Safe 执行什么。
+
 ### 执行
 
 ```ts
@@ -625,6 +654,7 @@ interface PaymasterValidity { validUntil: number; validAfter: number }
 | `ChainNotConfiguredError`   | `CHAIN_NOT_CONFIGURED`     | `core.chain(id)` 取了没配置的链 | `chainId` |
 | `ChainMismatchError`        | `CHAIN_MISMATCH`           | RPC 实际连着的链和配置的 `chain.id` 不一致 | `configured`, `actual` |
 | `SnapshotHashMismatchError` | `SNAPSHOT_HASH_MISMATCH`   | 快照的 SafeOp 哈希和记录在案的对不上 | `expected`, `actual` |
+| `SnapshotMismatchError`     | `SNAPSHOT_MISMATCH`        | 快照签下去的内容和展示的交易对不上 | `field` |
 | `KeystoreError`             | `KEYSTORE_BAD_PASSCODE`    | 口令错 | |
 | `KeystoreError`             | `KEYSTORE_MALFORMED`       | keystore 结构坏了 | |
 | `PaymasterNotConfiguredError` | `PAYMASTER_NOT_CONFIGURED` | 要求代付但该链没配 paymaster | |
@@ -674,6 +704,8 @@ const first = await signSafeOpSnapshot(privateKey, snapshot);
 
 // 2. 后续签名者（可以离线，不需要 bundler）
 assertValidSnapshot(snapshotFromBackend);
+// call 从页面展示的字段重新推出来，不取自快照（第一个签名人建快照后也要核对）
+assertSnapshotMatchesCall(snapshotFromBackend, { safeAddress, chainId, call, nonce });
 const sig = await signSafeOpSnapshot(privateKey, snapshotFromBackend, {
   expectedHash, // 从另一条渠道拿到的提案哈希；没有就退化成只查自洽
 });

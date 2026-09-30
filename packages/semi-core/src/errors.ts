@@ -219,3 +219,22 @@ export class SnapshotExpiredError extends SemiCoreError {
     this.expiredAt = expiredAt;
   }
 }
+
+/**
+ * 快照签下去的内容和这笔交易应有的内容对不上。
+ *
+ * 快照由第一个签名人上传，后面的人签的是它；页面展示的却是 call_detail。两者
+ * 之间要是不做比对，第一个签名人（或被攻破的后端）就能让其他 owner 看着「转
+ * 0.01」签下「转走全部」。`field` 指出是哪一项对不上。
+ */
+export class SnapshotMismatchError extends SemiCoreError {
+  readonly field: string;
+  constructor(field: string, expected: string, actual: string) {
+    super(
+      "SNAPSHOT_MISMATCH",
+      `This proposal's signed ${field} does not match the transaction shown: expected ${expected}, ` +
+        `got ${actual}. Do not sign it.`
+    );
+    this.field = field;
+  }
+}

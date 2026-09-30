@@ -59,6 +59,16 @@
                 <CopyableAddress :address="tx.call_detail.to" text-class="text-sm" />
               </div>
             </template>
+            <!-- 转的是哪个代币由合约地址决定，symbol 是提案人填的，不能只看它 -->
+            <template v-if="tx.tx_type === 'erc20_transfer' && tx.call_detail.token_address">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-500">
+                  {{ i18n.text['multisig.tokenContract'] || '代币合约' }}
+                  <span v-if="tx.call_detail.symbol" class="text-gray-400">({{ tx.call_detail.symbol }})</span>
+                </span>
+                <CopyableAddress :address="tx.call_detail.token_address" text-class="text-sm" />
+              </div>
+            </template>
             <template v-if="tx.user_op_snapshot">
               <div class="flex justify-between items-center">
                 <span class="text-sm text-gray-500 flex items-center gap-1">
@@ -301,10 +311,12 @@ import {
   getActualGasFee,
 } from '~/utils/SafeSmartAccount/multisig'
 import { keystoreToPrivateKey } from 'semi-core/keys'
+import { assertSnapshotMatchesCall, SnapshotMismatchError } from 'semi-core'
+import { callFromTx } from '~/utils/multisig_calls'
 import { chainMap } from '~/stores/chain'
 import { chainName } from '~/utils/multisig_chains'
 import { executeMultisigTransaction, ExecutionNotSubmittedError, type ExecuteOutcome } from '~/utils/multisig_execute'
-import { parseEther, type Address, type Hex } from 'viem'
+import { type Address, type Hex } from 'viem'
 
 const route = useRoute()
 const router = useRouter()
@@ -596,9 +608,14 @@ function walletOf(t: MultisigTx) {
 /**
  * 给一笔交易签名。第一个签名者负责建快照：owner / 门限用这笔交易所在链的
  * 钱包行——在还没部署的链上那就是初始配置，initCode 才算得出正确的地址。
+ *
+ * 快照不管是自己建的还是别人上传的，签名前都要和页面展示的内容核对：后面的
+ * 签名人签的是第一个签名人上传的快照，不核对就等于盲签。
  */
 async function signOne(t: MultisigTx, privateKey: Hex) {
   const wallet = walletOf(t)
+  const safe = wallet.safe_address as Address
+  const call = await callFromTx(t, safe)
   let snapshot = t.user_op_snapshot
   let nonce: string | undefined
 
@@ -607,13 +624,27 @@ async function signOne(t: MultisigTx, privateKey: Hex) {
     if (!chain) throw new Error('Unsupported chain')
     const { owners: rowOwners, threshold } = await getMultisigWalletOwners(wallet.id)
     snapshot = await buildMultisigUserOpSnapshot({
-      safeAddress: wallet.safe_address,
+      safeAddress: safe,
       owners: rowOwners.map((o) => o.owner_address),
       threshold: t.current_threshold ?? threshold,
       chain,
-      calls: buildCallsFromTx(t, wallet.safe_address),
+      calls: [call],
     })
     nonce = snapshot.nonce
+  }
+
+  try {
+    assertSnapshotMatchesCall(snapshot, {
+      safeAddress: safe,
+      chainId: t.chain_id,
+      call,
+      nonce: t.nonce ?? undefined,
+    })
+  } catch (err) {
+    if (err instanceof SnapshotMismatchError) {
+      throw new Error(`待签内容与页面展示的交易不一致（${err.field}），可能已被篡改，已拒绝签名。`)
+    }
+    throw err
   }
 
   const { signer, signature } = await signSafeOpSnapshot(privateKey, snapshot)
@@ -935,42 +966,6 @@ async function leaveIfNoLongerOwner(t: MultisigTx): Promise<boolean> {
     return true
   }
   return false
-}
-
-function buildCallsFromTx(t: MultisigTx, safe: Address): { to: `0x${string}`; value?: bigint; data?: `0x${string}` }[] {
-  if (t.tx_type === 'cancel') {
-    return [{ to: safe, value: 0n, data: '0x' }]
-  }
-
-  let calls: { to: `0x${string}`; value?: bigint; data?: `0x${string}` }[] = []
-
-  if (t.tx_type === 'transfer' && t.call_detail.to) {
-    const ethAmount = String(t.call_detail.amount || '0')
-    // 精确字符串转换，避免 parseFloat(...)*1e18 在 >2^53 wei 时丢精度
-    const weiValue = parseEther(ethAmount)
-    calls = [{ to: t.call_detail.to as `0x${string}`, value: weiValue }]
-  } else if (t.tx_type === 'erc20_transfer' && t.call_detail.token_address && t.evm_call_data) {
-    // ERC-20 代币转账：to 必须是代币合约地址，data 是 transfer(recipient, amount) 编码
-    calls = [{
-      to: t.call_detail.token_address as `0x${string}`,
-      data: t.evm_call_data as `0x${string}`,
-      value: 0n,
-    }]
-  } else if (t.evm_call_data) {
-    // 其他类型（如配置变更等）：to 为 Safe 自身地址
-    calls = [{ to: safe, data: t.evm_call_data as `0x${string}`, value: 0n }]
-  }
-
-  // 附加备注上链调用（与单签一致，通过 Remark Proxy saveRemark）
-  if (t.call_detail.remark_to && t.call_detail.remark_data) {
-    calls.push({
-      to: t.call_detail.remark_to as `0x${string}`,
-      data: t.call_detail.remark_data as `0x${string}`,
-      value: 0n,
-    })
-  }
-
-  return calls
 }
 
 function abbr(address?: string): string {

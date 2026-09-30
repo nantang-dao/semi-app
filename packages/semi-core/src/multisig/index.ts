@@ -15,6 +15,12 @@ export {
 } from "./snapshot";
 export { executeMultisigUserOp, type ExecuteResult } from "./execute";
 export {
+  encodeSafeCallData,
+  assertSnapshotMatchesCall,
+  type MultisigCall,
+  type ExpectedSnapshot,
+} from "./intent";
+export {
   encodeAddOwner,
   encodeRemoveOwner,
   encodeChangeThreshold,
