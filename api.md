@@ -26,7 +26,9 @@ Returns a simple hello world message.
 Sends an SMS with a verification code to the provided phone number.
 
 **Parameters:**
-- `phone` (string, required): The phone number to send the SMS to.
+- `phone` (string, required): 11-digit mainland China mobile number. Anything else → `400` with `code: "invalid_phone"`.
+
+Sending a new code invalidates the previous unused one. Rate limits (per target, i.e. phone or email): one send per 60 s, 5 per hour, 12 per day; per client IP: 30 per hour. Over the limit → `400` with `code: "rate_limited"` (the previous code, if any, stays valid). Codes expire after 15 minutes.
 
 **Response:**
 ```json
@@ -43,7 +45,9 @@ Sends an SMS with a verification code to the provided phone number.
 Sends an email with a verification code to the provided email address.
 
 **Parameters:**
-- `email` (string, required): The email address to send the verification code to.
+- `email` (string, required): The email address to send the verification code to. Malformed → `400` with `code: "invalid_email"`.
+
+Same invalidation, rate limits and 15-minute expiry as `send_sms`.
 
 **Response:**
 ```json
@@ -75,6 +79,9 @@ Signs in a user using phone and verification code. Creates a user if not exists.
 }
 ```
 
+
+**Errors** (`400`, `{result: "error", message, code}`): `invalid_code` (wrong, already used, or none issued), `code_expired`, `too_many_attempts` (5 wrong guesses burn the code — request a new one).
+
 ---
 
 ## `POST /signin_with_email`
@@ -96,6 +103,9 @@ Signs in a user using email and verification code. Creates a user if not exists.
   "address_type": "email"
 }
 ```
+
+
+**Errors** (`400`, `{result: "error", message, code}`): `invalid_code` (wrong, already used, or none issued), `code_expired`, `too_many_attempts` (5 wrong guesses burn the code — request a new one).
 
 ---
 

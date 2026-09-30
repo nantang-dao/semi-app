@@ -74,10 +74,27 @@ export const AUTH_TOKEN_KEY = "semi_auth_token";
 const MOCK_RESPONSE = false;
 
 // 通用请求处理函数
+/** 后端 AppError 带 code 时保留下来，调用方据此分支；message 已换成给用户看的中文 */
+export class ApiError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+  }
+}
+
+// 验证码相关的错误码，见 semi-backend VerificationToken
+const API_ERRORS: Record<string, string> = {
+  rate_limited: "发送太频繁，请稍后再试",
+  invalid_phone: "请输入 11 位手机号",
+  invalid_email: "邮箱格式不正确",
+  invalid_code: "验证码错误",
+  code_expired: "验证码已过期，请重新获取",
+  too_many_attempts: "错误次数过多，请重新获取验证码",
+};
+
 async function handleRequest<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || error.message || "请求失败");
+    const error = await response.json().catch(() => ({}));
+    throw new ApiError(API_ERRORS[error.code] ?? (error.error || error.message || "请求失败"), error.code);
   }
   return response.json();
 }

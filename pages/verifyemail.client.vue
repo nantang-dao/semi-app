@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { onMounted } from "vue";
-import { signInWithEmail, sendEmailCode } from "~/utils/semi_api";
+import { signInWithEmail, sendEmailCode, ApiError } from "~/utils/semi_api";
 import { useUserStore } from "~/stores/user";
 
 definePageMeta({
@@ -109,7 +109,7 @@ const resendCode = async () => {
     console.error("发送验证码失败:", error);
     toast.add({
       title: i18n.text["Failed to send verification code"],
-      description: i18n.text["Please try again later"],
+      description: error instanceof ApiError ? error.message : i18n.text["Please try again later"],
       color: "error",
     });
   } finally {
@@ -165,7 +165,7 @@ const onSubmit = async () => {
     console.error("验证失败:", error);
     toast.add({
       title: i18n.text["Verification failed"],
-      description: i18n.text["Please check if the verification code is correct"],
+      description: error instanceof ApiError ? error.message : i18n.text["Please check if the verification code is correct"],
       color: "error",
     });
   } finally {

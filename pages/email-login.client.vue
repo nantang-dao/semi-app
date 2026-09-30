@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { sendEmailCode } from "~/utils/semi_api";
+import { sendEmailCode, ApiError } from "~/utils/semi_api";
 
 definePageMeta({
   layout: "unauth",
@@ -79,7 +79,20 @@ const onSubmit = async () => {
   try {
     const validation = validateEmail(formState.email);
     if (validation === true) {
-      await sendEmailCode(formState.email);
+      try {
+        await sendEmailCode(formState.email);
+      } catch (error) {
+        // 发送太频繁时，之前发出的码可能仍然有效，照常进入输码页
+        if (!(error instanceof ApiError && error.code === "rate_limited")) {
+          toast.add({
+            title: i18n.text["Failed to send verification code"],
+            description: error instanceof ApiError ? error.message : i18n.text["Please try again later"],
+            color: "error",
+          });
+          return;
+        }
+        toast.add({ title: error.message, description: "如已收到验证码，可直接输入", color: "warning" });
+      }
 
       // Check if coming from OAuth flow
       const redirectParam = route.query.redirect as string;
