@@ -161,7 +161,8 @@ import { predictSafeAccountAddress } from "~/utils/SafeSmartAccount";
 import { privateKeyToAccount } from "viem/accounts";
 import { setEncryptedKeys } from "~/utils/semi_api";
 import { signWalletBinding } from "~/utils/wallet_binding";
-import { privateKeyToAddress, encryptToKeystore, isPrivateKey } from "semi-core/keys";
+import { privateKeyToAddress, isPrivateKey } from "semi-core/keys";
+import { createKeystoreV2 } from "~/utils/keystore_session";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -257,13 +258,13 @@ const handleImport = async () => {
 
   loading.value = true;
   try {
-    const keystore = await encryptToKeystore(formState.privateKey, formState.pin.join(""));
+    const keystore = await createKeystoreV2(formState.privateKey, formState.pin.join(""));
     const account = privateKeyToAccount(formState.privateKey as `0x${string}`);
     // 持有私钥的证明：后端验签，并核对 Safe 地址由这把私钥推出
     const proof = await signWalletBinding(account, userStore.user!.id, previewWallet.value.safeAccount as `0x${string}`);
     const response = await setEncryptedKeys({
       id: userStore.user!.id,
-      encrypted_keys: JSON.stringify(keystore),
+      ...keystore,
       evm_chain_active_key: account.address,
       evm_chain_address: previewWallet.value.safeAccount,
       ...proof,

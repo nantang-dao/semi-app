@@ -351,7 +351,6 @@ const handleCreate = async () => {
         method: "POST",
         body: {
           ...(await signBadgeAuth({
-            keystoreJson: user.user!.encrypted_keys,
             pinCode: pinCode.value.join(""),
             action: "create-profile",
             chainId: useChain.chain.id,
@@ -400,7 +399,6 @@ const handleCreate = async () => {
       method: "POST",
       body: {
         ...(await signBadgeAuth({
-          keystoreJson: user.user!.encrypted_keys,
           pinCode: pinCode.value.join(""),
           action: "create-class",
           chainId: useChain.chain.id,

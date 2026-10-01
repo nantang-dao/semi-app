@@ -347,7 +347,7 @@ import { useChainStore } from '~/stores/chain'
 import { useI18n } from '~/stores/i18n'
 import { getMultisigWalletOwners, getMultisigTxs, lookupMultisigTxMemos } from '~/utils/multisig_api'
 import { CONFIG_TX_TYPES, executeMultisigTransaction, ExecutionNotSubmittedError } from '~/utils/multisig_execute'
-import { keystoreToPrivateKey } from 'semi-core/keys'
+import { unlockPrivateKey } from '~/utils/keystore_session'
 import type { MultisigTx, MultisigOwner } from '~/utils/multisig_api'
 import { getBalance, getPopularERC20Balance, type ERC20Balance } from '~/utils/balance'
 import { displayBalance } from '~/utils/display'
@@ -630,10 +630,7 @@ async function onExecutePasscode(passcode: string) {
 
   try {
     // 1. 先验证支付码是否正确（不锁定后端状态）
-    const encryptedKeys = userStore.user?.encrypted_keys
-    if (!encryptedKeys) throw new Error('No encrypted keys')
-    const keystore = typeof encryptedKeys === 'string' ? JSON.parse(encryptedKeys) : encryptedKeys
-    await keystoreToPrivateKey(keystore, passcode)
+    await unlockPrivateKey(passcode)
 
     // 2. 余额检查、锁定、提交、回写：与详情页共用 utils/multisig_execute.ts
     const wallet = multisigStore.wallets.find((w) => w.id === tx.wallet_id) ?? multisigStore.activeWallet

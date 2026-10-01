@@ -9,6 +9,10 @@ import { isPrivateKey, mnemonicToPrivateKey } from "./mnemonic";
  * 两种都要支持——所以解开之后按格式判断。
  */
 export async function keystoreToPrivateKey(keystore: Keystore, passcode: string): Promise<Hex> {
-  const secret = await decryptKeystore(keystore, passcode);
+  return secretToPrivateKey(await decryptKeystore(keystore, passcode));
+}
+
+/** keystore 解出来的秘密串（助记词或裸私钥）→ 私钥 */
+export function secretToPrivateKey(secret: string): Hex {
   return isPrivateKey(secret) ? secret : mnemonicToPrivateKey(secret);
 }

@@ -476,7 +476,6 @@ const handleCreate = async () => {
   let auth;
   try {
     auth = await signBadgeAuth({
-      keystoreJson: user.user!.encrypted_keys,
       pinCode: pinCode.value.join(""),
       action: "create-badges",
       chainId: useChain.chain.id,

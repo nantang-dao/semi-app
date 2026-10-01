@@ -102,7 +102,7 @@
 <script setup lang="ts">
 import { useUserStore } from "~/stores/user";
 import { useI18n } from "~/stores/i18n";
-import { keystoreToPrivateKey } from "semi-core/keys";
+import { unlockPrivateKey } from "~/utils/keystore_session";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -124,15 +124,12 @@ const onSubmit = async () => {
   loading.value = true;
   try {
     const user = userStore.user;
-    if (!user?.encrypted_keys) {
+    if (!user?.keystore_version) {
       throw new Error(i18n.text["No encrypted key information found"]);
     }
 
     // 获取私钥
-    privateKey.value = await keystoreToPrivateKey(
-      JSON.parse(user.encrypted_keys),
-      formState.pin.join("")
-    );
+    privateKey.value = await unlockPrivateKey(formState.pin.join(""));
     showPrivateKey.value = true;
   } catch (error) {
     console.error("验证失败:", error);

@@ -227,7 +227,7 @@ import { getBalance, getErc20Balance } from "~/utils/balance";
 import { predictSafeAccountAddress, transfer, transferErc20 } from "~/utils/SafeSmartAccount";
 import { displayBalance } from "~/utils/display";
 import { hexToBigInt, isAddress, keccak256, toBytes, zeroAddress } from "viem";
-import { keystoreToPrivateKey } from "semi-core/keys";
+import { unlockPrivateKey } from "~/utils/keystore_session";
 import {
   getUserByHandleOrPhone,
   getRemainingGasCredits,
@@ -490,10 +490,7 @@ const handleTokenTransfer = async () => {
   loading.value = true;
   let privateKey = "";
   try {
-    privateKey = await keystoreToPrivateKey(
-      JSON.parse(user.user?.encrypted_keys as string),
-      formState.code.join("")
-    );
+    privateKey = await unlockPrivateKey(formState.code.join(""));
   } catch (error) {
     handleError(error, i18n.text["Invalid passcode"], "");
     return false;
