@@ -18,7 +18,7 @@ import { KeystoreUnlockError, getKeystore, unlockKeystore, updateKeystore, type 
  * 用支付码解开 keystore。所有要私钥的页面都走这里，不要再直接读 keystore。
  *
  * keystore v2（见 semi-backend docs/keystore.md）：解密还要服务端的 key_share，服务端核对支付码
- * 派生的 verifier 后才下发，连续错 10 次锁 24 小时。6 位支付码在 v1 下拿到 keystore 就能离线
+ * 派生的 verifier 后才下发，连续错 50 次锁 24 小时。6 位支付码在 v1 下拿到 keystore 就能离线
  * 穷举，v2 把它变成在线猜测。
  *
  * - 打开或刷新页面后第一次输支付码：多一次 unlock_keystore 请求，拿到的 keystore 和 key_share

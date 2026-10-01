@@ -269,7 +269,7 @@ The keystore version and the public parameters needed to unlock it (see semi-bac
 ## `POST /unlock_keystore`
 
 **Description:**
-Checks the passcode-derived verifier and returns the v2 keystore with its `key_share`. 10 consecutive failures lock it for 24 hours (the right verifier is refused while locked).
+Checks the passcode-derived verifier and returns the v2 keystore with its `key_share`. 50 consecutive failures lock it for 24 hours (the right verifier is refused while locked).
 
 **Headers:**
 - `Authorization: Bearer <auth_token>`
