@@ -302,6 +302,11 @@ const multisigHintText = computed(() => {
 });
 
 const handleBack = () => {
+  // 单签 step2（输 PIN）先回到表单；多签无 step2，step1 仍回队列/首页
+  if (step.value === 2) {
+    handleReset();
+    return;
+  }
   if (multisigStore.activeWallet) {
     router.push("/multisig/queue");
   } else {
