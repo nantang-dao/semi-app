@@ -1,0 +1,16 @@
+assets/i18n/en.json
+  h_b053bf74bef223 416
+assets/i18n/zh.json
+  h_b053bf74bef223 422
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2c7646ae8416e4e24bc022bb835f8aec2a852f50",
+  "prompts": {},
+  "humans": {
+    "h_b053bf74bef223": {
+      "author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
