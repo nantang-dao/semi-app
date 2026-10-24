@@ -32,6 +32,9 @@ export {
 export {
   fetchSponsorPaymasterData,
   parsePaymasterValidity,
+  probePaymasterAvailable,
+  isSponsorshipFailure,
+  PAYMASTER_DEPOSIT_FLOOR_WEI,
   type SponsorPaymasterFields,
   type PaymasterValidity,
 } from "./sponsorship";

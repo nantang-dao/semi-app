@@ -166,22 +166,35 @@
             />
           </UFormField>
 
-          <div class="text-gray-400 text-sm mt-3" v-if="formState.gasEstimate !== '0'">
+          <div class="text-gray-400 text-sm mt-3">
             <span class="flex items-center gap-1">
               {{ i18n.text["gas.estimatedFee"] || i18n.text["Estimated Fee"] }}
               <FeeTipPopup />
             </span>
-            <span
-              :class="[
-                'font-bold text-base text-foreground',
-                formState.remainingFreeTransactions > 0 ? 'line-through' : '',
-              ]"
-            >
-              {{ formState.gasEstimate }} Gwei
+            <template v-if="willSponsor">
+              <span
+                v-if="formState.gasEstimate !== '0'"
+                class="font-bold text-base text-foreground line-through"
+              >
+                {{ formState.gasEstimate }} Gwei
+              </span>
+              <span class="font-bold text-base text-foreground ml-1">
+                {{ i18n.text["gas.sponsored"] || "免费（平台代付）" }}
+              </span>
+            </template>
+            <span v-else class="font-bold text-base text-foreground">
+              {{
+                formState.gasEstimate !== "0"
+                  ? (i18n.text["gas.selfPayWithEstimate"] || "约 {fee}，自付").replace(
+                      "{fee}",
+                      `${formState.gasEstimate} Gwei`
+                    )
+                  : i18n.text["gas.selfPay"] || "自付"
+              }}
             </span>
           </div>
 
-          <div class="text-gray-400 text-sm mt-2">
+          <div class="text-gray-400 text-sm mt-2" v-if="isGasSponsorshipChain(useChain.chain.id)">
             {{ i18n.text["Remaining free transaction count"] }}
             <span class="font-bold text-base text-foreground">
               {{ formState.remainingFreeTransactions }}
@@ -233,8 +246,13 @@ import {
   getRemainingGasCredits,
   recordTransaction,
 } from "~/utils/semi_api";
-import { isGasSponsorshipChain } from "~/utils/gas_sponsorship";
+import {
+  canSponsorTransferNow,
+  isGasSponsorshipChain,
+  isSponsorshipFailure,
+} from "~/utils/gas_sponsorship";
 import { isPhoneNumber } from "~/utils";
+import { InsufficientFundsError } from "semi-core";
 import { REMARK_PROXY_ADDRESS } from "~/utils/config";
 import { remarkProxyAbi, REMARK_MAX_CHARS } from "~/utils/remarkContract";
 // 类型定义
@@ -287,6 +305,8 @@ const i18n = useI18n();
 // Multisig mode detection
 const isMultisigMode = computed(() => !!multisigStore.activeWallet);
 const multisigGasEstimateEth = ref("");
+/** 确认页展示与提交共用：true = 走 paymaster；进 step2 前探活后锁定 */
+const willSponsor = ref(false);
 const multisigHintText = computed(() => {
   const wallet = multisigStore.activeWallet;
   if (!wallet) return "";
@@ -378,6 +398,9 @@ const isCodeComplete = computed(() => {
 
 // 工具函数
 const getErrorMessage = (error: unknown): string => {
+  if (error instanceof InsufficientFundsError) {
+    return i18n.text["Insufficient balance to pay gas fees"];
+  }
   if (!(error instanceof Error)) return i18n.text["Please try again later"];
   if (!error.message) return i18n.text["Please try again later"];
 
@@ -401,6 +424,7 @@ const handleError = (error: unknown, title: string, description?: string) => {
 
 const resetForm = () => {
   step.value = 1;
+  willSponsor.value = false;
   formState.recipient = null;
   formState.code = [...DEFAULT_CODE];
   formState.senderNote = "";
@@ -516,8 +540,7 @@ const handleTokenTransfer = async () => {
       amount: formState.amount,
       privateKey: privateKey as `0x${string}`,
       chain: useChain.chain,
-      sponsorFee:
-        isGasSponsorshipChain(useChain.chain.id) && formState.remainingFreeTransactions > 0,
+      sponsorFee: willSponsor.value,
     };
 
     const proxyAddress = REMARK_PROXY_ADDRESS[useChain.chain.id];
@@ -563,9 +586,30 @@ const handleTokenTransfer = async () => {
       transferParams.erc20TokenAddress = formState.token.address as `0x${string}`;
     }
 
-    const receipt = await (formState.token.address === zeroAddress
-      ? transfer(transferParams)
-      : transferErc20(transferParams));
+    const sendOnce = (sponsorFee: boolean) => {
+      const params = { ...transferParams, sponsorFee };
+      return formState.token!.address === zeroAddress ? transfer(params) : transferErc20(params);
+    };
+
+    let usedSponsorFee = transferParams.sponsorFee;
+    let receipt;
+    try {
+      receipt = await sendOnce(usedSponsorFee);
+    } catch (error) {
+      // 兜底：代付失败且像 paymaster 问题 → 改自付再试一次
+      if (usedSponsorFee && isSponsorshipFailure(error)) {
+        toast.add({
+          title: i18n.text["gas.sponsorUnavailableFallback"] || "平台代付暂不可用",
+          description: i18n.text["gas.sponsorFallbackDesc"] || "已改为使用账户 ETH 支付手续费",
+          color: "warning",
+        });
+        willSponsor.value = false;
+        usedSponsorFee = false;
+        receipt = await sendOnce(false);
+      } else {
+        throw error;
+      }
+    }
 
     const uploadData = {
       tx_hash: receipt.receipt.transactionHash,
@@ -581,7 +625,7 @@ const handleTokenTransfer = async () => {
       metadata: formState.metadata || undefined,
     };
 
-    const recorded = await recordTransaction(uploadData, { withGasCredits: !!transferParams.sponsorFee });
+    const recorded = await recordTransaction(uploadData, { withGasCredits: usedSponsorFee });
     if (!recorded) {
       toast.add({ title: "转账已完成", description: "交易记录同步失败，不影响到账", color: "warning" });
     }
@@ -705,10 +749,24 @@ const onSubmit = async () => {
       return;
     }
 
-    // 获取免手续费交易次数
+    // 获取免手续费交易次数，并探活 paymaster（B：确认前定好 willSponsor）
     if (!(await fetchGasCredits())) {
       loading.value = false;
       return;
+    }
+
+    willSponsor.value = false;
+    if (
+      isGasSponsorshipChain(useChain.chain.id) &&
+      formState.remainingFreeTransactions > 0
+    ) {
+      try {
+        const sender = await getActiveSmartAccountAddress();
+        willSponsor.value = await canSponsorTransferNow(useChain.chain.id, sender);
+      } catch (error) {
+        console.warn("Paymaster probe error, falling back to self-pay", error);
+        willSponsor.value = false;
+      }
     }
 
     loading.value = false;

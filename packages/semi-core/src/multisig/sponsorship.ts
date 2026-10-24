@@ -1,6 +1,8 @@
 import type { Address, Hex } from "viem";
+import { entryPoint07Abi } from "viem/account-abstraction";
 import { ENTRY_POINT_07_ADDRESS } from "../chains";
 import type { ChainContext } from "../config";
+import { InsufficientFundsError, UserOpFailedError } from "../errors";
 
 /**
  * eth-infinitism VerifyingPaymaster（ZeroDev 用的就是这个）的 paymasterData 布局：
@@ -158,4 +160,73 @@ export async function fetchSponsorPaymasterData(
     paymasterPostOpGasLimit: pmPostOpGas,
     validUntil: validity?.validUntil ?? 0,
   };
+}
+
+/**
+ * EntryPoint 上 paymaster 存款低于此值，就当作「代付不可用」。
+ * 一笔 L2 UserOp 通常远小于这个数；为 0 时 stub 仍可能成功，所以必须查存款。
+ */
+export const PAYMASTER_DEPOSIT_FLOOR_WEI = 10_000_000_000_000n; // 0.00001 ETH
+
+/**
+ * 探活：这条链现在能不能真代付。
+ *
+ * 先向 paymaster 要一份 stub/data；再读 EntryPoint.balanceOf(paymaster)。
+ * 任一步失败、返回空、或存款不足 → false。不抛给 UI。
+ *
+ * `callData` 可用占位 `0x`：只关心赞助通道是否活着，不关心这笔业务 call。
+ */
+export async function probePaymasterAvailable(
+  ctx: ChainContext,
+  sender: Address
+): Promise<boolean> {
+  if (!ctx.canSponsorGas || !ctx.paymasterUrl) return false;
+
+  try {
+    const nonce = await ctx.publicClient.readContract({
+      address: ENTRY_POINT_07_ADDRESS,
+      abi: entryPoint07Abi,
+      functionName: "getNonce",
+      args: [sender, 0n],
+    });
+
+    const pm = await fetchSponsorPaymasterData(ctx, {
+      sender,
+      nonce,
+      callData: "0x",
+      callGasLimit: 100_000n,
+      verificationGasLimit: 200_000n,
+      preVerificationGas: 50_000n,
+      maxFeePerGas: 1_000_000n,
+      maxPriorityFeePerGas: 100_000n,
+    });
+    if (!pm?.paymaster) return false;
+
+    const deposit = await ctx.publicClient.readContract({
+      address: ENTRY_POINT_07_ADDRESS,
+      abi: entryPoint07Abi,
+      functionName: "balanceOf",
+      args: [pm.paymaster],
+    });
+
+    return deposit >= PAYMASTER_DEPOSIT_FLOOR_WEI;
+  } catch (error) {
+    ctx.logger.warn("Paymaster probe failed — treating as unavailable", error);
+    return false;
+  }
+}
+
+/**
+ * 这笔失败是否像「代付不行」、值得改自付再试一次。
+ *
+ * 不含余额不足（那是自付路径该拦的）、也不含已上链的内层 revert。
+ */
+export function isSponsorshipFailure(error: unknown): boolean {
+  if (error instanceof InsufficientFundsError) return false;
+  if (error instanceof UserOpFailedError && error.txHash) return false;
+
+  const message = error instanceof Error ? error.message : String(error);
+  const aa = message.match(/\bAA(31|33|34)\b/)?.[1];
+  if (aa) return true;
+  return /paymaster|sponsorship|sponsor fee|AA33|AA34|AA31/i.test(message);
 }
