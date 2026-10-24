@@ -108,13 +108,16 @@ async function enrichOne(
  * 不值得让整个列表请求为它们等待。
  */
 async function enrichMetadata(pending: PendingNft[], chainId: number): Promise<void> {
+  // Score (721) 与 Originals (1155) 都在 musicCollections 里登记；按合约标准过滤。
   const toEnrich = pending
-    .filter(
-      ({ nft, alchemyNft }) =>
-        nft.tokenType === "ERC721" &&
-        getMusicCollection(chainId, nft.contractAddress) &&
+    .filter(({ nft, alchemyNft }) => {
+      const collection = getMusicCollection(chainId, nft.contractAddress);
+      return (
+        !!collection &&
+        nft.tokenType === collection.tokenStandard &&
         isMetadataIncomplete(alchemyNft)
-    )
+      );
+    })
     .slice(0, MAX_ENRICHED);
 
   const deadline = Date.now() + ENRICH_BUDGET_MS;
