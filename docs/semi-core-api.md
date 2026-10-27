@@ -130,16 +130,32 @@ interface Keystore {
   crypto: {
     ciphertext: string; iv: string; salt: string;
     kdf: "pbkdf2"; cipher: "aes-gcm"; iterations: number; hash: "SHA-256";
+    keyShare?: true;   // v2
   };
 }
 
 function encryptToKeystore(secret: string, passcode: string): Promise<Keystore>
 function decryptKeystore(keystore: Keystore, passcode: string): Promise<string>
 function keystoreToPrivateKey(keystore: Keystore, passcode: string): Promise<Hex>
+function secretToPrivateKey(secret: string): Hex
+
+// v2：解密还要服务端的 key_share
+function encryptToKeystoreV2(secret: string, passcode: string):
+  Promise<{ keystore: Keystore; verifier: string; keyShare: Uint8Array }>
+function deriveKeystorePasscodeParts(params: { salt: string; iterations: number }, passcode: string):
+  Promise<{ verifier: string; encPart: Uint8Array }>
+function decryptKeystoreV2(keystore: Keystore, passcode: string, keyShare: Uint8Array): Promise<string>
+function decryptKeystoreV2WithParts(keystore: Keystore, encPart: Uint8Array, keyShare: Uint8Array): Promise<string>
 ```
 
-`encryptToKeystore` 收任意秘密串（助记词或裸私钥）。**keystore 的强度完全取决于
-passcode**，这里没有别的熵源。
+**v2**（2026-10）：加密密钥 = `HKDF(enc_part ‖ key_share)`，`key_share` 在服务端，核对支付码派生的
+`verifier` 后才下发、限制失败次数，把 6 位支付码的离线穷举变成在线猜测。推导、存储和接口见
+semi-backend `docs/keystore.md`；app 里只通过 `utils/keystore_session.ts` 使用，页面不直接调这些函数。
+`decryptKeystore` 遇到 v2 抛 `KEYSTORE_MALFORMED`。派生步骤有固定向量（`test/keystore-v2.test.ts`），
+改了会让已有 v2 keystore 全部解不开。
+
+`encryptToKeystore` 收任意秘密串（助记词或裸私钥）。**v1 keystore 的强度完全取决于
+passcode**，这里没有别的熵源 —— 新建 keystore 用 v2。
 
 `keystoreToPrivateKey` 是常用的那个：解开后按格式判断是助记词还是裸私钥，两种都
 支持（新建钱包存助记词，从别处导入的存私钥）。

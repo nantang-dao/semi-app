@@ -310,7 +310,7 @@ import {
   buildMultisigUserOpSnapshot,
   getActualGasFee,
 } from '~/utils/SafeSmartAccount/multisig'
-import { keystoreToPrivateKey } from 'semi-core/keys'
+import { unlockPrivateKey } from '~/utils/keystore_session'
 import { assertSnapshotMatchesCall, SnapshotMismatchError } from 'semi-core'
 import { callFromTx } from '~/utils/multisig_calls'
 import { chainMap } from '~/stores/chain'
@@ -593,10 +593,7 @@ function handleExecuteGroup() {
 }
 
 async function decryptPrivateKey(passcode: string): Promise<Hex> {
-  const encryptedKeys = userStore.user?.encrypted_keys
-  if (!encryptedKeys) throw new Error('No encrypted keys')
-  const keystore = typeof encryptedKeys === 'string' ? JSON.parse(encryptedKeys) : encryptedKeys
-  return (await keystoreToPrivateKey(keystore, passcode)) as Hex
+  return await unlockPrivateKey(passcode)
 }
 
 function walletOf(t: MultisigTx) {

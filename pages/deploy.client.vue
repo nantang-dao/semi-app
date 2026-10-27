@@ -273,7 +273,7 @@ import { useChainStore } from "@/stores/chain";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { isAddress, zeroAddress, parseEther } from "viem";
-import { keystoreToPrivateKey } from "semi-core/keys";
+import { unlockPrivateKey } from "~/utils/keystore_session";
 import { deployToken } from "~/utils/SafeSmartAccount/operation";
 import { addTokenClass, recordTransaction } from "~/utils/semi_api";
 import { TOKEN_FACTORY_CONTRACT } from "~/utils/config";
@@ -380,10 +380,7 @@ const HandleDeployToken = async () => {
     if (!TOKEN_FACTORY_CONTRACT[useChain.chain.id]) {
       throw new Error(`${useChain.chain.name} 暂不支持发行代币`);
     }
-    const privateKey = await keystoreToPrivateKey(
-      JSON.parse(useUser.user?.encrypted_keys as string),
-      formState.code.join("")
-    );
+    const privateKey = await unlockPrivateKey(formState.code.join(""));
 
     console.log("[deployToken]: ", useChain.chain);
     const receipt = await deployToken({

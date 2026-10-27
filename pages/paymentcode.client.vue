@@ -58,7 +58,8 @@
 import { useUserStore } from "~/stores/user";
 import { useChainStore } from "~/stores/chain";
 import { mnemonicToAccount } from "viem/accounts";
-import { generateMnemonicPhrase, encryptToKeystore } from "semi-core/keys";
+import { generateMnemonicPhrase } from "semi-core/keys";
+import { createKeystoreV2 } from "~/utils/keystore_session";
 import { predictSafeAccountAddress } from "~/utils/SafeSmartAccount";
 import { setEncryptedKeys } from "~/utils/semi_api";
 import { signWalletBinding } from "~/utils/wallet_binding";
@@ -103,14 +104,14 @@ const createManagerWallet = async (pin: string) => {
       chain: useChain.chain,
     });
 
-    // 第二步：使用pin加密助记词
-    const encrypted_keys = await encryptToKeystore(mnemonic, pin);
+    // 第二步：使用pin加密助记词（v2：解密还要服务端的 key_share，见 utils/keystore_session.ts）
+    const keystore = await createKeystoreV2(mnemonic, pin);
 
     // 第三步：上传加密后的密钥，附上持有私钥的证明（后端验签，并核对 Safe 地址由它推出）
     const proof = await signWalletBinding(account, userStore.user.id, evm_chain_address);
     const response = await setEncryptedKeys({
       id: userStore.user.id,
-      encrypted_keys: JSON.stringify(encrypted_keys),
+      ...keystore,
       evm_chain_active_key,
       evm_chain_address,
       ...proof,

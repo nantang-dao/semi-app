@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { AUTH_TOKEN_KEY, getCookie, logout, getMe } from "@/utils/semi_api";
+import { lockKeystore } from "@/utils/keystore_session";
 
 export const useUserStore = defineStore("user", {
   state: () => ({
@@ -20,6 +21,7 @@ export const useUserStore = defineStore("user", {
     async signout() {
       // logout() 会先让服务端吊销 token，再删本地 cookie
       await logout();
+      lockKeystore();
       this.user = null;
     },
     setUser(user: UserInfo) {

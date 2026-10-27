@@ -197,7 +197,7 @@ import { useChainStore } from "@/stores/chain";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { encodeDeployData } from "viem";
-import { keystoreToPrivateKey } from "semi-core/keys";
+import { unlockPrivateKey } from "~/utils/keystore_session";
 import { abi, bytecode } from "~/utils/deploy/MinimalFactory.json";
 import { deploy } from "~/utils/SafeSmartAccount/operation";
 
@@ -268,10 +268,7 @@ const resetForm = () => {
 const deployToken = async () => {
   loading.value = true;
   try {
-    const privateKey = await keystoreToPrivateKey(
-      JSON.parse(useUser.user?.encrypted_keys as string),
-      formState.code.join("")
-    );
+    const privateKey = await unlockPrivateKey(formState.code.join(""));
 
     // TODO: 实现部署函数
     const deployData = encodeDeployData({

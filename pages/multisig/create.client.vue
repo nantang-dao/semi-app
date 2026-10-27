@@ -160,7 +160,7 @@ import { useI18n } from '~/stores/i18n'
 import { predictSafeAccountAddress } from '~/utils/SafeSmartAccount/account'
 import { useChainStore, chainMap } from '~/stores/chain'
 import { createMultisigWallet } from '~/utils/multisig_api'
-import { keystoreToPrivateKey } from 'semi-core/keys'
+import { unlockPrivateKey } from '~/utils/keystore_session'
 import { getUserByHandle } from '~/utils/semi_api'
 
 const router = useRouter()
@@ -278,10 +278,7 @@ async function onPasscodeConfirm(passcode: string) {
   creating.value = true
   try {
     // Get private key to sign for wallet creation
-    const encryptedKeys = userStore.user?.encrypted_keys
-    if (!encryptedKeys) throw new Error('No encrypted keys')
-    const keystore = typeof encryptedKeys === 'string' ? JSON.parse(encryptedKeys) : encryptedKeys
-    const privateKey = await keystoreToPrivateKey(keystore, passcode) as `0x${string}`
+    const privateKey = await unlockPrivateKey(passcode)
 
     // Build owner list (sorted)
     const allOwners = [

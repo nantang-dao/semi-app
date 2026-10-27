@@ -246,7 +246,6 @@ const handleAcceptBadge = async () => {
         body: {
           badge_id: props.badge.badge_id,
           ...(await signBadgeAuth({
-            keystoreJson: user.user!.encrypted_keys,
             pinCode: pinCode.value.join(""),
             action: "accept-badge",
             chainId: chainStore.chain.id,
@@ -302,7 +301,6 @@ const handleRejectBadge = async () => {
         body: {
           badge_id: props.badge.badge_id,
           ...(await signBadgeAuth({
-            keystoreJson: user.user!.encrypted_keys,
             pinCode: pinCode.value.join(""),
             action: "reject-badge",
             chainId: chainStore.chain.id,

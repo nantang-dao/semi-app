@@ -17,7 +17,8 @@ export interface UserInfo {
   evm_chain_active_key?: string | null;
   remaining_gas_credits?: number;
   total_used_gas_credits?: number;
-  encrypted_keys?: string | null;
+  /** keystore 版本：1 = 旧格式（只靠支付码），2 = 需要服务端 key_share，null = 还没设置。见 utils/keystore_session.ts */
+  keystore_version?: 1 | 2 | null;
   handle_changed_at?: string | null;
   next_rename_at?: string | null;
   renamed_from?: string | null;
@@ -258,6 +259,9 @@ export async function setImageUrl(id: string, image_url: string): Promise<BaseRe
 export interface SetEncryptedKeysProps {
   id: string;
   encrypted_keys: string;
+  /** v2 keystore 必带，见 semi-core encryptToKeystoreV2 */
+  verifier?: string;
+  key_share?: string;
   evm_chain_address: string;
   evm_chain_active_key: string;
   public_key: string;
@@ -289,6 +293,57 @@ export async function getEncryptedKeys(id: string): Promise<EncryptedKeysRespons
     headers: getAuthHeaders(),
   });
   return handleRequest<EncryptedKeysResponse>(response);
+}
+
+// 7.1 keystore v2：取版本和解锁参数、核对支付码换 key_share、升级 / 更换。
+// 只给 utils/keystore_session.ts 用，页面不要直接调。见 semi-backend docs/keystore.md。
+
+export type KeystoreInfo =
+  | { version: 1; encrypted_keys: unknown }
+  | { version: 2; params: { salt: string; iterations: number }; locked_until: string | null }
+  | { version: null };
+
+export async function getKeystore(): Promise<KeystoreInfo> {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/get_keystore`, { headers: getAuthHeaders() });
+  return handleRequest<KeystoreInfo>(response);
+}
+
+/** 失败时抛 ApiError；code 为 bad_passcode / keystore_locked 时 data 带 attempts_left / locked_until */
+export class KeystoreUnlockError extends ApiError {
+  constructor(message: string, code: string | undefined, readonly data: { attempts_left?: number; locked_until?: string }) {
+    super(message, code);
+  }
+}
+
+export async function unlockKeystore(verifier: string): Promise<{ encrypted_keys: unknown; key_share: string }> {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/unlock_keystore`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ verifier }),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new KeystoreUnlockError(error.message || "请求失败", error.code, error);
+  }
+  return response.json();
+}
+
+export interface UpdateKeystoreProps {
+  encrypted_keys: string;
+  verifier: string;
+  key_share: string;
+  issued_at: number;
+  public_key: string;
+  signature: string;
+}
+
+export async function updateKeystore(props: UpdateKeystoreProps): Promise<BaseResponse> {
+  const response = await fetch(`${requireSemiRestBaseUrl()}/update_keystore`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(props),
+  });
+  return handleRequest<BaseResponse>(response);
 }
 
 // 8. 获取用户信息
