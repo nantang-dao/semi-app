@@ -1,0 +1,19 @@
+pages/transfer.client.vue
+  s_21c523732de41d::t_c38011f0abd524 198,307,413-421
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a7155568795c8552117bbf231b24fe6d52c0830a",
+  "prompts": {},
+  "sessions": {
+    "s_21c523732de41d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7cce0af7-aa66-434c-92bc-b50481bff78b",
+        "model": "deepseek/deepseek-v4.1-flash"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
