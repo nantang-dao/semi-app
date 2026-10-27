@@ -1,0 +1,36 @@
+packages/semi-core/test/bundler-rejection.test.ts
+  s_21c523732de41d::t_782db518e59472 106-108,112
+components/MultisigChainStatus.client.vue
+  s_21c523732de41d::t_97d6e1c3c12256 144-149
+  s_21c523732de41d::t_70ab6fd9e09c37 111-112
+  s_21c523732de41d::t_b92c868ed7aec4 94
+  s_21c523732de41d::t_9cbcc9ac961d71 126-128
+docs/semi-core-api.md
+  s_21c523732de41d::t_2551dd401b64a0 504-507
+  s_21c523732de41d::t_0ea98ebd0eb6a7 457-459
+pages/multisig/[id].client.vue
+  s_21c523732de41d::t_de6d9297f16172 315
+  s_21c523732de41d::t_369f72b1c5a56e 894
+  s_21c523732de41d::t_a2339ee4358785 630-632
+packages/semi-core/src/multisig/snapshot.ts
+  s_21c523732de41d::t_559e34fb5aa6fd 96
+  s_21c523732de41d::t_d49e33a43ef736 47,53-58,60-61
+utils/gas_sponsorship.ts
+  s_21c523732de41d::t_b14563b4112c98 23-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "95bebc8de8cacfc40278aec2d46bf2668c5f805f",
+  "prompts": {},
+  "sessions": {
+    "s_21c523732de41d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7cce0af7-aa66-434c-92bc-b50481bff78b",
+        "model": "deepseek/deepseek-v4.1-flash"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
