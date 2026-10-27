@@ -7,7 +7,7 @@
         color="neutral"
         variant="ghost"
         class="self-start"
-        @click="router.back()"
+        @click="handleBack"
       >
         {{ i18n.text["Back"] }}
       </UButton>
@@ -446,10 +446,55 @@ function openRemoveModal(owner: MultisigOwner) {
   showOwnerChangeModal.value = true
 }
 
+/** 取消/返回：添加确认层回到搜索；移除确认层直接关 */
 function closeOwnerChangeModal() {
+  const wasAdd = ownerChangeMode.value === 'add'
   showOwnerChangeModal.value = false
   ownerChangeMode.value = null
   removeTarget.value = null
+  if (wasAdd) {
+    showAddOwner.value = true
+  }
+}
+
+/** 提案已提交：关掉整条向导，不回到搜索 */
+function dismissOwnerChangeModal() {
+  showOwnerChangeModal.value = false
+  ownerChangeMode.value = null
+  removeTarget.value = null
+  showAddOwner.value = false
+  addOwnerQuery.value = ''
+  addOwnerResult.value = null
+  addOwnerError.value = ''
+}
+
+/** 页头返回：有弹层先回上一步，列表页才离开 */
+function handleBack() {
+  if (showOwnerChangeModal.value) {
+    closeOwnerChangeModal()
+    return
+  }
+  if (showReplaceModal.value) {
+    closeReplaceModal()
+    return
+  }
+  if (showAddOwner.value) {
+    showAddOwner.value = false
+    return
+  }
+  if (showReplaceOwner.value) {
+    showReplaceOwner.value = false
+    replaceTarget.value = null
+    replaceOwnerResult.value = null
+    replaceOwnerQuery.value = ''
+    replaceOwnerError.value = ''
+    return
+  }
+  if (showChangeThreshold.value) {
+    showChangeThreshold.value = false
+    return
+  }
+  router.back()
 }
 
 async function loadOwners() {
@@ -510,7 +555,7 @@ async function submitOwnerChange() {
     } else if (ownerChangeMode.value === 'remove' && removeTarget.value) {
       await submitRemoveProposal(removeTarget.value, newT)
     }
-    closeOwnerChangeModal()
+    dismissOwnerChangeModal()
   } catch (e: any) {
     toast.add({ title: i18n.text['Error'] || 'Error', description: e.message, color: 'error' })
   } finally {
@@ -591,10 +636,20 @@ function openReplaceModal() {
   showReplaceModal.value = true
 }
 
+/** 取消/返回：替换确认层回到搜索，保留目标与已搜用户 */
 function closeReplaceModal() {
   showReplaceModal.value = false
+  showReplaceOwner.value = true
+}
+
+/** 提案已提交：关掉整条替换向导 */
+function dismissReplaceModal() {
+  showReplaceModal.value = false
+  showReplaceOwner.value = false
   replaceTarget.value = null
   replaceOwnerResult.value = null
+  replaceOwnerQuery.value = ''
+  replaceOwnerError.value = ''
 }
 
 async function submitReplaceProposal() {
@@ -604,7 +659,7 @@ async function submitReplaceProposal() {
   try {
     const newOwner = replaceOwnerResult.value.evm_chain_active_key as `0x${string}`
     const oldOwner = replaceTarget.value.owner_address
-    closeReplaceModal()
+    dismissReplaceModal()
     await proposeOnAllChains({ type: 'replace_owner', oldOwner, newOwner })
   } catch (e: any) {
     toast.add({ title: i18n.text['Error'] || 'Error', description: e.message, color: 'error' })

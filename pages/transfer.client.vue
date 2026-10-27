@@ -195,7 +195,7 @@
               class="flex-1 flex justify-center items-center"
               size="xl"
               :disabled="loading"
-              @click="handleReset"
+              @click="backToForm"
             >
               {{ i18n.text["Previous"] }}
             </UButton>
@@ -302,6 +302,11 @@ const multisigHintText = computed(() => {
 });
 
 const handleBack = () => {
+  // 单签 step2（输 PIN）先回到表单；多签无 step2，step1 仍回队列/首页
+  if (step.value === 2) {
+    backToForm();
+    return;
+  }
   if (multisigStore.activeWallet) {
     router.push("/multisig/queue");
   } else {
@@ -403,6 +408,15 @@ const resetForm = () => {
   formState.poolUuid = "";
   formState.taskUuid = "";
   // Note: metadata is not reset here as it comes from URL params
+};
+
+/**
+ * step2 的「返回」：只回到表单并清掉已输入的支付码，保留收款人、金额、备注。
+ * 不能用 resetForm——那会把用户填好的表单一起清掉，想改个金额就得重填。
+ */
+const backToForm = () => {
+  step.value = 1;
+  formState.code = [...DEFAULT_CODE];
 };
 
 // 业务逻辑函数
@@ -784,10 +798,6 @@ const handleContactSelect = (address: string) => {
   if (isAddress(address)) {
     formState.to = address;
   }
-};
-
-const handleReset = () => {
-  resetForm();
 };
 
 // 监听器
