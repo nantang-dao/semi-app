@@ -419,7 +419,7 @@
   "oauth.scope.openid.title": "验证身份",
   "oauth.scope.openid.desc": "确认你是 Semi 用户",
   "oauth.scope.profile.title": "个人资料",
-  "oauth.scope.profile.desc": "你的用户名及手机/邮箱验证状态",
+  "oauth.scope.profile.desc": "你的用户名，以及已验证的手机号和邮箱",
   "oauth.scope.wallet.title": "数字身份地址",
   "oauth.scope.wallet.desc": "你的主数字身份地址",
   "oauth.scope.token:read.title": "代币余额",

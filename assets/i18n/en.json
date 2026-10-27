@@ -413,7 +413,7 @@
   "oauth.scope.openid.title": "Verify your identity",
   "oauth.scope.openid.desc": "Confirm you are a Semi user",
   "oauth.scope.profile.title": "Profile information",
-  "oauth.scope.profile.desc": "Your handle and phone/email verification status",
+  "oauth.scope.profile.desc": "Your handle, plus your verified phone number and email",
   "oauth.scope.wallet.title": "Wallet address",
   "oauth.scope.wallet.desc": "Your primary EVM wallet address",
   "oauth.scope.token:read.title": "Token balances",
