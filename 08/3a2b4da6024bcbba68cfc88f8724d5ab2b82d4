@@ -1,0 +1,29 @@
+utils/gas_sponsorship.ts
+  s_21c523732de41d::t_8b36b4a036842e 11-13,18
+packages/semi-core/test/sponsorship.test.ts
+  s_21c523732de41d::t_d91838695098bc 1-110
+packages/semi-core/src/errors.ts
+  s_21c523732de41d::t_db86053f45c6b5 111-117,121,127
+packages/semi-core/src/ops/userOp.ts
+  s_21c523732de41d::t_88bee4ac0406e5 160-163,165,186-187
+packages/semi-core/src/multisig/sponsorship.ts
+  s_21c523732de41d::t_cf2d5c94c34cab 172,174-177,179-184,189,210-211,222-223,228-235,237-238,242
+pages/transfer.client.vue
+  s_21c523732de41d::t_8b36b4a036842e 765-767,769-770
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "083a2b4da6024bcbba68cfc88f8724d5ab2b82d4",
+  "prompts": {},
+  "sessions": {
+    "s_21c523732de41d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7cce0af7-aa66-434c-92bc-b50481bff78b",
+        "model": "deepseek/deepseek-v4.1-flash"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
