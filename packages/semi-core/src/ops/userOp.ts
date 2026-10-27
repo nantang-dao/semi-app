@@ -157,8 +157,12 @@ export async function sendUserOperation(
     await assertCanPrefund(ctx, account.address, gas);
   }
 
+  // 拿到 hash 之后这笔就已经交给 bundler 了（nonce 可能已消耗）。调用方据此
+  // 决定能不能重发——比如转账页「代付失败改自付再试一次」的兜底，绝不能重发一笔
+  // 可能已经在链上的交易。
+  let hash: Hex | undefined;
   try {
-    const hash = await bundlerClient.sendUserOperation({
+    hash = await bundlerClient.sendUserOperation({
       account,
       calls,
       ...gas,
@@ -179,7 +183,8 @@ export async function sendUserOperation(
         ? `${message} — AA23 means the account's validateUserOp reverted: wrong owner key, wrong chain, nonce mismatch, or not enough ETH to prefund without a paymaster.`
         : message,
       aaCode,
-      { cause }
+      // hash 有值 = 已经提交（这里多半是等回执超时/中断），submitted 由它推出
+      { cause, userOpHash: hash }
     );
   }
 }

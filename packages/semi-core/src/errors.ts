@@ -108,15 +108,23 @@ export class UserOpFailedError extends SemiCoreError {
   /** 有值 = 已经上链（nonce 已消耗），只是执行失败 */
   readonly txHash: string | undefined;
   readonly userOpHash: string | undefined;
+  /**
+   * true = 这笔 UserOp 已经交给 bundler，nonce 可能已消耗。
+   *
+   * 判定「能不能重发」只看这个字段：提交之后再重发就是发两笔。拿到 userOpHash
+   * 或 txHash 就一定是 true。
+   */
+  readonly submitted: boolean;
   constructor(
     message: string,
     aaCode?: string,
-    options?: ErrorOptions & { txHash?: string; userOpHash?: string }
+    options?: ErrorOptions & { txHash?: string; userOpHash?: string; submitted?: boolean }
   ) {
     super("USER_OP_FAILED", message, options);
     this.aaCode = aaCode;
     this.txHash = options?.txHash;
     this.userOpHash = options?.userOpHash;
+    this.submitted = options?.submitted ?? Boolean(options?.txHash || options?.userOpHash);
   }
 }
 

@@ -1,6 +1,8 @@
 import type { Address, Hex } from "viem";
+import { entryPoint07Abi } from "viem/account-abstraction";
 import { ENTRY_POINT_07_ADDRESS } from "../chains";
 import type { ChainContext } from "../config";
+import { InsufficientFundsError, UserOpFailedError } from "../errors";
 
 /**
  * eth-infinitism VerifyingPaymaster（ZeroDev 用的就是这个）的 paymasterData 布局：
@@ -158,4 +160,89 @@ export async function fetchSponsorPaymasterData(
     paymasterPostOpGasLimit: pmPostOpGas,
     validUntil: validity?.validUntil ?? 0,
   };
+}
+
+/**
+ * EntryPoint 上 paymaster 存款低于此值，就当作「代付不可用」。
+ * 一笔 L2 UserOp 通常远小于这个数；为 0 时 stub 仍可能成功，所以必须查存款。
+ */
+export const PAYMASTER_DEPOSIT_FLOOR_WEI = 10_000_000_000_000n; // 0.00001 ETH
+
+/**
+ * 探活：这条链现在能不能真代付。**不抛给 UI**。
+ *
+ * 三种结果，调用方必须区分：
+ * - `true`  确认能代付：拿到了 paymaster，且 EntryPoint 里的存款够。
+ * - `false` 确认不能代付：这条链没配 paymaster，或存款低于底线。
+ * - `null`  **问不出来**：RPC 失败、限流，或 paymaster 没给数据。这不代表不能代付。
+ *
+ * 为什么要分出 `null`：探活用的是占位 `callData: "0x"`，而 ZeroDev 的赞助策略
+ * 可能按目标合约 / calldata 判定——占位调用被拒，真实转账未必被拒。把「问不出来」
+ * 当成「不可用」会让用户白白从自己的 ETH 里付 gas。调用方对 `null` 应当照常先试
+ * 代付：真发不出去，还有提交后的自付兜底。
+ *
+ * 注意存款为 0 时 stub 仍可能成功返回，所以必须读一次 `balanceOf`。
+ */
+export async function probePaymasterAvailable(
+  ctx: ChainContext,
+  sender: Address
+): Promise<boolean | null> {
+  if (!ctx.canSponsorGas || !ctx.paymasterUrl) return false;
+
+  try {
+    const nonce = await ctx.publicClient.readContract({
+      address: ENTRY_POINT_07_ADDRESS,
+      abi: entryPoint07Abi,
+      functionName: "getNonce",
+      args: [sender, 0n],
+    });
+
+    const pm = await fetchSponsorPaymasterData(ctx, {
+      sender,
+      nonce,
+      callData: "0x",
+      callGasLimit: 100_000n,
+      verificationGasLimit: 200_000n,
+      preVerificationGas: 50_000n,
+      maxFeePerGas: 1_000_000n,
+      maxPriorityFeePerGas: 100_000n,
+    });
+    // 没给 paymaster：可能是策略不接受这个占位 callData，不是「这条链不能代付」
+    if (!pm?.paymaster) return null;
+
+    const deposit = await ctx.publicClient.readContract({
+      address: ENTRY_POINT_07_ADDRESS,
+      abi: entryPoint07Abi,
+      functionName: "balanceOf",
+      args: [pm.paymaster],
+    });
+
+    return deposit >= PAYMASTER_DEPOSIT_FLOOR_WEI;
+  } catch (error) {
+    ctx.logger.warn("Paymaster probe failed — cannot tell whether sponsorship works", error);
+    return null;
+  }
+}
+
+/**
+ * 这笔失败是否像「代付不行」、值得改自付**重发一次**。
+ *
+ * 只有确定这笔还没交给 bundler 才返回 true —— 重发一笔可能已经上链的交易就是
+ * 转两次。所以：
+ * - 余额不足：不是代付的问题，自付也发不出去；
+ * - `submitted`（拿到过 userOpHash / txHash，等回执超时或已上链后才发现失败）：
+ *   一律不重发，交给用户自己重试并重新签名；
+ * - 其余（估 gas 阶段被 paymaster 拒、提交前的 RPC 报错）才是可以安全重发的。
+ *
+ * 最后那条按关键词兜底会命中「提交后才抛出、但消息里带 paymaster 字样」的错误，
+ * 所以在 `submitted` 已经把它们挡掉之后才用。
+ */
+export function isSponsorshipFailure(error: unknown): boolean {
+  if (error instanceof InsufficientFundsError) return false;
+  if (error instanceof UserOpFailedError && error.submitted) return false;
+
+  const message = error instanceof Error ? error.message : String(error);
+  const aa = message.match(/\bAA(31|33|34)\b/)?.[1];
+  if (aa) return true;
+  return /paymaster|sponsorship|sponsor fee|AA33|AA34|AA31/i.test(message);
 }
