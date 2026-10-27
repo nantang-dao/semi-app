@@ -40,7 +40,13 @@ function ripplesScorePlay(
   };
 }
 
-/** Originals（ERC1155 原曲）：合集页 /tracks；也接受站点根路径 */
+/**
+ * Originals（ERC1155 原曲）：默认指向合集页 /tracks。
+ *
+ * 校验**有意**放宽到「该站点的任意页面」：原曲播放页的具体路径不归我们控制，
+ * 写死 /tracks 前缀会在对方改路由时把播放入口弄坏。这里真正要挡的是 metadata
+ * 把播放按钮指向站外的钓鱼页，同源这一条就够了。
+ */
 function ripplesOriginalsPlay(): Pick<MusicNftCollection, "defaultPlayUrl" | "validatePlayUrl"> {
   return {
     defaultPlayUrl: () => "https://pond-ripple.xyz/tracks",
@@ -48,6 +54,7 @@ function ripplesOriginalsPlay(): Pick<MusicNftCollection, "defaultPlayUrl" | "va
       const pathname = pathnameOf(url);
       if (!pathname) return false;
       if (pathname === "/" || pathname === "/tracks") return true;
+      // 同源的其他页面也接受，理由见上
       try {
         return new URL(url).hostname === "pond-ripple.xyz";
       } catch {
