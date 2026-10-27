@@ -91,7 +91,7 @@ import {
   multisigChainIdsFor,
   walletRowsOf,
 } from '~/utils/multisig_chains'
-import { isGasSponsorshipChain } from '~/utils/gas_sponsorship'
+import { canSponsorTransferNow, isGasSponsorshipChain } from '~/utils/gas_sponsorship'
 import type { MultisigWallet } from '~/utils/multisig_api'
 
 const props = defineProps<{
@@ -108,6 +108,8 @@ const multisigStore = useMultisigStore()
 
 const currentChainId = computed(() => chainStore.chain.id)
 const status = ref<Record<number, boolean | null>>({})
+/** 探活结果：false = 确认这条链现在付不了 gas。undefined/null 按配置显示 */
+const sponsorProbe = ref<Record<number, boolean | null>>({})
 const loaded = ref(false)
 const confirming = ref<number | null>(null)
 const enabling = ref<number | null>(null)
@@ -121,7 +123,9 @@ const chains = computed(() =>
     name: chainMap[id]?.name ?? String(id),
     icon: chainMap[id]?.icon ?? '',
     enabled: enabledIds.value.has(id),
-    sponsored: isGasSponsorshipChain(id),
+    // 配置说这条链代付，但 paymaster 没存款时代付发不出去。探活确认付不了才改口
+    // 说「不代付」；问不出来（null）仍按配置显示，不误报。
+    sponsored: sponsorProbe.value[id] === false ? false : isGasSponsorshipChain(id),
     activated: status.value[id] ?? null,
   }))
 )
@@ -136,6 +140,12 @@ async function load(fresh = false) {
         status.value = { ...status.value, [id]: await isSafeActivated(props.wallet.safe_address, id, fresh) }
       } catch {
         // 读不到就保持未知，不误报「未激活」
+      }
+      try {
+        const sponsored = await canSponsorTransferNow(id, props.wallet.safe_address as `0x${string}`)
+        sponsorProbe.value = { ...sponsorProbe.value, [id]: sponsored }
+      } catch {
+        // 探活失败：保持未探测状态，按配置显示
       }
     })
   )

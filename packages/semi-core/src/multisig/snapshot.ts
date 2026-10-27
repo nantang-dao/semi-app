@@ -44,19 +44,21 @@ const VERIFICATION_BUFFER = { num: 3n, den: 2n };
 const OTHER_BUFFER = { num: 6n, den: 5n };
 
 /**
- * gas 价格的余量。
+ * gas 价格的余量。三条链统一 3 倍。
  *
  * maxFeePerGas 进 SafeOp 哈希，收签期间（可能几天）改不了；而 bundler 只收
  * 不低于它当前最低价的出价。按报价原样冻结的话，行情涨 0.5% 就会被拒收
  * （实际发生过：Arbitrum 上提案 15 小时后执行，差 0.5% 被拒）。
  *
- * 这只是出价上限：EntryPoint 按 min(maxFee, baseFee + priority) 实际扣费，
- * 多出的部分不会花掉，只是自付时需要按上限预付（执行前的余额检查同样按上限）。
- * L1 的 gas 贵、波动也相对可控，取 1.5 倍；L2 的绝对值极低，取 3 倍。
+ * 主网原来单独取 1.5 倍，理由是主网 gas 贵、倍数越大预付越多。2026-10-27 改成
+ * 和 L2 一样 3 倍：主网 base fee 几小时内涨一倍很常见，1.5 倍撑不住一次普通波动，
+ * 而被拒的代价是已收集的签名全部作废、重新发起 —— 比让 Safe 多冻一点 ETH 严重得多。
+ *
+ * 这只是出价上限：EntryPoint 按 min(maxFee, baseFee + priority) 实际扣费，多出的
+ * 不会花掉；自付时按上限预付，执行后差额也会退回（执行前的余额检查同样按上限）。
  */
-const L1_CHAIN_IDS = new Set([1, 11155111]);
-export function bufferedMaxFeePerGas(chainId: number, maxFeePerGas: bigint): bigint {
-  return L1_CHAIN_IDS.has(chainId) ? (maxFeePerGas * 3n) / 2n : maxFeePerGas * 3n;
+export function bufferedMaxFeePerGas(maxFeePerGas: bigint): bigint {
+  return maxFeePerGas * 3n;
 }
 
 /**
@@ -91,7 +93,7 @@ export async function buildMultisigUserOpSnapshot(
   const estimated = await estimateMultisigGas(ctx, bundlerClient, { account, calls, threshold });
   const rawGas = {
     ...estimated,
-    maxFeePerGas: bufferedMaxFeePerGas(ctx.chainId, estimated.maxFeePerGas),
+    maxFeePerGas: bufferedMaxFeePerGas(estimated.maxFeePerGas),
   };
 
   const verificationGasLimit =

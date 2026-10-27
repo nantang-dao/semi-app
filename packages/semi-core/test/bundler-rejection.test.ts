@@ -103,14 +103,12 @@ describe("bundler 拒收", () => {
 });
 
 describe("bufferedMaxFeePerGas", () => {
-  it("L2 取 3 倍，L1 取 1.5 倍", () => {
-    expect(bufferedMaxFeePerGas(42161, 26418480n)).toBe(79255440n);
-    expect(bufferedMaxFeePerGas(10, 1000n)).toBe(3000n);
-    expect(bufferedMaxFeePerGas(1, 1000n)).toBe(1500n);
-    expect(bufferedMaxFeePerGas(11155111, 1000n)).toBe(1500n);
+  it("三条链统一取 3 倍", () => {
+    expect(bufferedMaxFeePerGas(26418480n)).toBe(79255440n);
+    expect(bufferedMaxFeePerGas(1000n)).toBe(3000n);
   });
 
   it("截图里那次的报价加余量后高于 bundler 15 小时后的最低价", () => {
-    expect(bufferedMaxFeePerGas(42161, 26418480n) >= 26555760n).toBe(true);
+    expect(bufferedMaxFeePerGas(26418480n) >= 26555760n).toBe(true);
   });
 });

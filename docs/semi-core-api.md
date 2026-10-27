@@ -454,9 +454,9 @@ function assertValidSnapshot(snapshot: unknown): asserts snapshot is UserOpSnaps
 由**第一个签名者**触发。gas 和 paymaster 数据在这一刻冻结 —— 它们都进 SafeOp 的
 EIP-712 哈希，之后任何一个字节的变化都会让已收集的签名作废。
 
-因为冻结，`maxFeePerGas` 在 bundler 报价上加了余量（`bufferedMaxFeePerGas(chainId, fee)`：
-L1 即主网/Sepolia 1.5 倍，L2 3 倍），否则收签期间行情稍涨，bundler 就会以「maxFeePerGas must
-be at least …」拒收。这只是出价上限，实际按链上价格扣费；自付时预付按上限算。
+因为冻结，`maxFeePerGas` 在 bundler 报价上加了余量（`bufferedMaxFeePerGas(fee)`：三条链统一
+3 倍；主网 2026-10-27 之前是 1.5 倍），否则收签期间行情稍涨，bundler 就会以「maxFeePerGas must
+be at least …」拒收。这只是出价上限，实际按链上价格扣费；自付时预付按上限算，差额执行后退回。
 
 `UserOpSnapshot` 序列化进后端数据库、再取回来给下一个签名者用，是**跨进程契约**：
 数值一律用字符串存（JSON 没有 bigint），**字段名和形状不能随意改**。
@@ -500,6 +500,10 @@ ZeroDev 的 `validUntil` 是 0，赞助本身不过期）。加它是因为快�
 价格：放得越久，nonce 越可能被别的交易占用（提交时 AA25），冻结的价格也越可能低于
 行情而被拒收。改这个值只影响此后新建的提案 —— 已存在的快照按写入时记下的
 `expiresAt` 判定，因为签名承诺的是那一份快照。
+
+后端另有一道独立的 `expires_at`（`multisig_controller.rb` 的 `MULTISIG_TX_TTL`），
+两边都是 14 天，必须保持一致：短的那个会以「已过期」把长的悄悄作废（2026-10-27
+之前后端是 5 天，实际窗口就只有 5 天）。
 
 ### 签名
 

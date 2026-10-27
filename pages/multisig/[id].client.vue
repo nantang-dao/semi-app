@@ -312,6 +312,7 @@ import {
 } from '~/utils/SafeSmartAccount/multisig'
 import { unlockPrivateKey } from '~/utils/keystore_session'
 import { assertSnapshotMatchesCall, SnapshotMismatchError } from 'semi-core'
+import { shouldSponsorMultisigFee } from '~/utils/gas_sponsorship'
 import { callFromTx } from '~/utils/multisig_calls'
 import { chainMap } from '~/stores/chain'
 import { chainName } from '~/utils/multisig_chains'
@@ -626,6 +627,9 @@ async function signOne(t: MultisigTx, privateKey: Hex, retried = false): Promise
       threshold: t.current_threshold ?? threshold,
       chain,
       calls: [call],
+      // 建快照前先确认这条链现在真能代付：快照一签下去就不能改，
+      // 代付失败也没有「改自付重发」的余地（见 shouldSponsorMultisigFee）
+      sponsorFee: await shouldSponsorMultisigFee(t.chain_id, safe),
     })
     nonce = snapshot.nonce
   }
@@ -887,6 +891,7 @@ async function handleProposeReject() {
       chain,
       forcedNonce: BigInt(tx.value.nonce),
       calls: [{ to: safeAddress, value: 0n, data: '0x' }],
+      sponsorFee: await shouldSponsorMultisigFee(tx.value.chain_id, safeAddress),
     })
 
     const { tx: cancelTx } = await proposeMultisigTx({
