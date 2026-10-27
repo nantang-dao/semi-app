@@ -762,10 +762,12 @@ const onSubmit = async () => {
     ) {
       try {
         const sender = await getActiveSmartAccountAddress();
-        willSponsor.value = await canSponsorTransferNow(useChain.chain.id, sender);
+        // 只有探活**确认**不能代付才按自付展示；问不出结果（null）照常先试代付——
+        // 探活用的是占位 calldata，被拒不代表真实转账会被拒。真发不出去还有下面的兜底。
+        willSponsor.value = (await canSponsorTransferNow(useChain.chain.id, sender)) !== false;
       } catch (error) {
-        console.warn("Paymaster probe error, falling back to self-pay", error);
-        willSponsor.value = false;
+        console.warn("Paymaster probe error, assuming sponsorship may work", error);
+        willSponsor.value = true;
       }
     }
 
